@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Database
+coach.db
+*.parquet
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# API Keys
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
+*_temp.parquet
+
+# Logs
+*.log 

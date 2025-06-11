@@ -1,0 +1,7 @@
+typer
+prompt_toolkit
+pandas
+duckdb
+requests
+openai
+rich 
