@@ -3,14 +3,34 @@ import os
 import json
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
+from dotenv import load_dotenv
 
-OPENAI_KEY = os.environ.get("OPENAI_KEY", "")
+# Load environment variables from .env file
+load_dotenv()
+
+# Initialize OpenAI client
+api_key = os.environ.get("OPENAI_API_KEY", "")
+if not api_key:
+    print("⚠️  Warning: OPENAI_API_KEY not found in environment variables")
+    print("   AI coaching features will not work without it.")
+    
+client = OpenAI(api_key=api_key) if api_key else None
 
 class TradingCoach:
     """OpenAI-powered trading coach for wallet analysis insights."""
     
     def __init__(self, api_key: Optional[str] = None):
-        self.client = OpenAI(api_key=api_key or OPENAI_KEY)
+        # Use provided key, global client, or create new one
+        if api_key:
+            self.client = OpenAI(api_key=api_key)
+        elif client:
+            self.client = client
+        else:
+            self.client = None
+            
+        if not self.client:
+            raise ValueError("No OpenAI API key available. Please set OPENAI_API_KEY environment variable.")
+            
         self.context = """You are an experienced Solana trading coach analyzing wallet performance.
         Your role is to provide data-driven insights without hype or speculation.
         Focus on:

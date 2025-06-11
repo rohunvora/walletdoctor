@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # coach.py
 import os, json, typer, duckdb
 from prompt_toolkit import PromptSession
@@ -5,6 +6,14 @@ from rich import print
 from rich.console import Console
 from rich.table import Table
 from typing import Optional
+from rich.progress import track
+
+# Set API keys from environment variables
+# DO NOT hardcode API keys in code!
+# Set these in your shell or .env file:
+# export HELIUS_KEY="your-helius-key"
+# export CIELO_KEY="your-cielo-key"
+# export OPENAI_API_KEY="your-openai-key"
 
 # Import our modules
 from data import fetch_helius_transactions, fetch_cielo_pnl, cache_to_duckdb
@@ -19,7 +28,9 @@ from analytics import (
     calculate_slippage_estimate,
     identify_leak_trades,
     calculate_portfolio_metrics,
-    generate_trading_insights
+    generate_trading_insights,
+    calculate_accurate_stats,
+    calculate_median_hold_time
 )
 from llm import TradingCoach, get_quick_insight, ANALYSIS_PROMPTS
 
@@ -58,7 +69,9 @@ def init_db():
             avgSellPrice DOUBLE,
             quantity DOUBLE,
             totalBought DOUBLE,
-            totalSold DOUBLE
+            totalSold DOUBLE,
+            holdTimeSeconds BIGINT,
+            numSwaps INTEGER
         )
     """)
 
@@ -71,42 +84,44 @@ def load(addresses: str, limit: Optional[int] = 500):
         console.print(f"[bold cyan]► Fetching data for {address}...[/]")
         
         try:
-            # Fetch transaction history
+            # Fetch transactions
             with console.status("[bold green]Fetching transactions from Helius..."):
-                tx_data = fetch_helius_transactions(address, limit=limit)
-                console.print(f"  ✓ Found {len(tx_data)} transactions")
-            
-            # Normalize and store transactions
-            if tx_data:
-                tx_df = normalize_helius_transactions(tx_data)
-                # Clear existing data for this wallet
-                try:
-                    db.execute(f"DELETE FROM tx WHERE from_address = '{address}' OR to_address = '{address}'")
-                except:
-                    pass  # Table might not exist yet
-                # Store normalized data
-                cache_to_duckdb(db, "tx", tx_df.to_dict('records'))
+                tx_data = fetch_helius_transactions(address, limit=100)
+                if tx_data:
+                    console.print(f"  ✓ Found {len(tx_data)} transactions")
+                    # Pass transaction data as a list
+                    tx_df = normalize_helius_transactions(tx_data)
+                    # Clear existing data for this wallet
+                    try:
+                        db.execute(f"DELETE FROM tx WHERE from_address = '{address}' OR to_address = '{address}'")
+                    except:
+                        pass  # Table might not exist yet
+                    # Store normalized data
+                    cache_to_duckdb(db, "tx", tx_df.to_dict('records'))
             
             # Fetch PnL data
-            with console.status("[bold green]Fetching PnL from Cielo..."):
-                pnl_data = fetch_cielo_pnl(address)
-                if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
-                    tokens = pnl_data['data']['items']
-                    console.print(f"  ✓ Found PnL for {len(tokens)} tokens")
-                    # Pass the tokens list to normalize_cielo_pnl
-                    pnl_df = normalize_cielo_pnl({'tokens': tokens})
-                    # Clear existing PnL data
-                    try:
-                        db.execute("DELETE FROM pnl")  # Simple approach - can be improved
-                    except:
-                        pass
-                    # Store PnL data
-                    cache_to_duckdb(db, "pnl", pnl_df.to_dict('records'))
+            console.print("[bold green]Fetching PnL from Cielo...[/]")
+            pnl_data = fetch_cielo_pnl(address)
+            if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
+                tokens = pnl_data['data']['items']
+                console.print(f"  ✓ Found PnL for {len(tokens)} tokens total")
+                
+                # Pass the tokens list to normalize_cielo_pnl
+                pnl_df = normalize_cielo_pnl({'tokens': tokens})
+                # Clear existing PnL data
+                try:
+                    db.execute("DELETE FROM pnl")  # Simple approach - can be improved
+                except:
+                    pass
+                # Store PnL data
+                cache_to_duckdb(db, "pnl", pnl_df.to_dict('records'))
             
         except Exception as e:
-            console.print(f"[red]  ✗ Error loading {address}: {str(e)}[/]")
+            console.print(f"  ✗ Error loading {address}: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
-    console.print("[green]✓ Data cached in coach.db[/]")
+    console.print("✓ Data cached in coach.db")
 
 @app.command()
 def stats():
@@ -121,55 +136,39 @@ def stats():
         console.print("[yellow]No data found. Run 'load' command first.[/]")
         return
     
-    # Calculate metrics
-    console.print("\n[bold cyan]📊 Wallet Statistics[/]\n")
+    # Calculate accurate metrics
+    console.print("\n[bold cyan]📊 Wallet Statistics (Accurate)[/]\n")
     
-    # Win rate
-    win_metrics = calculate_win_rate(pnl_df)
-    table = Table(title="Win Rate Analysis")
+    # Get accurate stats
+    accurate_stats = calculate_accurate_stats(pnl_df)
+    
+    # Display summary matching Cielo's format
+    table = Table(title="Performance Summary")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", style="green")
-    table.add_row("Win Rate", f"{win_metrics['win_rate']:.1%}")
-    table.add_row("Total Trades", str(win_metrics['total_trades']))
-    table.add_row("Winning Trades", str(win_metrics['winning_trades']))
-    table.add_row("Losing Trades", str(win_metrics['losing_trades']))
-    table.add_row("Avg Win", f"${win_metrics['avg_win']:,.2f}")
-    table.add_row("Avg Loss", f"${win_metrics['avg_loss']:,.2f}")
-    table.add_row("Profit Factor", f"{win_metrics['profit_factor']:.2f}")
+    table.add_row("Tokens Traded", str(accurate_stats['total_tokens_traded']))
+    table.add_row("Token Win Rate", f"{accurate_stats['win_rate_pct']:.2f}%")
+    table.add_row("Winning Tokens", str(accurate_stats['winning_tokens']))
+    table.add_row("Losing Tokens", str(accurate_stats['losing_tokens']))
+    table.add_row("Realized PnL", f"${accurate_stats['total_realized_pnl']:,.2f}")
+    table.add_row("Unrealized PnL", f"${accurate_stats['total_unrealized_pnl']:,.2f}")
+    table.add_row("Median Hold Time", f"{accurate_stats['median_hold_minutes']:.1f} minutes")
     console.print(table)
     
-    # Hold patterns
-    if not tx_df.empty:
-        hold_durations = calculate_hold_durations(tx_df)
-        hold_patterns = analyze_hold_patterns(hold_durations)
+    # Additional detailed metrics
+    if not pnl_df.empty:
+        # Top gainers
+        console.print("\n[bold cyan]🚀 Top 5 Gainers[/]")
+        top_gainers = pnl_df.nlargest(5, 'realizedPnl')[['symbol', 'realizedPnl']]
+        for _, token in top_gainers.iterrows():
+            console.print(f"  {token['symbol']}: ${token['realizedPnl']:,.2f}")
         
-        console.print("\n[bold cyan]⏱️  Hold Pattern Analysis[/]")
-        console.print(f"Average hold: {hold_patterns['avg_hold_hours']:.1f} hours")
-        console.print(f"Quick flips (<1h): {hold_patterns['quick_flips_ratio']:.1%}")
-        
-        if 'hold_buckets' in hold_patterns:
-            table = Table(title="Hold Duration Distribution")
-            table.add_column("Duration", style="cyan")
-            table.add_column("Count", style="green")
-            for bucket, count in hold_patterns['hold_buckets'].items():
-                table.add_row(bucket, str(count))
-            console.print(table)
-    
-    # Portfolio summary
-    portfolio_metrics = calculate_portfolio_metrics(pnl_df, tx_df)
-    console.print("\n[bold cyan]💰 Portfolio Summary[/]")
-    console.print(f"Total Realized PnL: ${portfolio_metrics['total_realized_pnl']:,.2f}")
-    console.print(f"Total Unrealized PnL: ${portfolio_metrics['total_unrealized_pnl']:,.2f}")
-    console.print(f"Active Positions: {portfolio_metrics['active_positions']}")
-    
-    # Quick insight
-    all_metrics = {
-        'win_rate': win_metrics,
-        'hold_patterns': hold_patterns if not tx_df.empty else {},
-        'portfolio': portfolio_metrics
-    }
-    insight = get_quick_insight(all_metrics)
-    console.print(f"\n[bold yellow]{insight}[/]")
+        # Biggest losers
+        biggest_losers = pnl_df[pnl_df['realizedPnl'] < 0].nsmallest(5, 'realizedPnl')[['symbol', 'realizedPnl']]
+        if not biggest_losers.empty:
+            console.print("\n[bold red]📉 Biggest Losses[/]")
+            for _, token in biggest_losers.iterrows():
+                console.print(f"  {token['symbol']}: ${token['realizedPnl']:,.2f}")
 
 @app.command()
 def chat():

@@ -1,141 +1,108 @@
-# Wallet Doctor - Solana Trading Coach
+# 🩺 WalletDoctor
 
-A lightweight CLI tool for analyzing Solana wallet trading performance with AI-powered insights. Get machine-readable metrics and actionable coaching advice in minutes.
+A lightweight CLI tool for analyzing Solana wallet trading performance with AI-powered insights.
 
-## Features
+## 🚀 Features
 
-- 📊 **Trading Metrics**: Win rate, PnL analysis, hold patterns
-- 🤖 **AI Coaching**: OpenAI-powered insights tailored to your trading style
-- 💾 **Local Storage**: DuckDB for fast SQL queries, no external database needed
-- 🔍 **Deep Analysis**: Identify leak trades, analyze hold durations, estimate slippage
-- 🎯 **Actionable Insights**: Specific suggestions to improve your trading
+- Fetch and analyze transaction history from any Solana wallet
+- Calculate comprehensive trading metrics (win rate, PnL, hold patterns)
+- AI-powered trading coach providing personalized insights
+- Local data caching with DuckDB
+- Beautiful CLI interface with rich formatting
 
-## Quick Start
+## 📋 Prerequisites
 
-### 1. Install Dependencies
+- Python 3.8+
+- API keys for:
+  - [Helius](https://dev.helius.xyz/) - For transaction data
+  - [Cielo](https://cielo.finance/) - For PnL analysis
+  - [OpenAI](https://platform.openai.com/) - For AI insights
 
+## 🔧 Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/walletdoctor.git
+cd walletdoctor
+```
+
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set API Keys
-
+4. Set up API keys:
 ```bash
+# Copy the example environment file
+cp env.example .env
+
+# Edit .env and add your API keys
+# Or export them in your shell:
 export HELIUS_KEY="your-helius-api-key"
 export CIELO_KEY="your-cielo-api-key"
-export OPENAI_KEY="your-openai-api-key"
+export OPENAI_API_KEY="your-openai-api-key"
 ```
 
-### 3. Load Wallet Data
+## 🎯 Usage
 
+### Load wallet data:
 ```bash
-python coach.py load YOUR_WALLET_ADDRESS
-# Or multiple wallets:
-python coach.py load WALLET1,WALLET2,WALLET3
+python coach.py load <wallet-address>
 ```
 
-### 4. Start Coaching Session
-
-```bash
-python coach.py chat
-```
-
-## Commands
-
-### `load` - Fetch and Cache Wallet Data
-```bash
-python coach.py load ADDRESS [--limit 500]
-```
-Fetches transaction history from Helius and PnL data from Cielo.
-
-### `stats` - View Wallet Statistics
+### View statistics:
 ```bash
 python coach.py stats
 ```
-Displays comprehensive metrics including:
-- Win rate analysis
-- Hold pattern distribution
-- Portfolio summary
-- Quick insights
 
-### `chat` - Interactive Coaching
+### Get AI analysis:
+```bash
+python coach.py analyze
+```
+
+### Interactive chat with AI coach:
 ```bash
 python coach.py chat
 ```
-Opens an AI-powered chat session. Quick prompts available:
-- `general` - Overall performance analysis
-- `risk` - Risk management evaluation
-- `timing` - Entry/exit timing patterns
-- `losses` - Review biggest losses
-- `psychology` - Trading psychology patterns
 
-### `analyze` - One-Shot Analysis
-```bash
-python coach.py analyze ADDRESS "What are my biggest trading mistakes?"
-```
-
-### `clear` - Clear Cache
+### Clear cached data:
 ```bash
 python coach.py clear
 ```
 
-## Architecture
+## 📊 Example Output
 
 ```
-wallet-doctor/
-├── coach.py          # CLI entry point
-├── data.py           # API data fetching
-├── transforms.py     # Data normalization
-├── analytics.py      # Metrics calculation
-├── llm.py           # AI coaching logic
-└── coach.db         # Local DuckDB storage
+📊 Wallet Statistics
+
+Performance Summary
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ Metric           ┃ Value       ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ Tokens Traded    │ 800         │
+│ Token Win Rate   │ 25.62%      │
+│ Winning Tokens   │ 205         │
+│ Losing Tokens    │ 595         │
+│ Realized PnL     │ $332,499.00 │
+│ Unrealized PnL   │ $333,739.28 │
+│ Median Hold Time │ 9.9 minutes │
+└──────────────────┴─────────────┘
 ```
 
-## Example Usage
+## 🤝 Contributing
 
-### Basic Analysis
-```bash
-# Load wallet data
-python coach.py load 5Xg2n8mHZrKFnwfBDVxZRHqJLEG9L3FJRCDcxRKwiHzE
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-# View statistics
-python coach.py stats
+## ⚠️ Important Security Note
 
-# Start coaching
-python coach.py chat
-> How can I improve my win rate?
-```
+**Never commit API keys to version control!** Always use environment variables or a `.env` file (which should be in `.gitignore`).
 
-### Advanced Queries
-```bash
-# Direct SQL queries on cached data
-duckdb coach.db
-> SELECT token_mint, COUNT(*) as trades, AVG(token_amount) as avg_size 
-  FROM tx WHERE type LIKE '%swap%' GROUP BY token_mint;
-```
+## 📝 License
 
-## Metrics Explained
-
-- **Win Rate**: Percentage of profitable trades
-- **Profit Factor**: Ratio of average win to average loss
-- **Hold Duration**: Time between entry and exit
-- **Quick Flips**: Trades held less than 1 hour
-- **Leak Trades**: Losses exceeding 100 SOL
-
-## API Requirements
-
-- **Helius**: Enhanced Transactions API for decoded on-chain data
-- **Cielo**: PnL endpoints for profit/loss calculations
-- **OpenAI**: GPT-4 for coaching insights
-
-## Future Enhancements
-
-- [ ] Real-time slippage calculation with Jupiter prices
-- [ ] Discord bot integration
-- [ ] Progress tracking over time
-- [ ] Custom alert thresholds
-- [ ] Multi-wallet portfolio analysis
-
-## License
-
-MIT
+MIT License - see LICENSE file for details.

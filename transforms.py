@@ -95,7 +95,9 @@ def normalize_cielo_pnl(pnl_data: Dict[str, Any]) -> pd.DataFrame:
             'avgSellPrice': token.get('average_sell_price', 0),
             'quantity': token.get('holding_amount', 0),
             'totalBought': token.get('total_buy_amount', 0),
-            'totalSold': token.get('total_sell_amount', 0)
+            'totalSold': token.get('total_sell_amount', 0),
+            'holdTimeSeconds': token.get('holding_time_seconds', 0),
+            'numSwaps': token.get('num_swaps', 0)
         }
         normalized_tokens.append(normalized_token)
     
