@@ -251,4 +251,81 @@ def generate_trading_insights(
     if portfolio_metrics['total_realized_pnl'] < 0:
         insights.append("Net negative realized PnL - focus on improving trade selection")
     
-    return insights 
+    return insights
+
+def calculate_median_hold_time(pnl_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Calculate median hold time from PnL data.
+    
+    Returns median hold time in minutes and other hold time stats.
+    """
+    if pnl_df.empty or 'holdTimeSeconds' not in pnl_df.columns:
+        return {
+            'median_hold_minutes': 0,
+            'avg_hold_minutes': 0,
+            'min_hold_minutes': 0,
+            'max_hold_minutes': 0
+        }
+    
+    # Filter out tokens that haven't been sold (holdTimeSeconds = 0)
+    sold_tokens = pnl_df[pnl_df['holdTimeSeconds'] > 0]
+    
+    if sold_tokens.empty:
+        return {
+            'median_hold_minutes': 0,
+            'avg_hold_minutes': 0,
+            'min_hold_minutes': 0,
+            'max_hold_minutes': 0
+        }
+    
+    hold_minutes = sold_tokens['holdTimeSeconds'] / 60
+    
+    return {
+        'median_hold_minutes': hold_minutes.median(),
+        'avg_hold_minutes': hold_minutes.mean(),
+        'min_hold_minutes': hold_minutes.min(),
+        'max_hold_minutes': hold_minutes.max(),
+        'total_tokens_traded': len(pnl_df),
+        'tokens_with_hold_data': len(sold_tokens)
+    }
+
+def calculate_accurate_stats(pnl_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Calculate accurate wallet statistics matching Cielo's display.
+    
+    Win rate is based on all tokens traded, not just closed positions.
+    """
+    if pnl_df.empty:
+        return {
+            'total_tokens_traded': 0,
+            'win_rate_pct': 0,
+            'total_realized_pnl': 0,
+            'total_unrealized_pnl': 0,
+            'median_hold_minutes': 0
+        }
+    
+    # Count all tokens traded
+    total_tokens = len(pnl_df)
+    
+    # Count winning tokens (positive realized PnL)
+    winning_tokens = len(pnl_df[pnl_df['realizedPnl'] > 0])
+    
+    # Calculate win rate as percentage of all tokens
+    win_rate = (winning_tokens / total_tokens * 100) if total_tokens > 0 else 0
+    
+    # Sum realized and unrealized PnL
+    total_realized = pnl_df['realizedPnl'].sum()
+    total_unrealized = pnl_df['unrealizedPnl'].sum()
+    
+    # Get median hold time
+    hold_stats = calculate_median_hold_time(pnl_df)
+    
+    return {
+        'total_tokens_traded': total_tokens,
+        'win_rate_pct': win_rate,
+        'total_realized_pnl': total_realized,
+        'total_unrealized_pnl': total_unrealized,
+        'median_hold_minutes': hold_stats['median_hold_minutes'],
+        'winning_tokens': winning_tokens,
+        'losing_tokens': total_tokens - winning_tokens
+    } 
