@@ -424,5 +424,36 @@ def clear():
     db.execute("DROP TABLE IF EXISTS pnl")
     console.print("[green]✓ Cache cleared[/]")
 
+@app.command()
+def quick_analyze(address: str):
+    """Quick analysis for web interface - stats and patterns only, no AI"""
+    # Load data for this wallet
+    load(address)
+    
+    # Show stats
+    stats()
+    
+    # Generate behavioral patterns (fast, no AI)
+    console.print("\n[bold cyan]🧠 Behavioral Pattern Analysis[/]\n")
+    
+    # Initialize blind spot detector
+    detector = BlindSpotDetector(db_connection=db)
+    
+    # Run pattern detection
+    with console.status("[bold green]Analyzing behavioral patterns..."):
+        patterns = detector.analyze_all_patterns()
+    
+    # Display detected patterns
+    if patterns:
+        for pattern in patterns:
+            if 'confidence' in pattern:
+                console.print(f"[bold red]🎯 {pattern['pattern']}[/]")
+                console.print(f"   Confidence: {pattern['confidence']} | Impact: {pattern.get('impact', 'N/A')}")
+                console.print(f"   [italic green]✅ THE FIX: {pattern['recommendation']}[/]\n")
+            else:
+                console.print(f"[dim]{pattern.get('message', 'No patterns detected')}[/]")
+    
+    console.print("\n[dim]💡 For deeper AI-powered insights, ask follow-up questions![/]")
+
 if __name__ == "__main__":
     app() 
