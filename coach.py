@@ -34,6 +34,9 @@ from analytics import (
 )
 from llm import TradingCoach, get_quick_insight, ANALYSIS_PROMPTS
 
+# Import blind spots detector
+from blind_spots import BlindSpotDetector
+
 app = typer.Typer()
 console = Console()
 db = duckdb.connect("coach.db")
@@ -171,6 +174,67 @@ def stats():
                 console.print(f"  {token['symbol']}: ${token['realizedPnl']:,.2f}")
 
 @app.command()
+def blind_spots():
+    """Analyze behavioral patterns and blind spots in your trading."""
+    init_db()
+    
+    console.print("\n[bold cyan]🔍 Behavioral Pattern Analysis[/]\n")
+    console.print("Analyzing your trading patterns for blind spots...\n")
+    
+    # Initialize detector
+    detector = BlindSpotDetector()
+    
+    # Run analysis
+    with console.status("[bold green]Detecting patterns..."):
+        patterns = detector.analyze_all_patterns()
+    
+    # Display results
+    if not patterns:
+        console.print("[yellow]No patterns detected. Need more trading data.[/]")
+        return
+    
+    for pattern in patterns:
+        if 'confidence' in pattern:
+            # This is a detected pattern
+            console.print(f"[bold red]🎯 {pattern['pattern']}[/]")
+            console.print(f"Confidence: [bold]{pattern['confidence']}[/]")
+            console.print(f"Impact: [bold yellow]{pattern['impact']}[/]")
+            console.print(f"Recommendation: [italic green]{pattern['recommendation']}[/]\n")
+            
+            # Show evidence
+            if 'evidence' in pattern:
+                evidence = pattern['evidence']
+                
+                # Create evidence table
+                evidence_table = Table(title="Evidence")
+                evidence_table.add_column("Metric", style="cyan")
+                evidence_table.add_column("Value", style="white")
+                
+                # Add relevant evidence based on pattern type
+                if 'FOMO' in pattern['pattern']:
+                    evidence_table.add_row("Quick Trades (<10min)", str(evidence['quick_trades_count']))
+                    evidence_table.add_row("Patient Trades (>1hr)", str(evidence['patient_trades_count']))
+                    evidence_table.add_row("Avg Quick PnL", evidence['avg_quick_pnl'])
+                    evidence_table.add_row("Avg Patient PnL", evidence['avg_patient_pnl'])
+                    evidence_table.add_row("Quick Win Rate", evidence['quick_win_rate'])
+                    evidence_table.add_row("Patient Win Rate", evidence['patient_win_rate'])
+                    
+                elif 'Loss Aversion' in pattern['pattern']:
+                    evidence_table.add_row("Winners Analyzed", str(evidence['winners_count']))
+                    evidence_table.add_row("Losers Analyzed", str(evidence['losers_count']))
+                    evidence_table.add_row("Avg Winner Hold", evidence['avg_winner_hold'])
+                    evidence_table.add_row("Avg Loser Hold", evidence['avg_loser_hold'])
+                    evidence_table.add_row("Total Losses", evidence['total_losses'])
+                
+                console.print(evidence_table)
+                console.print()
+        else:
+            # This is a message (no patterns found, insufficient data, etc.)
+            console.print(f"[dim]{pattern['message']}[/]")
+            if 'recommendation' in pattern:
+                console.print(f"[dim]{pattern['recommendation']}[/]")
+
+@app.command()
 def chat():
     """Open an interactive coaching session."""
     init_db()
@@ -257,8 +321,70 @@ def analyze(address: str, question: Optional[str] = None):
     # If no question provided, give general analysis
     if not question:
         stats()
+        
+        # Generate deep behavioral insights
+        console.print("\n[bold cyan]🧠 Deep Behavioral Analysis[/]\n")
+        
+        # Initialize blind spot detector
+        detector = BlindSpotDetector()
+        
+        # Run pattern detection
+        with console.status("[bold green]Analyzing behavioral patterns..."):
+            patterns = detector.analyze_all_patterns()
+        
+        # Display detected patterns
+        if patterns:
+            for pattern in patterns:
+                if 'confidence' in pattern:
+                    console.print(f"[bold red]🎯 {pattern['pattern']}[/]")
+                    console.print(f"   Confidence: {pattern['confidence']} | Severity: {pattern['impact']}")
+                    console.print(f"   [italic green]✅ THE FIX: {pattern['recommendation']}[/]\n")
+        
+        # Generate AI insights
+        console.print("[bold cyan]🤖 AI Trading Coach Insights[/]\n")
+        
+        # Load metrics for AI analysis
+        tx_df = db.execute("SELECT * FROM tx").df()
+        pnl_df = db.execute("SELECT * FROM pnl").df()
+        
+        if not pnl_df.empty:
+            # Calculate comprehensive metrics
+            metrics = {
+                'stats': calculate_accurate_stats(pnl_df),
+                'win_rate': calculate_win_rate(pnl_df),
+                'portfolio': calculate_portfolio_metrics(pnl_df, tx_df),
+                'leak_trades': identify_leak_trades(pnl_df).head(5).to_dict('records') if not identify_leak_trades(pnl_df).empty else []
+            }
+            
+            if not tx_df.empty:
+                hold_durations = calculate_hold_durations(tx_df)
+                metrics['hold_patterns'] = analyze_hold_patterns(hold_durations)
+            
+            # Get quick insights for key patterns
+            insights = []
+            
+            # Check for loss aversion
+            if metrics['stats']['losing_tokens'] > metrics['stats']['winning_tokens'] * 2:
+                insight = get_quick_insight(metrics, "loss aversion")
+                insights.append(("Loss Aversion Pattern", insight))
+            
+            # Check for FOMO trading
+            if metrics['stats']['median_hold_minutes'] < 15:
+                insight = get_quick_insight(metrics, "FOMO trading")
+                insights.append(("FOMO Trading Pattern", insight))
+            
+            # Check for poor win rate
+            if metrics['stats']['win_rate_pct'] < 30:
+                insight = get_quick_insight(metrics, "low win rate")
+                insights.append(("Low Win Rate Pattern", insight))
+            
+            # Display insights
+            for title, insight in insights:
+                console.print(f"[bold yellow]{title}:[/]")
+                console.print(f"{insight}\n")
+                
     else:
-        # Run single analysis
+        # Run single analysis with specific question
         coach = TradingCoach()
         
         # Load data

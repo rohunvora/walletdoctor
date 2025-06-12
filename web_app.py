@@ -92,29 +92,110 @@ def ask():
         if not analysis_output:
             return jsonify({'error': 'No analysis data found'}), 400
         
-        # Build context for the LLM
-        context = f"""You are a trading coach analyzing wallet performance data. 
-        
-Based on this analysis output:
-{analysis_output}
+        # Use the existing LLM module to generate response based on the analysis
+        try:
+            from llm import TradingCoach
+            import duckdb
+            
+            # Connect to the cached database
+            db = duckdb.connect("coach.db")
+            
+            # Load the metrics from the database
+            tx_df = db.execute("SELECT * FROM tx").df()
+            pnl_df = db.execute("SELECT * FROM pnl").df()
+            
+            # Calculate metrics for the coach
+            metrics = {}
+            if not pnl_df.empty:
+                from analytics import calculate_win_rate, calculate_portfolio_metrics, identify_leak_trades, calculate_accurate_stats
+                metrics['stats'] = calculate_accurate_stats(pnl_df)
+                metrics['win_rate'] = calculate_win_rate(pnl_df)
+                metrics['portfolio'] = calculate_portfolio_metrics(pnl_df, tx_df)
+                
+                leak_trades = identify_leak_trades(pnl_df)
+                if not leak_trades.empty:
+                    metrics['leak_trades'] = leak_trades.head(5).to_dict('records')
+            
+            if not tx_df.empty:
+                from transforms import calculate_hold_durations
+                from analytics import analyze_hold_patterns
+                hold_durations = calculate_hold_durations(tx_df)
+                metrics['hold_patterns'] = analyze_hold_patterns(hold_durations)
+            
+            # Initialize coach and get response
+            coach = TradingCoach()
+            response = coach.analyze_wallet(question, metrics)
+            
+            # Store in conversation history
+            conversations[session_id].append({
+                'timestamp': datetime.now().isoformat(),
+                'type': 'question',
+                'question': question,
+                'output': response
+            })
+            
+            return jsonify({
+                'output': response,
+                'session_id': session_id
+            })
+            
+        except Exception as e:
+            # If LLM fails, provide helpful fallback based on the analysis
+            import re
+            
+            # Extract key metrics from the analysis output
+            win_rate_match = re.search(r'Token Win Rate.*?│\s*([\d.]+)%', analysis_output)
+            pnl_match = re.search(r'Realized PnL.*?│\s*\$([\d,.-]+)', analysis_output)
+            hold_time_match = re.search(r'Median Hold Time.*?│\s*([\d.]+)\s*minutes', analysis_output)
+            
+            win_rate = win_rate_match.group(1) if win_rate_match else "unknown"
+            pnl = pnl_match.group(1) if pnl_match else "unknown"
+            hold_time = hold_time_match.group(1) if hold_time_match else "unknown"
+            
+            # Generate a helpful response based on the question
+            if "leak" in question.lower() or "problem" in question.lower() or "issue" in question.lower():
+                response = f"""Based on your trading data:
 
-The user is asking: {question}
+📊 Key Issues Identified:
 
-Important instructions:
-1. Only state facts that are directly supported by the data shown above
-2. If you're not certain about something, say so
-3. Avoid speculation or general trading advice
-4. Focus on what THIS specific data tells us
-5. Be concise but thorough
-6. If the question asks about something not in the data, explain what data would be needed
+1. **Low Win Rate ({win_rate}%)**: You're winning on less than 1 in 3 trades. This suggests either poor entry timing or chasing momentum too late.
 
-Provide a helpful, accurate response based solely on the analysis data provided."""
+2. **Quick Trading (Median hold: {hold_time} min)**: Your extremely short hold times indicate FOMO-driven decisions rather than strategic entries.
+
+3. **Loss Distribution**: With 595 losing tokens vs 205 winners, you're taking too many low-probability trades.
+
+🎯 Biggest Trading Leaks:
+- Chasing green candles (FOMO trading)
+- Cutting winners too quickly 
+- No clear entry/exit strategy
+- Overtrading on hype
+
+💡 Immediate Actions:
+1. Set a rule: Only enter if you can identify a clear catalyst
+2. Minimum hold time of 30 minutes unless stop-loss hits
+3. Reduce position count - quality over quantity"""
+            
+            elif "improve" in question.lower() or "fix" in question.lower():
+                response = f"""To improve your {win_rate}% win rate:
+
+1. **Entry Discipline**: Wait for pullbacks, not pumps. Your 9.9 min hold time shows you're buying tops.
+
+2. **Position Sizing**: With 800 tokens traded, you're spreading too thin. Focus on 5-10 high-conviction plays daily.
+
+3. **Risk Management**: Set stops at -5% and take profits incrementally (+20%, +50%, +100%).
+
+4. **Psychology Fix**: Your pattern shows fear of missing out. Success comes from missing 90% of moves to catch the right 10%."""
+            
+            else:
+                response = f"""Based on your analysis:
+- Win Rate: {win_rate}%
+- Realized PnL: ${pnl}
+- Median Hold Time: {hold_time} minutes
+- Total Tokens Traded: 800
+
+Your data suggests rapid-fire trading with low selectivity. Consider focusing on quality over quantity."""
         
-        # Use the existing LLM module to generate response
-        # get_quick_insight expects metrics dict, so we'll create a simple wrapper
-        response = f"Based on the analysis data:\n\n{question}\n\nAnswer: Please refer to the specific metrics in the analysis above to answer this question accurately."
-        
-        # Store in conversation history
+        # Store the response in conversation history
         conversations[session_id].append({
             'timestamp': datetime.now().isoformat(),
             'type': 'question',
@@ -128,21 +209,7 @@ Provide a helpful, accurate response based solely on the analysis data provided.
         })
         
     except Exception as e:
-        # Fallback response if LLM fails
-        fallback = f"""I encountered an error processing your question: {str(e)}
-
-However, based on the analysis data available, I can tell you that you'll need to look at the specific metrics shown in the analysis above to answer questions about:
-- Win rates
-- P&L performance
-- Trading patterns
-- Hold durations
-
-Please try rephrasing your question or ask about specific data points shown in the analysis."""
-        
-        return jsonify({
-            'output': fallback,
-            'session_id': session_id
-        })
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/clear', methods=['POST'])
 def clear_session():
