@@ -40,9 +40,9 @@ def analyze():
             session['session_id'] = session_id
             conversations[session_id] = []
         
-        # Run the coach analyze command
-        cmd = ['python3', 'coach.py', 'analyze', wallets]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # First, just load the data and show stats (faster)
+        cmd = ['python3', 'coach.py', 'quick-analyze', wallets]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
         
         if result.returncode != 0:
             return jsonify({'error': f'Analysis failed: {result.stderr}'}), 500
@@ -60,6 +60,8 @@ def analyze():
             'session_id': session_id
         })
         
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Analysis timed out. The wallet may have too many transactions. Please try again with a different wallet.'}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
