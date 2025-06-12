@@ -32,37 +32,196 @@ class HarshTruthGenerator:
                 "severity": "info"
             }]
         
-        # 1. Bag Holder Analysis
+        # Calculate position sizes in USD
+        pnl_df['entry_size_usd'] = pnl_df['totalBought'] * pnl_df['avgBuyPrice']
+        pnl_df['exit_size_usd'] = pnl_df['totalSold'] * pnl_df['avgSellPrice']
+        
+        # 1. Position Size Analysis - NEW!
+        position_size = self._analyze_position_sizes(pnl_df)
+        if position_size:
+            insights.append(position_size)
+        
+        # 2. Bag Holder Analysis
         bag_holder = self._analyze_bag_holding(pnl_df)
         if bag_holder:
             insights.append(bag_holder)
             
-        # 2. Gambling Addiction Check
+        # 3. Hold Time Sweet Spot
+        hold_time = self._analyze_hold_time_buckets(pnl_df)
+        if hold_time:
+            insights.append(hold_time)
+            
+        # 4. Gambling Addiction Check
         gambling = self._analyze_gambling_behavior(pnl_df)
         if gambling:
             insights.append(gambling)
             
-        # 3. Shitcoin Degen Analysis
+        # 5. Shitcoin Degen Analysis
         shitcoin = self._analyze_shitcoin_addiction(pnl_df)
         if shitcoin:
             insights.append(shitcoin)
             
-        # 4. Win Rate Reality Check
+        # 6. Swap Frequency Impact
+        swap_impact = self._analyze_swap_frequency(pnl_df)
+        if swap_impact:
+            insights.append(swap_impact)
+            
+        # 7. Win Rate Reality Check
         win_rate = self._analyze_win_rate(pnl_df)
         if win_rate:
             insights.append(win_rate)
             
-        # 5. Biggest Disasters
+        # 8. Biggest Disasters
         disasters = self._analyze_disasters(pnl_df)
         if disasters:
             insights.append(disasters)
             
-        # 6. Time-based patterns (if we can derive them)
-        time_pattern = self._analyze_time_patterns(pnl_df)
-        if time_pattern:
-            insights.append(time_pattern)
-            
         return insights
+    
+    def _analyze_position_sizes(self, pnl_df: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze profitability by position size."""
+        # Filter out invalid entries
+        valid_df = pnl_df[pnl_df['entry_size_usd'] > 0].copy()
+        
+        if len(valid_df) < 20:
+            return None
+            
+        # Create position size buckets
+        valid_df['size_bucket'] = pd.cut(
+            valid_df['entry_size_usd'],
+            bins=[0, 100, 500, 1000, 5000, 10000, 50000, float('inf')],
+            labels=['<$100', '$100-500', '$500-1K', '$1K-5K', '$5K-10K', '$10K-50K', '>$50K']
+        )
+        
+        # Analyze by bucket
+        bucket_stats = valid_df.groupby('size_bucket').agg({
+            'realizedPnl': ['sum', 'mean', 'count'],
+            'symbol': 'count'
+        })
+        
+        # Calculate win rates by bucket
+        bucket_win_rates = valid_df.groupby('size_bucket').apply(
+            lambda x: (x['realizedPnl'] > 0).sum() / len(x) * 100
+        )
+        
+        # Find best and worst buckets
+        total_by_bucket = bucket_stats[('realizedPnl', 'sum')]
+        best_bucket = total_by_bucket.idxmax() if total_by_bucket.max() > 0 else None
+        worst_bucket = total_by_bucket.idxmin() if total_by_bucket.min() < 0 else None
+        
+        if not best_bucket or not worst_bucket:
+            return None
+            
+        # Get specific examples
+        best_trades = valid_df[valid_df['size_bucket'] == best_bucket].nlargest(3, 'realizedPnl')
+        worst_trades = valid_df[valid_df['size_bucket'] == worst_bucket].nsmallest(3, 'realizedPnl')
+        
+        return {
+            "type": "position_sizing",
+            "severity": "critical",
+            "title": "💰 YOUR POSITION SIZE SWEET SPOT",
+            "facts": [
+                f"Best size range: {best_bucket} (Total P&L: ${total_by_bucket[best_bucket]:,.0f})",
+                f"Worst size range: {worst_bucket} (Total P&L: ${total_by_bucket[worst_bucket]:,.0f})",
+                f"{best_bucket} win rate: {bucket_win_rates[best_bucket]:.0f}%",
+                f"{worst_bucket} win rate: {bucket_win_rates[worst_bucket]:.0f}%",
+                f"You lose money on {sum(1 for x in total_by_bucket if x < 0)} out of {len(total_by_bucket)} size ranges"
+            ],
+            "cost": f"Wrong position sizing cost: ${abs(total_by_bucket[total_by_bucket < 0].sum()):,.0f}",
+            "fix": f"Stick to {best_bucket} positions. Your {worst_bucket} trades are ego, not edge.",
+            "examples": [f"{row['symbol']}: ${row['entry_size_usd']:,.0f} entry → ${row['realizedPnl']:+,.0f}" 
+                        for _, row in best_trades.iterrows()]
+        }
+    
+    def _analyze_hold_time_buckets(self, pnl_df: pd.DataFrame) -> Dict[str, Any]:
+        """Find the optimal hold time window."""
+        # Create hold time buckets
+        pnl_df['hold_bucket'] = pd.cut(
+            pnl_df['holdTimeSeconds'] / 60,  # Convert to minutes
+            bins=[0, 10, 30, 120, 360, 1440, float('inf')],
+            labels=['<10min', '10-30min', '30min-2hr', '2-6hr', '6-24hr', '>24hr']
+        )
+        
+        # Analyze by bucket
+        bucket_stats = pnl_df.groupby('hold_bucket').agg({
+            'realizedPnl': ['sum', 'mean', 'count']
+        })
+        
+        # Calculate win rates
+        bucket_win_rates = pnl_df.groupby('hold_bucket').apply(
+            lambda x: (x['realizedPnl'] > 0).sum() / len(x) * 100
+        )
+        
+        # Find best performing bucket
+        total_by_bucket = bucket_stats[('realizedPnl', 'sum')]
+        best_bucket = total_by_bucket.idxmax()
+        
+        # Get stats for display
+        stats = []
+        for bucket in bucket_stats.index:
+            count = bucket_stats.loc[bucket, ('realizedPnl', 'count')]
+            total = total_by_bucket[bucket]
+            win_rate = bucket_win_rates[bucket]
+            stats.append(f"{bucket}: {win_rate:.0f}% win rate, ${total:,.0f} total ({count} trades)")
+        
+        return {
+            "type": "timing",
+            "severity": "high",
+            "title": "⏰ YOUR PROFITABLE TIME WINDOW",
+            "facts": stats,
+            "cost": f"Trading outside {best_bucket}: ${abs(total_by_bucket[total_by_bucket < 0].sum()):,.0f} lost",
+            "fix": f"Set alerts at the edges of {best_bucket}. That's your zone.",
+            "examples": []
+        }
+    
+    def _analyze_swap_frequency(self, pnl_df: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze impact of swap frequency on profitability."""
+        # Create swap buckets
+        pnl_df['swap_bucket'] = pd.cut(
+            pnl_df['numSwaps'],
+            bins=[0, 2, 5, 10, 20, float('inf')],
+            labels=['1-2 swaps', '3-5 swaps', '6-10 swaps', '11-20 swaps', '20+ swaps']
+        )
+        
+        # Analyze by bucket
+        bucket_stats = pnl_df.groupby('swap_bucket').agg({
+            'realizedPnl': ['sum', 'mean', 'count']
+        })
+        
+        if len(bucket_stats) < 2:
+            return None
+            
+        # Calculate win rates
+        bucket_win_rates = pnl_df.groupby('swap_bucket').apply(
+            lambda x: (x['realizedPnl'] > 0).sum() / len(x) * 100
+        )
+        
+        # Find if overtrading hurts
+        low_swap_pnl = pnl_df[pnl_df['numSwaps'] <= 5]['realizedPnl'].sum()
+        high_swap_pnl = pnl_df[pnl_df['numSwaps'] > 5]['realizedPnl'].sum()
+        
+        if high_swap_pnl >= low_swap_pnl:
+            return None  # More swaps aren't hurting
+            
+        # Get worst overtraded examples
+        overtraded = pnl_df[pnl_df['numSwaps'] > 10].nsmallest(5, 'realizedPnl')
+        
+        return {
+            "type": "behavioral",
+            "severity": "high",
+            "title": "🔄 OVERTRADING EACH POSITION",
+            "facts": [
+                f"Low swap (≤5) P&L: ${low_swap_pnl:,.0f}",
+                f"High swap (>5) P&L: ${high_swap_pnl:,.0f}",
+                f"Tokens with 10+ swaps: {len(pnl_df[pnl_df['numSwaps'] > 10])}",
+                f"Average loss on 10+ swaps: ${pnl_df[pnl_df['numSwaps'] > 10]['realizedPnl'].mean():,.0f}",
+                "The more you touch it, the more you lose"
+            ],
+            "cost": f"Overtrading cost: ${abs(high_swap_pnl):,.0f}",
+            "fix": "Plan your trade, trade your plan. Max 3 adjustments.",
+            "examples": [f"{row['symbol']}: {row['numSwaps']} swaps, lost ${abs(row['realizedPnl']):,.0f}" 
+                        for _, row in overtraded.head(3).iterrows()]
+        }
     
     def _analyze_bag_holding(self, pnl_df: pd.DataFrame) -> Dict[str, Any]:
         """Analyze if trader holds losers too long."""
@@ -223,6 +382,9 @@ class HarshTruthGenerator:
         disaster_holds = disasters['holdTimeSeconds'].values
         avg_disaster_hold = np.mean(disaster_holds) / 3600
         
+        # Add entry size analysis
+        avg_disaster_entry = disasters['entry_size_usd'].mean()
+        
         return {
             "type": "risk",
             "severity": "critical", 
@@ -231,54 +393,13 @@ class HarshTruthGenerator:
                 f"Top 10 losses: ${total_disaster_loss:,.0f}",
                 f"Worst single trade: {disasters.iloc[0]['symbol']} lost ${disasters.iloc[0]['realizedPnl']:,.0f}",
                 f"Average disaster hold time: {avg_disaster_hold:.1f} hours",
+                f"Average disaster entry size: ${avg_disaster_entry:,.0f}",
                 f"These 10 trades wiped out profits from {min(50, len(pnl_df[pnl_df['realizedPnl'] > 0]))} winning trades"
             ],
             "cost": f"${abs(total_disaster_loss):,.0f} gone forever",
             "fix": "Position sizing: Never risk more than 2% per trade. Your worst loss should be -$500, not -$5000.",
-            "examples": [f"{row['symbol']}: ${row['realizedPnl']:,.0f} ({row['holdTimeSeconds']/3600:.1f}h)" 
+            "examples": [f"{row['symbol']}: ${row['entry_size_usd']:,.0f} entry → ${row['realizedPnl']:,.0f} loss" 
                         for _, row in disasters.head(5).iterrows()]
-        }
-    
-    def _analyze_time_patterns(self, pnl_df: pd.DataFrame) -> Dict[str, Any]:
-        """Analyze patterns based on hold times as proxy for behavior."""
-        # We don't have entry times, but we can analyze by hold duration buckets
-        
-        # Define buckets
-        pnl_df['hold_bucket'] = pd.cut(
-            pnl_df['holdTimeSeconds'], 
-            bins=[0, 300, 600, 3600, 86400, float('inf')],  # 5min, 10min, 1hr, 1day, inf
-            labels=['panic_sell', 'fomo_exit', 'normal', 'patient', 'bag_hold']
-        )
-        
-        # Analyze by bucket
-        bucket_stats = pnl_df.groupby('hold_bucket').agg({
-            'realizedPnl': ['sum', 'mean', 'count'],
-            'symbol': 'count'
-        }).round(2)
-        
-        # Find worst performing bucket
-        if bucket_stats[('realizedPnl', 'sum')].min() > -1000:
-            return None
-            
-        panic_pnl = pnl_df[pnl_df['hold_bucket'] == 'panic_sell']['realizedPnl'].sum()
-        panic_count = len(pnl_df[pnl_df['hold_bucket'] == 'panic_sell'])
-        
-        if panic_count < 20:
-            return None
-            
-        return {
-            "type": "timing",
-            "severity": "high",
-            "title": "⏱️ PANIC SELLER DETECTED", 
-            "facts": [
-                f"Panic sells (<5 min): {panic_count} trades",
-                f"Panic sell P&L: ${panic_pnl:,.0f}",
-                f"You're literally selling the bottom",
-                f"Patient holds (>1hr) perform {abs(panic_pnl/max(pnl_df[pnl_df['hold_bucket'] == 'patient']['realizedPnl'].sum(), 1)):.0f}x better"
-            ],
-            "cost": f"Panic selling cost: ${abs(panic_pnl):,.0f}",
-            "fix": "Before selling, walk around the block. Seriously. If you still want to sell after 10 minutes, do it.",
-            "examples": []
         }
 
 
