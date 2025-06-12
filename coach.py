@@ -363,20 +363,32 @@ def analyze(address: str, question: Optional[str] = None):
             # Get quick insights for key patterns
             insights = []
             
+            # Initialize coach for AI insights
+            coach = TradingCoach()
+            
             # Check for loss aversion
             if metrics['stats']['losing_tokens'] > metrics['stats']['winning_tokens'] * 2:
-                insight = get_quick_insight(metrics, "loss aversion")
-                insights.append(("Loss Aversion Pattern", insight))
+                response = coach.analyze_wallet(
+                    f"The trader has {metrics['stats']['losing_tokens']} losing tokens vs {metrics['stats']['winning_tokens']} winning tokens. Analyze this loss aversion pattern.",
+                    metrics
+                )
+                insights.append(("Loss Aversion Pattern", response))
             
             # Check for FOMO trading
             if metrics['stats']['median_hold_minutes'] < 15:
-                insight = get_quick_insight(metrics, "FOMO trading")
-                insights.append(("FOMO Trading Pattern", insight))
+                response = coach.analyze_wallet(
+                    f"The trader has a median hold time of {metrics['stats']['median_hold_minutes']:.1f} minutes. Analyze this FOMO trading pattern.",
+                    metrics
+                )
+                insights.append(("FOMO Trading Pattern", response))
             
             # Check for poor win rate
             if metrics['stats']['win_rate_pct'] < 30:
-                insight = get_quick_insight(metrics, "low win rate")
-                insights.append(("Low Win Rate Pattern", insight))
+                response = coach.analyze_wallet(
+                    f"The trader has a win rate of {metrics['stats']['win_rate_pct']:.1f}%. Analyze this low win rate pattern.",
+                    metrics
+                )
+                insights.append(("Low Win Rate Pattern", response))
             
             # Display insights
             for title, insight in insights:
