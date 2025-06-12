@@ -182,7 +182,7 @@ def blind_spots():
     console.print("Analyzing your trading patterns for blind spots...\n")
     
     # Initialize detector
-    detector = BlindSpotDetector()
+    detector = BlindSpotDetector(db_connection=db)
     
     # Run analysis
     with console.status("[bold green]Detecting patterns..."):
@@ -326,7 +326,7 @@ def analyze(address: str, question: Optional[str] = None):
         console.print("\n[bold cyan]🧠 Deep Behavioral Analysis[/]\n")
         
         # Initialize blind spot detector
-        detector = BlindSpotDetector()
+        detector = BlindSpotDetector(db_connection=db)
         
         # Run pattern detection
         with console.status("[bold green]Analyzing behavioral patterns..."):

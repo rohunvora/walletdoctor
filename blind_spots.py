@@ -24,9 +24,13 @@ PATTERN_REQUIREMENTS = {
 class BlindSpotDetector:
     """Detect behavioral patterns in trading data with statistical confidence."""
     
-    def __init__(self, db_path: str = "coach.db"):
+    def __init__(self, db_path: str = "coach.db", db_connection=None):
         """Initialize with database connection."""
-        self.db = duckdb.connect(db_path, read_only=True)
+        # Use provided connection or create new one (without read_only to match coach.py)
+        if db_connection:
+            self.db = db_connection
+        else:
+            self.db = duckdb.connect(db_path)
         self.patterns_found = []
         
     def analyze_all_patterns(self, wallet_address: Optional[str] = None) -> List[Dict]:
