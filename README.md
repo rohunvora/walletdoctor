@@ -1,14 +1,44 @@
 # 🩺 WalletDoctor
 
-A lightweight CLI tool for analyzing Solana wallet trading performance with AI-powered insights.
+> Deep psychological analysis for Solana traders. Not just metrics—insights that change behavior.
 
-## 🚀 Features
+## What Makes WalletDoctor Different
 
-- Fetch and analyze transaction history from any Solana wallet
-- Calculate comprehensive trading metrics (win rate, PnL, hold patterns)
-- AI-powered trading coach providing personalized insights
-- Local data caching with DuckDB
-- Beautiful CLI interface with rich formatting
+Most trading analytics tell you WHAT happened. WalletDoctor tells you WHY—and how to fix it.
+
+### Example Output
+
+```
+🎯 You hold losers 27% longer than winners
+   Confidence: 87% | Severity: HIGH
+
+📊 ROOT CAUSE: Ego protection and fear of being wrong
+💭 YOUR INNER VOICE: "If I don't sell, it's not a real loss"
+⚡ HARSH TRUTH: You're not 'being patient'—you're in denial.
+✅ THE FIX: Hard stop at -5%. No exceptions.
+```
+
+## Features
+
+### 🧠 Deep Behavioral Analysis
+- **Pattern Detection**: Multi-metric analysis reveals hidden behaviors
+- **Statistical Validation**: Prevents false conclusions with p-values and effect sizes
+- **Psychological Mapping**: Connects patterns to subconscious drivers
+- **Harsh Truths**: Forces self-reflection through uncomfortable reality
+
+### 📊 Comprehensive Metrics
+- Win rate and profit factor analysis
+- Hold time patterns (winner vs loser asymmetry)
+- Position sizing consistency
+- Revenge trading detection
+- FOMO spiral identification
+- Overtrading indicators
+
+### 🎯 Actionable Insights
+- Specific rules, not vague advice
+- Confidence scores for each insight
+- Severity ratings (Critical/High/Moderate)
+- Step-by-step fixes for each pattern
 
 ## 📋 Prerequisites
 
@@ -28,7 +58,7 @@ cd walletdoctor
 
 2. Create a virtual environment:
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
