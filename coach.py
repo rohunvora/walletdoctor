@@ -37,6 +37,9 @@ from llm import TradingCoach, get_quick_insight, ANALYSIS_PROMPTS
 # Import blind spots detector
 from blind_spots import BlindSpotDetector
 
+# Import harsh insights generator
+from harsh_insights import HarshTruthGenerator, format_insights_for_web
+
 app = typer.Typer()
 console = Console()
 db = duckdb.connect("coach.db")
@@ -433,25 +436,22 @@ def quick_analyze(address: str):
     # Show stats
     stats()
     
-    # Generate behavioral patterns (fast, no AI)
-    console.print("\n[bold cyan]🧠 Behavioral Pattern Analysis[/]\n")
+    # Generate harsh insights
+    console.print("\n[bold cyan]🔥 HARSH TRUTHS ABOUT YOUR TRADING[/]\n")
     
-    # Initialize blind spot detector
-    detector = BlindSpotDetector(db_connection=db)
+    # Initialize harsh truth generator
+    truth_generator = HarshTruthGenerator(db)
     
-    # Run pattern detection
-    with console.status("[bold green]Analyzing behavioral patterns..."):
-        patterns = detector.analyze_all_patterns()
+    # Generate insights
+    with console.status("[bold green]Analyzing your trading sins..."):
+        insights = truth_generator.generate_all_insights()
     
-    # Display detected patterns
-    if patterns:
-        for pattern in patterns:
-            if 'confidence' in pattern:
-                console.print(f"[bold red]🎯 {pattern['pattern']}[/]")
-                console.print(f"   Confidence: {pattern['confidence']} | Impact: {pattern.get('impact', 'N/A')}")
-                console.print(f"   [italic green]✅ THE FIX: {pattern['recommendation']}[/]\n")
-            else:
-                console.print(f"[dim]{pattern.get('message', 'No patterns detected')}[/]")
+    # Display harsh truths
+    if insights:
+        formatted = format_insights_for_web(insights)
+        console.print(formatted)
+    else:
+        console.print("[yellow]No significant patterns detected. Keep trading![/]")
     
     console.print("\n[dim]💡 For deeper AI-powered insights, ask follow-up questions![/]")
 
