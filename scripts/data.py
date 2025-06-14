@@ -4,6 +4,7 @@ import requests
 import duckdb
 import pandas as pd
 from typing import Optional, Dict, List, Any
+from datetime import datetime
 
 # Try to load from .env file if it exists (for local development)
 try:
@@ -175,4 +176,59 @@ def cache_to_duckdb(
         df = df[expected_cols]
     
     # Direct insert into existing table
-    db_connection.execute(f"INSERT INTO {table_name} SELECT * FROM df") 
+    db_connection.execute(f"INSERT INTO {table_name} SELECT * FROM df")
+
+def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str) -> bool:
+    """Load wallet trades from Helius and Cielo."""
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting to fetch data for {wallet_address}")
+    
+    try:
+        # Fetch transactions from Helius
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching transactions from Helius...")
+        tx_data = fetch_helius_transactions(wallet_address, limit=100)
+        
+        if tx_data:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(tx_data)} transactions")
+            # Normalize and store transaction data
+            from scripts.normalize import normalize_helius_transactions
+            tx_df = normalize_helius_transactions(tx_data)
+            # Clear existing data for this wallet
+            try:
+                db.execute(f"DELETE FROM tx WHERE from_address = '{wallet_address}' OR to_address = '{wallet_address}'")
+            except:
+                pass  # Table might not exist yet
+            # Store normalized data
+            cache_to_duckdb(db, "tx", tx_df.to_dict('records'))
+        else:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] No transactions found from Helius")
+        
+        # Fetch PnL data from Cielo
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching PnL from Cielo...")
+        pnl_data = fetch_cielo_pnl(wallet_address)
+        
+        if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
+            tokens = pnl_data['data']['items']
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Found PnL for {len(tokens)} tokens")
+            
+            # Normalize and store PnL data
+            from scripts.normalize import normalize_cielo_pnl
+            pnl_df = normalize_cielo_pnl({'tokens': tokens})
+            # Clear existing PnL data
+            try:
+                db.execute("DELETE FROM pnl")
+            except:
+                pass
+            # Store PnL data
+            cache_to_duckdb(db, "pnl", pnl_df.to_dict('records'))
+            
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Data stored successfully")
+            return True
+        else:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] No PnL data found from Cielo")
+            return False if not tx_data else True  # Return True if we at least got transactions
+            
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Error loading wallet: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False 
