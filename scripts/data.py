@@ -4,13 +4,21 @@ import requests
 import duckdb
 import pandas as pd
 from typing import Optional, Dict, List, Any
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Try to load from .env file if it exists (for local development)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed in production, that's OK
 
-HELIUS_KEY = os.environ.get("HELIUS_KEY", "")
-CIELO_KEY = os.environ.get("CIELO_KEY", "")
+# Get API keys from environment
+HELIUS_KEY = os.getenv("HELIUS_KEY", "")
+CIELO_KEY = os.getenv("CIELO_KEY", "")
+
+# Debug logging
+print(f"Debug: HELIUS_KEY loaded: {'Yes' if HELIUS_KEY else 'No'} (length: {len(HELIUS_KEY)})")
+print(f"Debug: CIELO_KEY loaded: {'Yes' if CIELO_KEY else 'No'} (length: {len(CIELO_KEY)})")
 
 # Warn if API keys are missing
 if not HELIUS_KEY:
@@ -24,19 +32,41 @@ def fetch_helius_transactions(
     limit: int = 100
 ) -> List[Dict[str, Any]]:
     """Fetch decoded transactions from Helius Enhanced Transactions API."""
+    if not HELIUS_KEY:
+        print(f"❌ HELIUS_KEY is empty!")
+        return []
+        
     url = f"https://api.helius.xyz/v0/addresses/{address}/transactions"
     params = {"limit": limit, "api-key": HELIUS_KEY}
     if before:
         params["before"] = before
     
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    return response.json()
+    print(f"Debug: Calling Helius API: {url}")
+    print(f"Debug: API key present: {'Yes' if params.get('api-key') else 'No'}")
+    
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        print(f"Debug: Helius API response status: {response.status_code}")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Helius API error: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response content: {e.response.text[:200]}...")
+        return []
 
 def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
     """Fetch PnL data from Cielo API."""
+    if not CIELO_KEY:
+        print(f"❌ CIELO_KEY is empty!")
+        return {'status': 'error', 'data': {'items': []}}
+        
     url = f"https://feed-api.cielo.finance/api/v1/{address}/pnl/tokens"
     headers = {"x-api-key": CIELO_KEY}
+    
+    print(f"Debug: Calling Cielo API: {url}")
+    print(f"Debug: API key present in headers: {'Yes' if headers.get('x-api-key') else 'No'}")
     
     all_items = []
     next_object = None
@@ -53,6 +83,8 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
             response.raise_for_status()
             data = response.json()
             
+            print(f"Debug: Cielo API response status: {response.status_code}")
+            
             if 'data' in data and 'items' in data['data']:
                 items = data['data']['items']
                 all_items.extend(items)
@@ -67,10 +99,13 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
                     print(f"  Fetched final page {page_count} ({len(items)} tokens)")
                     break
             else:
+                print(f"Debug: Unexpected Cielo response structure: {list(data.keys())}")
                 break
                 
-        except Exception as e:
-            print(f"Error fetching Cielo data: {e}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Cielo API error: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response content: {e.response.text[:200]}...")
             if page_count == 0:
                 return {'status': 'error', 'data': {'items': []}}
             else:
