@@ -49,7 +49,7 @@ def fetch_helius_transactions(
             print(f"Response content: {e.response.text[:200]}...")
         return []
 
-def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
+def fetch_cielo_pnl(address: str, max_items: int = 1000) -> Dict[str, Any]:
     """Fetch PnL data from Cielo API."""
     if not CIELO_KEY:
         print(f"❌ CIELO_KEY is empty!")
@@ -64,7 +64,7 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
     
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching Cielo PnL data for {address}")
     
-    # Keep fetching pages until no more data
+    # Keep fetching pages until no more data or max items reached
     while True:
         try:
             params = {}
@@ -81,6 +81,12 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
                 all_items.extend(items)
                 page_count += 1
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] Page {page_count}: {len(items)} items (total: {len(all_items)})")
+                
+                # Check if we've reached the max items limit
+                if len(all_items) >= max_items:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Reached max items limit ({max_items}), stopping")
+                    all_items = all_items[:max_items]
+                    break
                 
                 # Check if there's a next page
                 paging = data['data'].get('paging', {})
@@ -213,7 +219,8 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str) -> bool:
         
         # Fetch PnL data from Cielo
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching PnL from Cielo...")
-        pnl_data = fetch_cielo_pnl(wallet_address)
+        # Use a lower limit for instant loads to prevent timeouts
+        pnl_data = fetch_cielo_pnl(wallet_address, max_items=500)
         
         if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
             tokens = pnl_data['data']['items']
