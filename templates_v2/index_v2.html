@@ -272,17 +272,8 @@
             
             <!-- Top Trades Detail -->
             <div style="margin-top:30px;">
-                <h4 style="color:#666;">💰 Notable Trades</h4>
-                <div class="notable-trades-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                    <div>
-                        <h5 style="color:#28a745;">Best Winners</h5>
-                        <div id="bestWinnersDetail"></div>
-                    </div>
-                    <div>
-                        <h5 style="color:#dc3545;">Biggest Losses</h5>
-                        <div id="biggestLossesDetail"></div>
-                    </div>
-                </div>
+                <h4 style="color:#666;">💬 Real Talk About Your Trading</h4>
+                <div id="personalMessage" style="background:white; padding:20px; border-radius:8px; border-left:4px solid #007bff; font-size:16px; line-height:1.6;"></div>
             </div>
         </div>
     </div>
@@ -341,6 +332,13 @@
             }
         }
 
+        function formatMoney(amount) {
+            return Math.abs(amount).toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+        }
+
         function displayBaseline(baseline) {
             const html = `
                 <div class="stat-card">
@@ -350,7 +348,7 @@
                 <div class="stat-card">
                     <div class="stat-label">Average P&L</div>
                     <div class="stat-value ${baseline.avg_pnl >= 0 ? 'positive' : 'negative'}">
-                        $${baseline.avg_pnl.toFixed(2)}
+                        $${formatMoney(baseline.avg_pnl)}
                     </div>
                 </div>
                 <div class="stat-card">
@@ -360,7 +358,7 @@
                 <div class="stat-card">
                     <div class="stat-label">Total P&L</div>
                     <div class="stat-value ${baseline.total_pnl >= 0 ? 'positive' : 'negative'}">
-                        $${baseline.total_pnl.toFixed(2)}
+                        $${formatMoney(baseline.total_pnl)}
                     </div>
                 </div>
             `;
@@ -376,7 +374,7 @@
                     </button>
                     <div class="trade-symbol">${trade.symbol}</div>
                     <div class="trade-details">
-                        <span class="positive">+$${trade.realizedPnl.toFixed(2)}</span>
+                        <span class="positive">+$${formatMoney(trade.realizedPnl)}</span>
                         | ${formatHoldTime(trade.holdTimeSeconds)}
                     </div>
                     <div class="annotation-box" id="ann-${trade.symbol}">
@@ -394,7 +392,7 @@
                     </button>
                     <div class="trade-symbol">${trade.symbol}</div>
                     <div class="trade-details">
-                        <span class="negative">-$${Math.abs(trade.realizedPnl).toFixed(2)}</span>
+                        <span class="negative">-$${formatMoney(Math.abs(trade.realizedPnl))}</span>
                         | ${formatHoldTime(trade.holdTimeSeconds)}
                     </div>
                     <div class="annotation-box" id="ann-${trade.symbol}">
@@ -572,9 +570,9 @@
             const perfHtml = `
                 <p><strong>Total Trades:</strong> ${baseline.total_trades}</p>
                 <p><strong>Win Rate:</strong> ${baseline.win_rate.toFixed(1)}% (${baseline.win_rate < 30 ? '⚠️ Low' : baseline.win_rate > 50 ? '✅ Good' : '📊 Average'})</p>
-                <p><strong>Total P&L:</strong> <span class="${baseline.total_pnl >= 0 ? 'positive' : 'negative'}">$${baseline.total_pnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></p>
-                <p><strong>Average P&L:</strong> <span class="${baseline.avg_pnl >= 0 ? 'positive' : 'negative'}">$${baseline.avg_pnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span> per trade</p>
-                <p><strong>Average Position:</strong> $${(baseline.avg_position_size || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</p>
+                <p><strong>Total P&L:</strong> <span class="${baseline.total_pnl >= 0 ? 'positive' : 'negative'}">$${formatMoney(baseline.total_pnl)}</span></p>
+                <p><strong>Average P&L:</strong> <span class="${baseline.avg_pnl >= 0 ? 'positive' : 'negative'}">$${formatMoney(baseline.avg_pnl)}</span> per trade</p>
+                <p><strong>Average Position:</strong> $${formatMoney(baseline.avg_position_size || 0)}</p>
             `;
             document.getElementById('performanceSummary').innerHTML = perfHtml;
             
@@ -582,27 +580,45 @@
             const patterns = generateKeyPatterns(baseline, topTrades);
             document.getElementById('keyPatterns').innerHTML = patterns;
             
-            // Best Winners Detail
-            if (topTrades.winners && topTrades.winners.length > 0) {
-                const winnersHtml = topTrades.winners.map(trade => `
-                    <div style="margin-bottom:10px; padding:10px; background:white; border-radius:5px; border-left:3px solid #28a745;">
-                        <strong>${trade.symbol}</strong>: <span class="positive">+$${trade.realizedPnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-                        <br><small style="color:#666;">Held ${formatHoldTime(trade.holdTimeSeconds)} | Entry: $${(trade.entry_size_usd || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</small>
-                    </div>
-                `).join('');
-                document.getElementById('bestWinnersDetail').innerHTML = winnersHtml;
+            // Personal Message
+            const message = generatePersonalMessage(baseline, topTrades);
+            document.getElementById('personalMessage').innerHTML = message;
+        }
+        
+        function generatePersonalMessage(baseline, topTrades) {
+            const winRate = baseline.win_rate;
+            const avgPosition = baseline.avg_position_size || 0;
+            const totalPnl = baseline.total_pnl;
+            
+            let message = "";
+            
+            // Address the elephant in the room
+            if (winRate < 30 && totalPnl < -10000) {
+                message = `You're winning less than 1 in 3 trades and down $${formatMoney(Math.abs(totalPnl))}. The good news? Your winners like ${topTrades.winners[0]?.symbol || 'your best trade'} show you CAN pick winners. The problem is position sizing - you're betting $${formatMoney(avgPosition)} per trade when your win rate suggests starting with $${formatMoney(avgPosition * 0.2)} until you improve your entry timing.`;
+            } else if (winRate < 40) {
+                message = `Your ${winRate.toFixed(0)}% win rate isn't terrible, but you're fighting an uphill battle. `;
+                if (topTrades.losers && topTrades.losers[0]?.holdTimeSeconds > 7200) {
+                    message += `You held ${topTrades.losers[0].symbol} for ${formatHoldTime(topTrades.losers[0].holdTimeSeconds)} and lost $${formatMoney(Math.abs(topTrades.losers[0].realizedPnl))}. Set stop losses at -5% and stick to them - hope isn't a strategy.`;
+                } else {
+                    message += `Focus on what made ${topTrades.winners[0]?.symbol || 'your winners'} work and do more of that. Quality over quantity.`;
+                }
+            } else if (winRate > 60) {
+                message = `${winRate.toFixed(0)}% win rate is solid! You're doing something right. `;
+                if (totalPnl < 0) {
+                    message += `But you're still down money, which means your losses are too big when you're wrong. Your worst loss ${topTrades.losers[0]?.symbol || ''} was $${formatMoney(Math.abs(topTrades.losers[0]?.realizedPnl || 0))} - that's wiping out multiple wins. Tighten those stops.`;
+                } else {
+                    message += `Keep doing what you're doing, but consider scaling up gradually. Your average position of $${formatMoney(avgPosition)} is working.`;
+                }
+            } else {
+                // Average win rate
+                if (avgPosition > 50000) {
+                    message = `You're swinging big with $${formatMoney(avgPosition)} average positions. With a ${winRate.toFixed(0)}% win rate, that's like flipping coins with a sledgehammer. Consider cutting position size in half and doubling your focus on entry quality.`;
+                } else {
+                    message = `Your trading is average - not terrible, not great. The quickest improvement? Look at ${topTrades.winners[0]?.symbol || 'your best win'} (+$${formatMoney(topTrades.winners[0]?.realizedPnl || 0)}) and ${topTrades.losers[0]?.symbol || 'your worst loss'} (-$${formatMoney(Math.abs(topTrades.losers[0]?.realizedPnl || 0))}). What was different about your mindset? That's your edge.`;
+                }
             }
             
-            // Biggest Losses Detail
-            if (topTrades.losers && topTrades.losers.length > 0) {
-                const losersHtml = topTrades.losers.map(trade => `
-                    <div style="margin-bottom:10px; padding:10px; background:white; border-radius:5px; border-left:3px solid #dc3545;">
-                        <strong>${trade.symbol}</strong>: <span class="negative">-$${Math.abs(trade.realizedPnl).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-                        <br><small style="color:#666;">Held ${formatHoldTime(trade.holdTimeSeconds)} | Entry: $${(trade.entry_size_usd || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</small>
-                    </div>
-                `).join('');
-                document.getElementById('biggestLossesDetail').innerHTML = losersHtml;
-            }
+            return message;
         }
         
         function generateKeyPatterns(baseline, topTrades) {
@@ -610,7 +626,7 @@
             
             // Position size pattern
             if (baseline.avg_position_size > 10000) {
-                patterns.push(`💰 <strong>Large position sizes</strong> (avg ~$${Math.round(baseline.avg_position_size/1000)}k)`);
+                patterns.push(`💰 <strong>Large position sizes</strong> (avg $${formatMoney(baseline.avg_position_size)})`);
             }
             
             // Win rate pattern
