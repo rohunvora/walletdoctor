@@ -23,8 +23,16 @@ class InstantStatsGenerator:
         
         if pnl_df.empty:
             return {
-                'has_data': False,
-                'message': 'No trading data found. Connect your wallet to get started.'
+                'has_data': True,  # Changed to True so frontend shows the "no trades" message
+                'win_rate': 0.0,
+                'total_trades': 0,
+                'total_pnl': 0.0,
+                'avg_pnl': 0.0,
+                'avg_position_size': 0.0,
+                'winning_trades': 0,
+                'losing_trades': 0,
+                'best_trade': None,
+                'worst_trade': None
             }
         
         # Core metrics - always show these
