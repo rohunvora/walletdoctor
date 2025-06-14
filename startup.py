@@ -35,6 +35,14 @@ def initialize_app():
         try:
             db.execute("DROP TABLE IF EXISTS tx")
             db.execute("DROP TABLE IF EXISTS pnl")
+            db.execute("DROP TABLE IF EXISTS trade_annotations")
+            db.execute("DROP TABLE IF EXISTS trade_snapshots")
+            db.execute("DROP TABLE IF EXISTS coaching_history")
+            db.execute("DROP TABLE IF EXISTS new_trades_tracking")
+            db.execute("DROP SEQUENCE IF EXISTS annotation_seq")
+            db.execute("DROP SEQUENCE IF EXISTS snapshot_seq")
+            db.execute("DROP SEQUENCE IF EXISTS insight_seq")
+            db.execute("DROP SEQUENCE IF EXISTS tracking_seq")
         except:
             pass  # Tables might not exist
         
