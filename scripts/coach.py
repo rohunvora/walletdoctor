@@ -511,8 +511,8 @@ def instant(address: str):
     console.print("\n[bold yellow]💭 Add notes to your trades to unlock personalized coaching![/]")
     console.print("[dim]Use 'coach annotate' to add notes to any trade[/]\n")
     
-    # Save a snapshot
-    save_snapshot(db)
+    # Save a snapshot - temporarily disabled due to auto-increment issue
+    # save_snapshot(db)
     
     # Show recent performance if available
     recent = instant_gen.get_recent_performance()

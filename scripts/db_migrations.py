@@ -16,7 +16,7 @@ def run_migrations(db_connection: duckdb.DuckDBPyConnection):
     # Create trade_annotations table
     db_connection.execute("""
         CREATE TABLE IF NOT EXISTS trade_annotations (
-            annotation_id INTEGER PRIMARY KEY,
+            annotation_id INTEGER PRIMARY KEY DEFAULT nextval('annotation_seq'),
             token_symbol VARCHAR,
             token_mint VARCHAR,
             trade_pnl DOUBLE,
@@ -31,7 +31,7 @@ def run_migrations(db_connection: duckdb.DuckDBPyConnection):
     # Create trade_snapshots table for tracking baseline evolution
     db_connection.execute("""
         CREATE TABLE IF NOT EXISTS trade_snapshots (
-            snapshot_id INTEGER PRIMARY KEY,
+            snapshot_id INTEGER PRIMARY KEY DEFAULT nextval('snapshot_seq'),
             snapshot_date DATE DEFAULT CURRENT_DATE,
             total_trades INTEGER,
             win_rate DOUBLE,
@@ -45,7 +45,7 @@ def run_migrations(db_connection: duckdb.DuckDBPyConnection):
     # Create coaching_history table for tracking insights
     db_connection.execute("""
         CREATE TABLE IF NOT EXISTS coaching_history (
-            insight_id INTEGER PRIMARY KEY,
+            insight_id INTEGER PRIMARY KEY DEFAULT nextval('insight_seq'),
             insight_type VARCHAR, -- 'similar_trade', 'pattern', 'suggestion'
             trade_context TEXT,
             suggestion TEXT,
@@ -58,12 +58,21 @@ def run_migrations(db_connection: duckdb.DuckDBPyConnection):
     # Create new_trades_tracking table for incremental updates
     db_connection.execute("""
         CREATE TABLE IF NOT EXISTS new_trades_tracking (
-            tracking_id INTEGER PRIMARY KEY,
+            tracking_id INTEGER PRIMARY KEY DEFAULT nextval('tracking_seq'),
             last_signature VARCHAR,
             last_check_timestamp TIMESTAMP,
             trades_since_last_check INTEGER DEFAULT 0
         )
     """)
+    
+    # Create sequences if they don't exist
+    try:
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS annotation_seq")
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS snapshot_seq")
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS insight_seq")
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS tracking_seq")
+    except:
+        pass  # Sequences might already exist
     
     print("✅ Database migrations completed successfully")
 
