@@ -258,6 +258,11 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] This might be a new wallet or one with no trading history")
                 return False
             
+            # Check if we hit the limit
+            if len(tokens) >= max_items:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Hit max items limit ({max_items} tokens)")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] This wallet likely has more trading data than we can process in instant mode")
+            
             # Normalize and store PnL data
             from scripts.normalize import normalize_cielo_pnl
             pnl_df = normalize_cielo_pnl({'tokens': tokens})

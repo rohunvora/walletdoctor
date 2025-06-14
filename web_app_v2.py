@@ -107,6 +107,7 @@ def instant_load():
             
             # Add a warning if we hit the limit
             is_partial = token_count >= 1000
+            hit_token_limit = token_count >= 999  # Might be exactly 1000 or slightly less
             
         finally:
             db.close()
@@ -124,7 +125,8 @@ def instant_load():
             'is_partial_data': is_partial,
             'is_empty_wallet': token_count == 0,
             'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.',
-            'wallet_address': wallet  # Include wallet address for client-side checking
+            'wallet_address': wallet,  # Include wallet address for client-side checking
+            'hit_token_limit': hit_token_limit if 'hit_token_limit' in locals() else False
         }
         
         # Store wallet in session
