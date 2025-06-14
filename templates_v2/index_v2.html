@@ -348,27 +348,13 @@
                 // Check if wallet is empty - but show different messages based on the situation
                 if (data.is_empty_wallet) {
                     // Check if this might be an API issue vs truly empty wallet
-                    // Some wallets show data on Cielo website but API returns empty
-                    const knownProblematicWallets = [
-                        'DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm'
-                    ];
-                    
-                    if (knownProblematicWallets.includes(wallet)) {
-                        showError(`
-                            <strong>⚠️ Known API Issue</strong><br>
-                            Cielo's API returns no data for this wallet even though their website shows 3,718 trades.<br>
-                            This is a confirmed issue with Cielo's API for certain wallets.<br>
-                            <small style="color:#666;">Unfortunately, we can't access this wallet's data through the API.</small><br>
-                            <small style="color:#666;">You can view it directly on <a href="https://app.cielo.finance/profile/${wallet}" target="_blank">Cielo's website</a>.</small><br>
-                            <small style="color:#666;">Try a different wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
-                        `);
-                    } else if (wallet.length === 44) {
+                    if (wallet.length === 44) {
                         // Longer addresses (44 chars) sometimes have API issues
                         showError(`
-                            <strong>⚠️ Possible API Data Issue</strong><br>
+                            <strong>⚠️ No Trading Data Found</strong><br>
                             Cielo's API returned no data for this wallet.<br>
-                            This sometimes happens with certain wallets despite them having trading history.<br>
-                            <small style="color:#666;">Try a different wallet or visit <a href="https://app.cielo.finance/profile/${wallet}" target="_blank">Cielo's website</a> to check directly.</small><br>
+                            This wallet may be new or have no trading history on Solana.<br>
+                            <small style="color:#666;">Try a different wallet or visit <a href="https://app.cielo.finance/profile/${wallet}" target="_blank">Cielo's website</a> to verify.</small><br>
                             <small style="color:#666;">Working example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
                         `);
                     } else {
