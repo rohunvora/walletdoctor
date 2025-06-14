@@ -55,7 +55,7 @@ def init_db():
     db.execute("""
         CREATE TABLE IF NOT EXISTS tx (
             signature VARCHAR,
-            timestamp TIMESTAMP,
+            timestamp BIGINT,
             fee BIGINT,
             type VARCHAR,
             source VARCHAR,

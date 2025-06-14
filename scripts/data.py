@@ -136,12 +136,8 @@ def cache_to_duckdb(
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str)
     
-    # Convert timestamp columns to int64 if they exist
-    timestamp_cols = ['timestamp']
-    for col in timestamp_cols:
-        if col in df.columns and pd.api.types.is_datetime64_any_dtype(df[col]):
-            # Convert to Unix timestamp in seconds (as int)
-            df[col] = df[col].astype('int64') // 10**9
+    # Don't convert timestamps - keep them as integers
+    # This avoids DuckDB conversion issues
     
     # Replace NaN with None for better compatibility
     df = df.where(pd.notnull(df), None)
