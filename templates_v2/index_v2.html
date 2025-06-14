@@ -251,6 +251,12 @@
             <h3>💡 Personalized Insights</h3>
             <div id="insightsContent"></div>
         </div>
+        
+        <!-- Debug Section -->
+        <div id="debugSection" class="card" style="display:none;">
+            <h3>🔍 Debug Output</h3>
+            <pre id="debugContent" style="background:#f5f5f5; padding:10px; overflow:auto; max-height:300px; font-size:12px;"></pre>
+        </div>
     </div>
 
     <!-- Refresh Button -->
@@ -287,6 +293,25 @@
 
                 displayBaseline(data.baseline);
                 displayTopTrades(data.top_trades);
+                
+                // Show debug info
+                if (data.raw_output || data.debug) {
+                    document.getElementById('debugSection').style.display = 'block';
+                    let debugText = '';
+                    
+                    if (data.debug) {
+                        debugText += `Database Records:\n`;
+                        debugText += `- PnL records: ${data.debug.pnl_records}\n`;
+                        debugText += `- TX records: ${data.debug.tx_records}\n`;
+                        debugText += `- Has data: ${data.debug.has_data}\n\n`;
+                    }
+                    
+                    if (data.raw_output) {
+                        debugText += `Raw Output:\n${data.raw_output}`;
+                    }
+                    
+                    document.getElementById('debugContent').textContent = debugText;
+                }
                 
                 document.getElementById('baselineSection').style.display = 'block';
                 document.getElementById('tradesSection').style.display = 'block';
