@@ -30,6 +30,18 @@ def initialize_app():
     try:
         db = duckdb.connect("coach.db")
         
+        # Drop existing tables to fix schema issues
+        print("🔄 Dropping old tables to fix schema...")
+        try:
+            db.execute("DROP TABLE IF EXISTS tx")
+            db.execute("DROP TABLE IF EXISTS pnl")
+        except:
+            pass  # Tables might not exist
+        
+        # Close and reopen to ensure clean state
+        db.close()
+        db = duckdb.connect("coach.db")
+        
         # Run migrations
         print("🔄 Running database migrations...")
         run_migrations(db)

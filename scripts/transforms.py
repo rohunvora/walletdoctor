@@ -22,7 +22,7 @@ def normalize_helius_transactions(transactions: List[Dict[str, Any]]) -> pd.Data
     for tx in transactions:
         base_info = {
             'signature': tx.get('signature'),
-            'timestamp': tx.get('timestamp'),
+            'timestamp': tx.get('timestamp'),  # Keep as Unix timestamp (integer)
             'fee': tx.get('fee'),
             'type': tx.get('type'),
             'source': tx.get('source'),
@@ -60,9 +60,10 @@ def normalize_helius_transactions(transactions: List[Dict[str, Any]]) -> pd.Data
     
     df = pd.DataFrame(flattened)
     
-    # Convert timestamp to datetime
+    # Keep timestamp as integer (Unix timestamp)
+    # Don't convert to datetime to avoid DuckDB conversion issues
     if 'timestamp' in df.columns:
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+        df['timestamp'] = pd.to_numeric(df['timestamp'], errors='coerce').fillna(0).astype('int64')
     
     return df
 
@@ -164,7 +165,8 @@ def calculate_hold_durations(transactions_df: pd.DataFrame) -> pd.DataFrame:
             matching_buys = buys[buys['timestamp'] < sell['timestamp']]
             if not matching_buys.empty:
                 buy = matching_buys.iloc[-1]
-                hold_duration = (sell['timestamp'] - buy['timestamp']).total_seconds() / 3600
+                # Calculate hold duration from Unix timestamps (in seconds)
+                hold_duration = (sell['timestamp'] - buy['timestamp']) / 3600  # Convert to hours
                 
                 hold_data.append({
                     'token_mint': token,
