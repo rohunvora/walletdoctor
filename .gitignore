@@ -56,4 +56,8 @@ Thumbs.db
 *_temp.parquet
 
 # Logs
-*.log 
+*.log
+
+# Data directory
+data/*
+!data/.gitkeep 
