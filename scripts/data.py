@@ -93,8 +93,8 @@ def fetch_cielo_pnl(address: str, max_items: int = 1000) -> Dict[str, Any]:
                 if paging.get('has_next_page', False):
                     next_object = paging.get('next_object')
                     # Limit pages to prevent infinite loops
-                    if page_count >= 10:
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] Reached page limit (10), stopping")
+                    if page_count >= 50:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] Reached page limit (50), stopping")
                         break
                 else:
                     break
@@ -219,8 +219,9 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str) -> bool:
         
         # Fetch PnL data from Cielo
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching PnL from Cielo...")
-        # Use a lower limit for instant loads to prevent timeouts
-        pnl_data = fetch_cielo_pnl(wallet_address, max_items=500)
+        # For accurate stats, we need ALL tokens, not just recent ones
+        # Increase limit and page limit for complete data
+        pnl_data = fetch_cielo_pnl(wallet_address, max_items=5000)
         
         if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
             tokens = pnl_data['data']['items']

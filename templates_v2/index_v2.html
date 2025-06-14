@@ -222,6 +222,14 @@
             <div class="baseline-stats" id="baselineStats"></div>
         </div>
 
+        <!-- Data Info -->
+        <div id="dataInfo" style="display:none; background:#f0f8ff; padding:15px; margin:20px 0; border-radius:8px; border-left:4px solid #007bff;">
+            <strong>📊 Data Note:</strong> Showing <span id="tokenCount">0</span> tokens. 
+            <span id="dataWarning" style="display:none;">
+                <br>⚠️ Large wallets may have partial data. Full analysis available in premium version.
+            </span>
+        </div>
+
         <!-- Top Trades with Annotation -->
         <div id="tradesSection" class="card" style="display:none;">
             <h2>🎯 Your Top Trades</h2>
@@ -312,6 +320,13 @@
 
                 displayBaseline(data.baseline);
                 displayTopTrades(data.top_trades);
+                
+                // Show data info
+                document.getElementById('tokenCount').textContent = data.baseline.total_trades;
+                document.getElementById('dataInfo').style.display = 'block';
+                if (data.baseline.total_trades >= 500) {
+                    document.getElementById('dataWarning').style.display = 'inline';
+                }
                 
                 // Show analysis if we have data
                 if (data.baseline.total_trades > 0) {
@@ -545,22 +560,25 @@
             return `${(seconds/86400).toFixed(1)}d`;
         }
 
-        function showError(msg) {
-            document.getElementById('error').textContent = msg;
+        function showError(message) {
+            document.getElementById('errorBox').innerHTML = message;
+            document.getElementById('errorBox').style.display = 'block';
+            document.getElementById('loadingBox').style.display = 'none';
         }
 
         function hideError() {
-            document.getElementById('error').textContent = '';
+            document.getElementById('errorBox').style.display = 'none';
         }
 
-        function showLoading(msg) {
-            document.getElementById('loadBtn').disabled = true;
-            document.getElementById('loadBtn').textContent = msg;
+        function showLoading(message) {
+            document.getElementById('alertBox').style.display = 'none';
+            document.getElementById('errorBox').style.display = 'none';
+            document.getElementById('loadingBox').innerHTML = message + '<br><small style="color:#666;">Large wallets (1000+ tokens) may take 30-60 seconds...</small>';
+            document.getElementById('loadingBox').style.display = 'block';
         }
 
         function hideLoading() {
-            document.getElementById('loadBtn').disabled = false;
-            document.getElementById('loadBtn').textContent = 'Get Instant Baseline';
+            document.getElementById('loadingBox').style.display = 'none';
         }
 
         function displayAnalysis(baseline, topTrades) {
