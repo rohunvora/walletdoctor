@@ -333,14 +333,31 @@
                 displayBaseline(data.baseline);
                 displayTopTrades(data.top_trades);
                 
-                // Check if wallet is empty
+                // Check if wallet is empty - but show different messages based on the situation
                 if (data.is_empty_wallet) {
-                    showError(`
-                        <strong>📊 No Trading Data Found</strong><br>
-                        ${data.empty_wallet_message}<br>
-                        <small style="color:#666;">Try a wallet that has traded on DEXs like Raydium, Orca, or Jupiter.</small><br>
-                        <small style="color:#666;">Example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
-                    `);
+                    // Check if this might be an API issue vs truly empty wallet
+                    // Some wallets show data on Cielo website but API returns empty
+                    const knownProblematicWallets = [
+                        'DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm'
+                    ];
+                    
+                    if (knownProblematicWallets.includes(wallet) || wallet.length === 44) {
+                        // Longer addresses (44 chars) sometimes have API issues
+                        showError(`
+                            <strong>⚠️ Possible API Data Issue</strong><br>
+                            Cielo's API returned no data for this wallet.<br>
+                            This sometimes happens with certain wallets despite them having trading history.<br>
+                            <small style="color:#666;">Try a different wallet or visit <a href="https://app.cielo.finance/profile/${wallet}" target="_blank">Cielo's website</a> to check directly.</small><br>
+                            <small style="color:#666;">Working example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
+                        `);
+                    } else {
+                        showError(`
+                            <strong>📊 No Trading Data Found</strong><br>
+                            ${data.empty_wallet_message}<br>
+                            <small style="color:#666;">Try a wallet that has traded on DEXs like Raydium, Orca, or Jupiter.</small><br>
+                            <small style="color:#666;">Example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
+                        `);
+                    }
                     hideLoading();
                     return;
                 }
