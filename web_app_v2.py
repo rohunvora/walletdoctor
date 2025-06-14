@@ -32,6 +32,19 @@ init_database()
 def index():
     return render_template('index_v2.html')
 
+@app.route('/test_env', methods=['GET'])
+def test_env():
+    """Test endpoint to check environment and API keys."""
+    return jsonify({
+        'helius_key_set': bool(os.getenv('HELIUS_KEY')),
+        'cielo_key_set': bool(os.getenv('CIELO_KEY')),
+        'helius_key_length': len(os.getenv('HELIUS_KEY', '')) if os.getenv('HELIUS_KEY') else 0,
+        'cielo_key_length': len(os.getenv('CIELO_KEY', '')) if os.getenv('CIELO_KEY') else 0,
+        'database_exists': os.path.exists('coach.db'),
+        'python_path': os.getenv('PYTHONPATH', 'Not set'),
+        'working_dir': os.getcwd()
+    })
+
 @app.route('/instant_load', methods=['POST'])
 def instant_load():
     """Quick load with instant baseline display."""
@@ -42,12 +55,24 @@ def instant_load():
         if not wallet:
             return jsonify({'error': 'No wallet provided'}), 400
         
+        # Check if API keys are set
+        if not os.getenv('HELIUS_KEY') or not os.getenv('CIELO_KEY'):
+            return jsonify({
+                'error': 'API keys not configured. Please set HELIUS_KEY and CIELO_KEY in Railway environment variables.',
+                'helius_set': bool(os.getenv('HELIUS_KEY')),
+                'cielo_set': bool(os.getenv('CIELO_KEY'))
+            }), 500
+        
         # Run quick load via subprocess (no DB connection held here)
         cmd = ['python3', 'scripts/coach.py', 'instant', wallet]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
         
         if result.returncode != 0:
-            return jsonify({'error': f'Load failed: {result.stderr}'}), 500
+            return jsonify({
+                'error': f'Load failed: {result.stderr}',
+                'stdout': result.stdout,
+                'command': ' '.join(cmd)
+            }), 500
         
         # Open a new connection for reading stats
         db = duckdb.connect("coach.db", read_only=True)
@@ -56,6 +81,10 @@ def instant_load():
             instant_gen = InstantStatsGenerator(db)
             stats = instant_gen.get_baseline_stats()
             top_trades = instant_gen.get_top_trades()
+            
+            # Debug: Check what's in the database
+            pnl_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+            tx_count = db.execute("SELECT COUNT(*) FROM tx").fetchone()[0]
         finally:
             db.close()
         
@@ -68,7 +97,12 @@ def instant_load():
                 'total_pnl': stats.get('total_pnl', 0)
             },
             'top_trades': top_trades,
-            'raw_output': result.stdout
+            'raw_output': result.stdout,
+            'debug': {
+                'pnl_records': pnl_count,
+                'tx_records': tx_count,
+                'has_data': stats.get('has_data', False)
+            }
         }
         
         # Store wallet in session
@@ -77,7 +111,7 @@ def instant_load():
         return jsonify(response)
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 @app.route('/annotate', methods=['POST'])
 def annotate():
