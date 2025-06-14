@@ -120,7 +120,9 @@ def instant_load():
                 'avg_position_size': stats.get('avg_position_size', 0)
             },
             'top_trades': top_trades,
-            'is_partial_data': is_partial
+            'is_partial_data': is_partial,
+            'is_empty_wallet': token_count == 0,
+            'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.'
         }
         
         # Store wallet in session

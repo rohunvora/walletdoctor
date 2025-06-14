@@ -333,6 +333,18 @@
                 displayBaseline(data.baseline);
                 displayTopTrades(data.top_trades);
                 
+                // Check if wallet is empty
+                if (data.is_empty_wallet) {
+                    showError(`
+                        <strong>📊 No Trading Data Found</strong><br>
+                        ${data.empty_wallet_message}<br>
+                        <small style="color:#666;">Try a wallet that has traded on DEXs like Raydium, Orca, or Jupiter.</small><br>
+                        <small style="color:#666;">Example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
+                    `);
+                    hideLoading();
+                    return;
+                }
+                
                 // Show data info
                 document.getElementById('tokenCount').textContent = data.baseline.total_trades;
                 document.getElementById('dataInfo').style.display = 'block';
@@ -345,21 +357,14 @@
                     `;
                 }
                 
-                // Show sections based on whether we have data
-                document.getElementById('baselineSection').style.display = 'block';
-                
+                // Show analysis if we have data
                 if (data.baseline.total_trades > 0) {
-                    // Show analysis and trades sections only if we have data
                     displayAnalysis(data.baseline, data.top_trades);
-                    document.getElementById('tradesSection').style.display = 'block';
-                    document.getElementById('refreshSection').style.display = 'block';
-                } else {
-                    // Hide sections that require trade data
-                    document.getElementById('tradesSection').style.display = 'none';
-                    document.getElementById('refreshSection').style.display = 'none';
-                    document.getElementById('analysisSection').style.display = 'none';
-                    document.getElementById('dataInfo').style.display = 'none';
                 }
+                
+                document.getElementById('baselineSection').style.display = 'block';
+                document.getElementById('tradesSection').style.display = 'block';
+                document.getElementById('refreshSection').style.display = 'block';
                 
                 // Load existing annotations
                 loadAnnotations();
@@ -379,27 +384,6 @@
         }
 
         function displayBaseline(baseline) {
-            // Check if wallet has no trades
-            if (baseline.total_trades === 0) {
-                document.getElementById('baselineStats').innerHTML = `
-                    <div style="text-align:center; padding:40px; color:#666;">
-                        <h3>🔍 No Trading History Found</h3>
-                        <p>This wallet has no trades recorded on Solana DEXs.</p>
-                        <p style="font-size:14px;">Possible reasons:</p>
-                        <ul style="list-style:none; font-size:14px;">
-                            <li>• Fresh wallet with no trading activity</li>
-                            <li>• Only holds tokens (no trades)</li>
-                            <li>• Trades on CEX only (not on-chain)</li>
-                        </ul>
-                        <p style="margin-top:20px; font-size:14px;">
-                            Try another wallet, for example:<br>
-                            <code style="background:#f0f0f0; padding:5px; border-radius:3px;">34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</code>
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-            
             const html = `
                 <div class="stat-card">
                     <div class="stat-label">Win Rate</div>
