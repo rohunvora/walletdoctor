@@ -213,7 +213,9 @@
             <h2>Connect Your Wallet</h2>
             <input type="text" id="walletInput" placeholder="Enter Solana wallet address">
             <button onclick="loadInstant()" id="loadBtn">Get Instant Baseline</button>
-            <div id="error" class="error"></div>
+            <div id="loadingBox" style="display:none; color:#007bff; margin-top:10px;"></div>
+            <div id="errorBox" style="display:none; color:#dc3545; margin-top:10px;"></div>
+            <div id="alertBox" style="display:none; color:#28a745; margin-top:10px;"></div>
         </div>
 
         <!-- Baseline Stats -->
