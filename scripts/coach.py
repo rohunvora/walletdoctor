@@ -100,9 +100,7 @@ def load(addresses: str, limit: Optional[int] = 500):
         try:
             # Fetch transactions
             with console.status("[bold green]Fetching transactions from Helius..."):
-                console.print(f"[dim]Debug: Calling Helius API for {address} with limit {limit}[/]")
                 tx_data = fetch_helius_transactions(address, limit=100)
-                console.print(f"[dim]Debug: Helius returned {len(tx_data) if tx_data else 0} transactions[/]")
                 
                 if tx_data:
                     console.print(f"  ✓ Found {len(tx_data)} transactions")
@@ -120,10 +118,7 @@ def load(addresses: str, limit: Optional[int] = 500):
             
             # Fetch PnL data
             console.print("[bold green]Fetching PnL from Cielo...[/]")
-            console.print(f"[dim]Debug: Calling Cielo API for {address}[/]")
             pnl_data = fetch_cielo_pnl(address)
-            
-            console.print(f"[dim]Debug: Cielo response type: {type(pnl_data)}, has 'data': {'data' in pnl_data if pnl_data else False}[/]")
             
             if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
                 tokens = pnl_data['data']['items']
@@ -140,12 +135,9 @@ def load(addresses: str, limit: Optional[int] = 500):
                 cache_to_duckdb(db, "pnl", pnl_df.to_dict('records'))
             else:
                 console.print("[yellow]  ⚠ No PnL data found from Cielo[/]")
-                if pnl_data:
-                    console.print(f"[dim]Debug: Cielo response keys: {list(pnl_data.keys()) if isinstance(pnl_data, dict) else 'Not a dict'}[/]")
             
         except Exception as e:
             console.print(f"  ✗ Error loading {address}: {str(e)}")
-            console.print(f"[dim]Debug: Error type: {type(e).__name__}[/]")
             import traceback
             traceback.print_exc()
     
@@ -485,10 +477,6 @@ def instant(address: str):
     # Load data
     console.print(f"[bold cyan]⚡ Loading {address} instantly...[/]")
     
-    # Debug: Check API keys
-    console.print(f"[dim]Debug: HELIUS_KEY exists: {bool(os.getenv('HELIUS_KEY'))}[/]")
-    console.print(f"[dim]Debug: CIELO_KEY exists: {bool(os.getenv('CIELO_KEY'))}[/]")
-    
     load(address, limit=100)  # Quick load
     
     # Initialize instant stats generator
@@ -498,10 +486,6 @@ def instant(address: str):
     console.print("\n[bold cyan]📊 YOUR INSTANT BASELINE[/]\n")
     stats = instant_gen.get_baseline_stats()
     top_trades = instant_gen.get_top_trades()
-    
-    # Debug: Print what we got
-    console.print(f"[dim]Debug: Found {stats.get('total_trades', 0)} trades[/]")
-    console.print(f"[dim]Debug: Has data: {stats.get('has_data', False)}[/]")
     
     # Display formatted stats
     output = instant_gen.format_for_display(stats, top_trades)

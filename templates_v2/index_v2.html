@@ -252,10 +252,38 @@
             <div id="insightsContent"></div>
         </div>
         
-        <!-- Debug Section -->
-        <div id="debugSection" class="card" style="display:none;">
-            <h3>🔍 Debug Output</h3>
-            <pre id="debugContent" style="background:#f5f5f5; padding:10px; overflow:auto; max-height:300px; font-size:12px;"></pre>
+        <!-- Trading Analysis Section -->
+        <div id="analysisSection" class="card" style="display:none;">
+            <h2>📊 Your Trading Analysis</h2>
+            
+            <div class="analysis-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+                <!-- Stats Summary -->
+                <div class="analysis-box" style="background:#f8f9fa; padding:20px; border-radius:8px;">
+                    <h4 style="margin-top:0; color:#666;">📈 Performance Overview</h4>
+                    <div id="performanceSummary"></div>
+                </div>
+                
+                <!-- Key Patterns -->
+                <div class="analysis-box" style="background:#f8f9fa; padding:20px; border-radius:8px;">
+                    <h4 style="margin-top:0; color:#666;">🎯 Key Patterns Detected</h4>
+                    <div id="keyPatterns"></div>
+                </div>
+            </div>
+            
+            <!-- Top Trades Detail -->
+            <div style="margin-top:30px;">
+                <h4 style="color:#666;">💰 Notable Trades</h4>
+                <div class="notable-trades-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                    <div>
+                        <h5 style="color:#28a745;">Best Winners</h5>
+                        <div id="bestWinnersDetail"></div>
+                    </div>
+                    <div>
+                        <h5 style="color:#dc3545;">Biggest Losses</h5>
+                        <div id="biggestLossesDetail"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -294,23 +322,9 @@
                 displayBaseline(data.baseline);
                 displayTopTrades(data.top_trades);
                 
-                // Show debug info
-                if (data.raw_output || data.debug) {
-                    document.getElementById('debugSection').style.display = 'block';
-                    let debugText = '';
-                    
-                    if (data.debug) {
-                        debugText += `Database Records:\n`;
-                        debugText += `- PnL records: ${data.debug.pnl_records}\n`;
-                        debugText += `- TX records: ${data.debug.tx_records}\n`;
-                        debugText += `- Has data: ${data.debug.has_data}\n\n`;
-                    }
-                    
-                    if (data.raw_output) {
-                        debugText += `Raw Output:\n${data.raw_output}`;
-                    }
-                    
-                    document.getElementById('debugContent').textContent = debugText;
+                // Show analysis if we have data
+                if (data.baseline.total_trades > 0) {
+                    displayAnalysis(data.baseline, data.top_trades);
                 }
                 
                 document.getElementById('baselineSection').style.display = 'block';
@@ -549,6 +563,85 @@
         function hideLoading() {
             document.getElementById('loadBtn').disabled = false;
             document.getElementById('loadBtn').textContent = 'Get Instant Baseline';
+        }
+
+        function displayAnalysis(baseline, topTrades) {
+            document.getElementById('analysisSection').style.display = 'block';
+            
+            // Performance Summary
+            const perfHtml = `
+                <p><strong>Total Trades:</strong> ${baseline.total_trades}</p>
+                <p><strong>Win Rate:</strong> ${baseline.win_rate.toFixed(1)}% (${baseline.win_rate < 30 ? '⚠️ Low' : baseline.win_rate > 50 ? '✅ Good' : '📊 Average'})</p>
+                <p><strong>Total P&L:</strong> <span class="${baseline.total_pnl >= 0 ? 'positive' : 'negative'}">$${baseline.total_pnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span></p>
+                <p><strong>Average P&L:</strong> <span class="${baseline.avg_pnl >= 0 ? 'positive' : 'negative'}">$${baseline.avg_pnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span> per trade</p>
+                <p><strong>Average Position:</strong> $${(baseline.avg_position_size || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</p>
+            `;
+            document.getElementById('performanceSummary').innerHTML = perfHtml;
+            
+            // Key Patterns
+            const patterns = generateKeyPatterns(baseline, topTrades);
+            document.getElementById('keyPatterns').innerHTML = patterns;
+            
+            // Best Winners Detail
+            if (topTrades.winners && topTrades.winners.length > 0) {
+                const winnersHtml = topTrades.winners.map(trade => `
+                    <div style="margin-bottom:10px; padding:10px; background:white; border-radius:5px; border-left:3px solid #28a745;">
+                        <strong>${trade.symbol}</strong>: <span class="positive">+$${trade.realizedPnl.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                        <br><small style="color:#666;">Held ${formatHoldTime(trade.holdTimeSeconds)} | Entry: $${(trade.entry_size_usd || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</small>
+                    </div>
+                `).join('');
+                document.getElementById('bestWinnersDetail').innerHTML = winnersHtml;
+            }
+            
+            // Biggest Losses Detail
+            if (topTrades.losers && topTrades.losers.length > 0) {
+                const losersHtml = topTrades.losers.map(trade => `
+                    <div style="margin-bottom:10px; padding:10px; background:white; border-radius:5px; border-left:3px solid #dc3545;">
+                        <strong>${trade.symbol}</strong>: <span class="negative">-$${Math.abs(trade.realizedPnl).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                        <br><small style="color:#666;">Held ${formatHoldTime(trade.holdTimeSeconds)} | Entry: $${(trade.entry_size_usd || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</small>
+                    </div>
+                `).join('');
+                document.getElementById('biggestLossesDetail').innerHTML = losersHtml;
+            }
+        }
+        
+        function generateKeyPatterns(baseline, topTrades) {
+            const patterns = [];
+            
+            // Position size pattern
+            if (baseline.avg_position_size > 10000) {
+                patterns.push(`💰 <strong>Large position sizes</strong> (avg ~$${Math.round(baseline.avg_position_size/1000)}k)`);
+            }
+            
+            // Win rate pattern
+            if (baseline.win_rate < 30) {
+                patterns.push(`📉 <strong>Low win rate</strong> but some wins are big`);
+            } else if (baseline.win_rate > 60) {
+                patterns.push(`📈 <strong>High win rate</strong> - good trade selection`);
+            }
+            
+            // Quick trades pattern
+            if (topTrades.winners && topTrades.winners.length > 0) {
+                const quickWins = topTrades.winners.filter(t => t.holdTimeSeconds < 300);
+                if (quickWins.length > 0) {
+                    patterns.push(`⚡ <strong>Quick trades can work</strong> (like ${quickWins[0].symbol})`);
+                }
+            }
+            
+            // Holding losers pattern
+            if (topTrades.losers && topTrades.losers.length > 0) {
+                const longHeldLosers = topTrades.losers.filter(t => t.holdTimeSeconds > 3600);
+                if (longHeldLosers.length > 0) {
+                    patterns.push(`⏰ <strong>Holding losers doesn't help</strong> (${longHeldLosers[0].symbol} held ${formatHoldTime(longHeldLosers[0].holdTimeSeconds)})`);
+                }
+            }
+            
+            // P&L pattern
+            if (baseline.total_pnl < -10000) {
+                patterns.push(`🎯 <strong>Focus on risk management</strong> - protect capital`);
+            }
+            
+            return patterns.length > 0 ? patterns.map(p => `<p style="margin:8px 0;">${p}</p>`).join('') : '<p>Add more trades to see patterns</p>';
         }
     </script>
 </body>

@@ -16,10 +16,6 @@ except ImportError:
 HELIUS_KEY = os.getenv("HELIUS_KEY", "")
 CIELO_KEY = os.getenv("CIELO_KEY", "")
 
-# Debug logging
-print(f"Debug: HELIUS_KEY loaded: {'Yes' if HELIUS_KEY else 'No'} (length: {len(HELIUS_KEY)})")
-print(f"Debug: CIELO_KEY loaded: {'Yes' if CIELO_KEY else 'No'} (length: {len(CIELO_KEY)})")
-
 # Warn if API keys are missing
 if not HELIUS_KEY:
     print("⚠️  Warning: HELIUS_KEY not found in environment variables")
@@ -41,14 +37,10 @@ def fetch_helius_transactions(
     if before:
         params["before"] = before
     
-    print(f"Debug: Calling Helius API: {url}")
-    print(f"Debug: API key present: {'Yes' if params.get('api-key') else 'No'}")
-    
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        print(f"Debug: Helius API response status: {response.status_code}")
         return data
     except requests.exceptions.RequestException as e:
         print(f"❌ Helius API error: {e}")
@@ -65,9 +57,6 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
     url = f"https://feed-api.cielo.finance/api/v1/{address}/pnl/tokens"
     headers = {"x-api-key": CIELO_KEY}
     
-    print(f"Debug: Calling Cielo API: {url}")
-    print(f"Debug: API key present in headers: {'Yes' if headers.get('x-api-key') else 'No'}")
-    
     all_items = []
     next_object = None
     page_count = 0
@@ -83,8 +72,6 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
             response.raise_for_status()
             data = response.json()
             
-            print(f"Debug: Cielo API response status: {response.status_code}")
-            
             if 'data' in data and 'items' in data['data']:
                 items = data['data']['items']
                 all_items.extend(items)
@@ -94,12 +81,9 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
                 paging = data['data'].get('paging', {})
                 if paging.get('has_next_page', False):
                     next_object = paging.get('next_object')
-                    print(f"  Fetched page {page_count} ({len(items)} tokens), next_object: {next_object}")
                 else:
-                    print(f"  Fetched final page {page_count} ({len(items)} tokens)")
                     break
             else:
-                print(f"Debug: Unexpected Cielo response structure: {list(data.keys())}")
                 break
                 
         except requests.exceptions.RequestException as e:
@@ -112,7 +96,6 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
                 # Return what we have so far
                 break
             
-    print(f"  Total tokens fetched: {len(all_items)}")
     return {'status': 'ok', 'data': {'items': all_items}}
 
 def cache_to_duckdb(
