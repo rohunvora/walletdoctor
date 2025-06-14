@@ -236,6 +236,11 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 
             tokens = pnl_data['data']['items']
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Found PnL for {len(tokens)} tokens")
             
+            if len(tokens) == 0:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Cielo returned 0 tokens for wallet {wallet_address}")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] This might be a new wallet or one with no trading history")
+                return False
+            
             # Normalize and store PnL data
             from scripts.normalize import normalize_cielo_pnl
             pnl_df = normalize_cielo_pnl({'tokens': tokens})
@@ -251,6 +256,9 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 
             return True
         else:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] No PnL data found from Cielo")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] API Response structure: {list(pnl_data.keys()) if pnl_data else 'None'}")
+            if pnl_data and 'data' in pnl_data:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Data keys: {list(pnl_data['data'].keys())}")
             return False if not tx_data else True  # Return True if we at least got transactions
             
     except Exception as e:
