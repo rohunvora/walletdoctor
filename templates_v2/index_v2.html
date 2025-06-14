@@ -333,6 +333,18 @@
                 displayBaseline(data.baseline);
                 displayTopTrades(data.top_trades);
                 
+                // Check if we hit token limit
+                if (data.hit_token_limit) {
+                    showError(`
+                        <strong>⚠️ Wallet Has Too Many Tokens</strong><br>
+                        This wallet has traded more than 1,000 different tokens.<br>
+                        WalletDoctor currently can't process wallets with this many tokens in the free version.<br>
+                        <small style="color:#666;">Stats shown are based on the first 1,000 tokens only.</small><br>
+                        <small style="color:#666;">Try a wallet with fewer tokens traded.</small>
+                    `);
+                    // Still show the partial data
+                }
+                
                 // Check if wallet is empty - but show different messages based on the situation
                 if (data.is_empty_wallet) {
                     // Check if this might be an API issue vs truly empty wallet
