@@ -95,8 +95,10 @@ def normalize_cielo_pnl(pnl_data: Dict[str, Any]) -> pd.DataFrame:
             'avgBuyPrice': token.get('average_buy_price', 0),
             'avgSellPrice': token.get('average_sell_price', 0),
             'quantity': token.get('holding_amount', 0),
-            'totalBought': token.get('total_buy_amount', 0),
-            'totalSold': token.get('total_sell_amount', 0),
+            'totalBought': token.get('total_buy_usd', 0),  # USD value, not token amount
+            'totalSold': token.get('total_sell_usd', 0),    # USD value, not token amount
+            'totalBoughtAmount': token.get('total_buy_amount', 0),  # Token amount
+            'totalSoldAmount': token.get('total_sell_amount', 0),   # Token amount
             'holdTimeSeconds': token.get('holding_time_seconds', 0),
             'numSwaps': token.get('num_swaps', 0)
         }
@@ -108,7 +110,7 @@ def normalize_cielo_pnl(pnl_data: Dict[str, Any]) -> pd.DataFrame:
     numeric_columns = [
         'realizedPnl', 'unrealizedPnl', 'totalPnl',
         'avgBuyPrice', 'avgSellPrice', 'quantity',
-        'totalBought', 'totalSold'
+        'totalBought', 'totalSold', 'totalBoughtAmount', 'totalSoldAmount'
     ]
     
     for col in numeric_columns:

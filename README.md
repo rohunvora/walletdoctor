@@ -175,16 +175,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📝 License
 
 MIT License - see LICENSE file for details.
-
-## Known Issues
-
-### Cielo API Limitations
-
-Some wallets return empty data from Cielo's API even though they show trading history on Cielo's website. This is a known issue with their API, not with WalletDoctor.
-
-**Example problematic wallet:**
-- `DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm` - Shows 3,718 trades on website, but API returns 0
-
-**Workaround:** 
-- Use a different wallet
-- View the wallet directly on [Cielo's website](https://app.cielo.finance)
