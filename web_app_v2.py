@@ -84,10 +84,6 @@ def instant_load():
             instant_gen = InstantStatsGenerator(db)
             stats = instant_gen.get_baseline_stats()
             top_trades = instant_gen.get_top_trades()
-            
-            # Debug: Check what's in the database
-            pnl_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
-            tx_count = db.execute("SELECT COUNT(*) FROM tx").fetchone()[0]
         finally:
             db.close()
         
@@ -97,15 +93,10 @@ def instant_load():
                 'win_rate': stats.get('win_rate', 0),
                 'avg_pnl': stats.get('avg_pnl', 0),
                 'total_trades': stats.get('total_trades', 0),
-                'total_pnl': stats.get('total_pnl', 0)
+                'total_pnl': stats.get('total_pnl', 0),
+                'avg_position_size': stats.get('avg_position_size', 0)
             },
-            'top_trades': top_trades,
-            'raw_output': result.stdout,
-            'debug': {
-                'pnl_records': pnl_count,
-                'tx_records': tx_count,
-                'has_data': stats.get('has_data', False)
-            }
+            'top_trades': top_trades
         }
         
         # Store wallet in session
