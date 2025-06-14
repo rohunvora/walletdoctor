@@ -83,19 +83,30 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
 def cache_to_duckdb(
     db_connection: duckdb.DuckDBPyConnection,
     table_name: str,
-    data: List[Dict[str, Any]]
+    data: List[Dict[str, Any]] | pd.DataFrame
 ) -> None:
     """Store data in DuckDB using parquet intermediary."""
-    if not data:
-        return
-    
-    # Normalize JSON to DataFrame
-    df = pd.json_normalize(data, max_level=2)
+    if isinstance(data, pd.DataFrame):
+        df = data
+        if df.empty:
+            return
+    else:
+        if not data:
+            return
+        # Normalize JSON to DataFrame
+        df = pd.json_normalize(data, max_level=2)
     
     # Convert all object columns to string to avoid type issues
     for col in df.columns:
         if df[col].dtype == 'object':
             df[col] = df[col].astype(str)
+    
+    # Convert timestamp columns to int64 if they exist
+    timestamp_cols = ['timestamp']
+    for col in timestamp_cols:
+        if col in df.columns and pd.api.types.is_datetime64_any_dtype(df[col]):
+            # Convert to Unix timestamp in seconds (as int)
+            df[col] = df[col].astype('int64') // 10**9
     
     # Replace NaN with None for better compatibility
     df = df.where(pd.notnull(df), None)
@@ -115,6 +126,30 @@ def cache_to_duckdb(
     # For PnL table, ensure we have the expected columns
     elif table_name == "pnl":
         expected_cols = ['mint', 'symbol', 'realizedPnl', 'unrealizedPnl', 
+                        'totalPnl', 'avgBuyPrice', 'avgSellPrice', 
+                        'quantity', 'totalBought', 'totalSold',
+                        'holdTimeSeconds', 'numSwaps']
+        # Add missing columns with None
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = None
+        # Keep only expected columns in the right order
+        df = df[expected_cols]
+    
+    # For multi-wallet tables, ensure wallet_address is included
+    elif table_name == "tx_multi":
+        expected_cols = ['wallet_address', 'signature', 'timestamp', 'fee', 'type', 'source', 'slot', 
+                        'token_mint', 'token_amount', 'native_amount', 
+                        'from_address', 'to_address', 'transfer_type']
+        # Add missing columns with None
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = None
+        # Keep only expected columns in the right order
+        df = df[expected_cols]
+        
+    elif table_name == "pnl_multi":
+        expected_cols = ['wallet_address', 'mint', 'symbol', 'realizedPnl', 'unrealizedPnl', 
                         'totalPnl', 'avgBuyPrice', 'avgSellPrice', 
                         'quantity', 'totalBought', 'totalSold',
                         'holdTimeSeconds', 'numSwaps']

@@ -1,1 +1,1 @@
-web: python -m gunicorn web_app:app --bind 0.0.0.0:$PORT 
+web: python startup.py && python -m gunicorn wsgi_v2:app --bind 0.0.0.0:$PORT 

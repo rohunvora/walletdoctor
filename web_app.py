@@ -11,9 +11,9 @@ import os
 import tempfile
 import secrets
 from datetime import datetime
-from llm import get_quick_insight  # Use existing LLM module
+from scripts.llm import get_quick_insight  # Use existing LLM module
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='src/walletdoctor/web/templates')
 app.secret_key = secrets.token_hex(16)  # For session management
 
 # Store conversation history in memory (resets on restart)
@@ -96,7 +96,7 @@ def ask():
         
         # Use the existing LLM module to generate response based on the analysis
         try:
-            from llm import TradingCoach
+            from scripts.llm import TradingCoach
             import duckdb
             
             # Connect to the cached database
@@ -109,7 +109,7 @@ def ask():
             # Calculate metrics for the coach
             metrics = {}
             if not pnl_df.empty:
-                from analytics import calculate_win_rate, calculate_portfolio_metrics, identify_leak_trades, calculate_accurate_stats
+                from scripts.analytics import calculate_win_rate, calculate_portfolio_metrics, identify_leak_trades, calculate_accurate_stats
                 metrics['stats'] = calculate_accurate_stats(pnl_df)
                 metrics['win_rate'] = calculate_win_rate(pnl_df)
                 metrics['portfolio'] = calculate_portfolio_metrics(pnl_df, tx_df)
@@ -119,8 +119,8 @@ def ask():
                     metrics['leak_trades'] = leak_trades.head(5).to_dict('records')
             
             if not tx_df.empty:
-                from transforms import calculate_hold_durations
-                from analytics import analyze_hold_patterns
+                from scripts.transforms import calculate_hold_durations
+                from scripts.analytics import analyze_hold_patterns
                 hold_durations = calculate_hold_durations(tx_df)
                 metrics['hold_patterns'] = analyze_hold_patterns(hold_durations)
             
@@ -224,12 +224,12 @@ def clear_session():
 
 if __name__ == '__main__':
     # Create templates directory
-    os.makedirs('templates', exist_ok=True)
+    os.makedirs('src/walletdoctor/web/templates', exist_ok=True)
     
     # Check if template exists, if not create it
-    if not os.path.exists('templates/index.html'):
+    if not os.path.exists('src/walletdoctor/web/templates/index.html'):
         print("Creating template file...")
-        with open('templates/index.html', 'w') as f:
+        with open('src/walletdoctor/web/templates/index.html', 'w') as f:
             f.write('''<!DOCTYPE html>
 <html>
 <head>

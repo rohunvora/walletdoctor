@@ -40,6 +40,11 @@ from blind_spots import BlindSpotDetector
 # Import harsh insights generator
 from harsh_insights import HarshTruthGenerator, format_insights_for_web
 
+# Import new modules for the pivot
+from instant_stats import InstantStatsGenerator
+from db_migrations import run_migrations, add_annotation, get_similar_annotations, save_snapshot
+from trade_comparison import TradeComparator
+
 app = typer.Typer()
 console = Console()
 db = duckdb.connect("coach.db")
@@ -80,6 +85,9 @@ def init_db():
             numSwaps INTEGER
         )
     """)
+    
+    # Run new migrations for annotation support
+    run_migrations(db)
 
 @app.command()
 def load(addresses: str, limit: Optional[int] = 500):
@@ -454,6 +462,179 @@ def quick_analyze(address: str):
         console.print("[yellow]No significant patterns detected. Keep trading![/]")
     
     console.print("\n[dim]💡 For deeper AI-powered insights, ask follow-up questions![/]")
+
+@app.command()
+def instant(address: str):
+    """New instant gratification experience - no gates, immediate value."""
+    init_db()
+    
+    # Load data
+    console.print(f"[bold cyan]⚡ Loading {address} instantly...[/]")
+    load(address, limit=100)  # Quick load
+    
+    # Initialize instant stats generator
+    instant_gen = InstantStatsGenerator(db)
+    
+    # Get baseline stats
+    console.print("\n[bold cyan]📊 YOUR INSTANT BASELINE[/]\n")
+    stats = instant_gen.get_baseline_stats()
+    top_trades = instant_gen.get_top_trades()
+    
+    # Display formatted stats
+    output = instant_gen.format_for_display(stats, top_trades)
+    console.print(output)
+    
+    # Show annotation prompt
+    console.print("\n[bold yellow]💭 Add notes to your trades to unlock personalized coaching![/]")
+    console.print("[dim]Use 'coach annotate' to add notes to any trade[/]\n")
+    
+    # Save a snapshot
+    save_snapshot(db)
+    
+    # Show recent performance if available
+    recent = instant_gen.get_recent_performance()
+    if recent.get('has_recent'):
+        console.print(f"\n📈 Recent Trend: {recent['trend'].upper()}")
+        console.print(f"   Last {recent['recent_trades']} trades: {recent['recent_win_rate']:.1f}% win rate")
+        console.print(f"   Recent avg P&L: ${recent['recent_avg_pnl']:+,.2f}")
+
+@app.command()
+def annotate(symbol: str, note: str):
+    """Add a note to a recent trade for personalized insights."""
+    init_db()
+    
+    # Find the trade
+    pnl_df = db.execute(f"""
+        SELECT * FROM pnl 
+        WHERE UPPER(symbol) = UPPER('{symbol}')
+        ORDER BY mint DESC
+        LIMIT 1
+    """).df()
+    
+    if pnl_df.empty:
+        console.print(f"[red]Trade not found for {symbol}[/]")
+        return
+    
+    trade = pnl_df.iloc[0]
+    
+    # Add annotation
+    annotation_id = add_annotation(
+        db,
+        token_symbol=trade['symbol'],
+        token_mint=trade['mint'],
+        trade_pnl=trade['realizedPnl'],
+        user_note=note,
+        entry_size_usd=trade['totalBought'] * trade['avgBuyPrice'],
+        hold_time_seconds=trade['holdTimeSeconds']
+    )
+    
+    console.print(f"[green]✅ Note added to {symbol} trade[/]")
+    
+    # Find similar past trades with annotations
+    similar = get_similar_annotations(db, entry_size_usd=trade['totalBought'] * trade['avgBuyPrice'])
+    
+    if similar:
+        console.print("\n[bold cyan]📝 Similar trades you've annotated:[/]")
+        for s in similar[:3]:
+            console.print(f"  • {s[0]}: \"{s[2]}\" (P&L: ${s[1]:+,.2f})")
+    
+    # Use trade comparator for insights
+    comparator = TradeComparator(db)
+    comparison = comparator.compare_to_personal_average(trade.to_dict())
+    similar_trades = comparator.find_similar_past_trades(trade.to_dict())
+    
+    insight = comparator.generate_comparison_insight(trade.to_dict(), comparison, similar_trades)
+    console.print(f"\n{insight}")
+
+@app.command()
+def refresh():
+    """Check for new trades and compare to your patterns."""
+    init_db()
+    
+    console.print("[bold cyan]🔄 Checking for new trades...[/]\n")
+    
+    # Initialize comparator
+    comparator = TradeComparator(db)
+    
+    # Detect new trades (force check for demo)
+    new_trades = comparator.detect_new_trades(force_check=True)
+    
+    if not new_trades:
+        console.print("[yellow]No new trades detected. Make a trade and refresh![/]")
+        return
+    
+    console.print(f"[green]Found {len(new_trades)} new trades![/]\n")
+    
+    # Analyze each new trade
+    for trade in new_trades[:3]:  # Limit to 3 for readability
+        # Compare to personal average
+        comparison = comparator.compare_to_personal_average(trade)
+        
+        # Find similar past trades
+        similar_trades = comparator.find_similar_past_trades(trade)
+        
+        # Generate insight
+        insight = comparator.generate_comparison_insight(trade, comparison, similar_trades)
+        console.print(insight)
+        console.print("")
+        
+        # Prompt for annotation
+        console.print(f"[dim]💭 Add a note: coach annotate {trade['symbol']} \"your thoughts\"[/]")
+        console.print("-" * 40)
+        console.print("")
+
+@app.command()
+def evolution():
+    """See how your trading has evolved with annotations."""
+    init_db()
+    
+    console.print("[bold cyan]📈 YOUR TRADING EVOLUTION[/]\n")
+    
+    # Get snapshots
+    snapshots = db.execute("""
+        SELECT * FROM trade_snapshots 
+        ORDER BY created_at DESC 
+        LIMIT 10
+    """).df()
+    
+    if snapshots.empty:
+        console.print("[yellow]No evolution data yet. Keep trading and annotating![/]")
+        return
+    
+    # Show evolution
+    latest = snapshots.iloc[0]
+    oldest = snapshots.iloc[-1]
+    
+    console.print(f"📊 From {oldest['snapshot_date']} → {latest['snapshot_date']}")
+    console.print(f"   Win Rate: {oldest['win_rate']:.1f}% → {latest['win_rate']:.1f}%")
+    console.print(f"   Avg P&L: ${oldest['avg_pnl']:+,.2f} → ${latest['avg_pnl']:+,.2f}")
+    console.print(f"   Annotations: {oldest['annotations_count']} → {latest['annotations_count']}")
+    
+    # Show annotation insights
+    annotations = db.execute("""
+        SELECT sentiment, COUNT(*) as count 
+        FROM trade_annotations 
+        GROUP BY sentiment
+    """).df()
+    
+    if not annotations.empty:
+        console.print("\n💭 Your trading sentiments:")
+        for _, row in annotations.iterrows():
+            console.print(f"   {row['sentiment']}: {row['count']} trades")
+    
+    # Show most valuable annotations
+    valuable = db.execute("""
+        SELECT token_symbol, user_note, trade_pnl
+        FROM trade_annotations
+        WHERE LENGTH(user_note) > 20
+        ORDER BY ABS(trade_pnl) DESC
+        LIMIT 3
+    """).df()
+    
+    if not valuable.empty:
+        console.print("\n📝 Your most insightful notes:")
+        for _, row in valuable.iterrows():
+            console.print(f"   {row['token_symbol']} (${row['trade_pnl']:+,.2f}): \"{row['user_note'][:50]}...\"")
 
 if __name__ == "__main__":
     app() 

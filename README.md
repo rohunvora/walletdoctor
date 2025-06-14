@@ -1,21 +1,60 @@
-# 🩺 WalletDoctor
+# WalletDoctor 🏥
 
-> Deep psychological analysis for Solana traders. Not just metrics—insights that change behavior.
+Analyze your Solana wallet trading patterns and get psychologically accurate insights based on verifiable data.
 
-## What Makes WalletDoctor Different
+## Quick Start
 
-Most trading analytics tell you WHAT happened. WalletDoctor tells you WHY—and how to fix it.
+```bash
+# Set your API keys
+export CIELO_KEY="your_cielo_api_key"
+export OPENAI_API_KEY="your_openai_key"  # Optional, for better insights
 
-### Example Output
+# Run analysis
+python walletdoctor_main.py YOUR_WALLET_ADDRESS
+```
+
+## What It Does
+
+WalletDoctor analyzes your trading behavior using only verifiable data:
+- Win rate and P&L
+- Hold time patterns (winners vs losers)
+- Position sizing impact
+- Trading frequency
+
+## What It Doesn't Do
+
+The system is constrained to avoid false narratives:
+- ❌ No speculation about "cutting winners early" (we don't know future prices)
+- ❌ No assumptions about market conditions
+- ❌ No guessing about your emotional state
+- ✅ Only claims backed by actual data
+
+## Example Output
 
 ```
-🎯 You hold losers 27% longer than winners
-   Confidence: 87% | Severity: HIGH
+You made 847 trades in 30 days. That's 28 trades per day.
 
-📊 ROOT CAUSE: Ego protection and fear of being wrong
-💭 YOUR INNER VOICE: "If I don't sell, it's not a real loss"
-⚡ HARSH TRUTH: You're not 'being patient'—you're in denial.
-✅ THE FIX: Hard stop at -5%. No exceptions.
+Here's what actually happened:
+- 73% of those trades lost money
+- You held losers 4.2x longer than winners
+- Your biggest positions lost 3x more than your smallest ones
+
+The data shows position size matters: your large positions 
+average -$1,235 per trade while small positions average -$287.
+
+One change: Cap position size at $5,000 until your win rate improves.
+```
+
+## Architecture
+
+```
+walletdoctor_main.py          # Main entry point
+├── scripts/
+│   ├── data.py              # API fetching
+│   └── transforms.py        # Data normalization
+└── src/walletdoctor/
+    ├── features/            # Pattern detection
+    └── insights/            # Constrained synthesis
 ```
 
 ## Features
