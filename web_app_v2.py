@@ -18,9 +18,15 @@ from scripts.trade_comparison import TradeComparator
 app = Flask(__name__, template_folder='templates_v2')
 app.secret_key = secrets.token_hex(16)
 
-# Initialize database
-db = duckdb.connect("coach.db")
-run_migrations(db)
+# Initialize database with migrations only once at startup
+def init_database():
+    """Initialize database and run migrations once."""
+    db = duckdb.connect("coach.db")
+    run_migrations(db)
+    db.close()
+
+# Run initialization
+init_database()
 
 @app.route('/')
 def index():
@@ -36,17 +42,22 @@ def instant_load():
         if not wallet:
             return jsonify({'error': 'No wallet provided'}), 400
         
-        # Run quick load
+        # Run quick load via subprocess (no DB connection held here)
         cmd = ['python3', 'scripts/coach.py', 'instant', wallet]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
         
         if result.returncode != 0:
             return jsonify({'error': f'Load failed: {result.stderr}'}), 500
         
-        # Get instant stats
-        instant_gen = InstantStatsGenerator(db)
-        stats = instant_gen.get_baseline_stats()
-        top_trades = instant_gen.get_top_trades()
+        # Open a new connection for reading stats
+        db = duckdb.connect("coach.db", read_only=True)
+        try:
+            # Get instant stats
+            instant_gen = InstantStatsGenerator(db)
+            stats = instant_gen.get_baseline_stats()
+            top_trades = instant_gen.get_top_trades()
+        finally:
+            db.close()
         
         # Format response
         response = {
@@ -79,40 +90,45 @@ def annotate():
         if not symbol or not note:
             return jsonify({'error': 'Symbol and note required'}), 400
         
-        # Find the trade
-        pnl_df = db.execute(f"""
-            SELECT * FROM pnl 
-            WHERE UPPER(symbol) = UPPER('{symbol}')
-            ORDER BY mint DESC
-            LIMIT 1
-        """).df()
-        
-        if pnl_df.empty:
-            return jsonify({'error': f'Trade not found for {symbol}'}), 404
-        
-        trade = pnl_df.iloc[0]
-        
-        # Add annotation
-        annotation_id = add_annotation(
-            db,
-            token_symbol=trade['symbol'],
-            token_mint=trade['mint'],
-            trade_pnl=trade['realizedPnl'],
-            user_note=note,
-            entry_size_usd=trade['totalBought'] * trade['avgBuyPrice'],
-            hold_time_seconds=trade['holdTimeSeconds']
-        )
-        
-        # Get comparison insights
-        comparator = TradeComparator(db)
-        comparison = comparator.compare_to_personal_average(trade.to_dict())
-        similar_trades = comparator.find_similar_past_trades(trade.to_dict())
-        
-        # Find similar annotations
-        similar_annotations = get_similar_annotations(
-            db, 
-            entry_size_usd=trade['totalBought'] * trade['avgBuyPrice']
-        )
+        # Open connection for this request
+        db = duckdb.connect("coach.db")
+        try:
+            # Find the trade
+            pnl_df = db.execute(f"""
+                SELECT * FROM pnl 
+                WHERE UPPER(symbol) = UPPER('{symbol}')
+                ORDER BY mint DESC
+                LIMIT 1
+            """).df()
+            
+            if pnl_df.empty:
+                return jsonify({'error': f'Trade not found for {symbol}'}), 404
+            
+            trade = pnl_df.iloc[0]
+            
+            # Add annotation
+            annotation_id = add_annotation(
+                db,
+                token_symbol=trade['symbol'],
+                token_mint=trade['mint'],
+                trade_pnl=trade['realizedPnl'],
+                user_note=note,
+                entry_size_usd=trade['totalBought'] * trade['avgBuyPrice'],
+                hold_time_seconds=trade['holdTimeSeconds']
+            )
+            
+            # Get comparison insights
+            comparator = TradeComparator(db)
+            comparison = comparator.compare_to_personal_average(trade.to_dict())
+            similar_trades = comparator.find_similar_past_trades(trade.to_dict())
+            
+            # Find similar annotations
+            similar_annotations = get_similar_annotations(
+                db, 
+                entry_size_usd=trade['totalBought'] * trade['avgBuyPrice']
+            )
+        finally:
+            db.close()
         
         return jsonify({
             'success': True,
@@ -142,28 +158,33 @@ def refresh_trades():
         if not wallet:
             return jsonify({'error': 'No wallet loaded'}), 400
         
-        # Reload wallet data
+        # Reload wallet data via subprocess
         cmd = ['python3', 'scripts/coach.py', 'load', wallet]
         subprocess.run(cmd, capture_output=True, text=True, timeout=20)
         
-        # Get new trade comparisons
-        comparator = TradeComparator(db)
-        new_trades = comparator.detect_new_trades(force_check=True)
-        
-        results = []
-        for trade in new_trades[:5]:  # Limit to 5
-            comparison = comparator.compare_to_personal_average(trade)
-            similar = comparator.find_similar_past_trades(trade)
+        # Open connection for analysis
+        db = duckdb.connect("coach.db", read_only=True)
+        try:
+            # Get new trade comparisons
+            comparator = TradeComparator(db)
+            new_trades = comparator.detect_new_trades(force_check=True)
             
-            results.append({
-                'trade': {
-                    'symbol': trade.get('symbol'),
-                    'pnl': trade.get('realizedPnl'),
-                    'entry_size': trade.get('totalBought', 0) * trade.get('avgBuyPrice', 0)
-                },
-                'comparison': comparison,
-                'similar_trades': similar[:3]
-            })
+            results = []
+            for trade in new_trades[:5]:  # Limit to 5
+                comparison = comparator.compare_to_personal_average(trade)
+                similar = comparator.find_similar_past_trades(trade)
+                
+                results.append({
+                    'trade': {
+                        'symbol': trade.get('symbol'),
+                        'pnl': trade.get('realizedPnl'),
+                        'entry_size': trade.get('totalBought', 0) * trade.get('avgBuyPrice', 0)
+                    },
+                    'comparison': comparison,
+                    'similar_trades': similar[:3]
+                })
+        finally:
+            db.close()
         
         return jsonify({
             'new_trades': results,
@@ -177,18 +198,22 @@ def refresh_trades():
 def get_annotations():
     """Get all annotations for display."""
     try:
-        annotations = db.execute("""
-            SELECT 
-                annotation_id,
-                token_symbol,
-                trade_pnl,
-                user_note,
-                sentiment,
-                created_at
-            FROM trade_annotations
-            ORDER BY created_at DESC
-            LIMIT 20
-        """).fetchall()
+        db = duckdb.connect("coach.db", read_only=True)
+        try:
+            annotations = db.execute("""
+                SELECT 
+                    annotation_id,
+                    token_symbol,
+                    trade_pnl,
+                    user_note,
+                    sentiment,
+                    created_at
+                FROM trade_annotations
+                ORDER BY created_at DESC
+                LIMIT 20
+            """).fetchall()
+        finally:
+            db.close()
         
         return jsonify({
             'annotations': [
@@ -213,13 +238,17 @@ def coaching_prompt():
         data = request.json
         question = data.get('question', '').strip()
         
-        # Get recent annotations for context
-        annotations = db.execute("""
-            SELECT token_symbol, user_note, trade_pnl
-            FROM trade_annotations
-            ORDER BY created_at DESC
-            LIMIT 10
-        """).fetchall()
+        db = duckdb.connect("coach.db", read_only=True)
+        try:
+            # Get recent annotations for context
+            annotations = db.execute("""
+                SELECT token_symbol, user_note, trade_pnl
+                FROM trade_annotations
+                ORDER BY created_at DESC
+                LIMIT 10
+            """).fetchall()
+        finally:
+            db.close()
         
         # Build context
         context = "Recent annotated trades:\n"
