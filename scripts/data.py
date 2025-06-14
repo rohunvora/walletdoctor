@@ -62,14 +62,17 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
     next_object = None
     page_count = 0
     
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching Cielo PnL data for {address}")
+    
     # Keep fetching pages until no more data
     while True:
         try:
             params = {}
             if next_object:
                 params['next_object'] = next_object
-                
-            response = requests.get(url, headers=headers, params=params)
+            
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching page {page_count + 1}...")
+            response = requests.get(url, headers=headers, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
             
@@ -77,11 +80,16 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
                 items = data['data']['items']
                 all_items.extend(items)
                 page_count += 1
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Page {page_count}: {len(items)} items (total: {len(all_items)})")
                 
                 # Check if there's a next page
                 paging = data['data'].get('paging', {})
                 if paging.get('has_next_page', False):
                     next_object = paging.get('next_object')
+                    # Limit pages to prevent infinite loops
+                    if page_count >= 10:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] Reached page limit (10), stopping")
+                        break
                 else:
                     break
             else:
@@ -96,7 +104,8 @@ def fetch_cielo_pnl(address: str) -> Dict[str, Any]:
             else:
                 # Return what we have so far
                 break
-            
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Cielo fetch complete: {len(all_items)} total items")
     return {'status': 'ok', 'data': {'items': all_items}}
 
 def cache_to_duckdb(
