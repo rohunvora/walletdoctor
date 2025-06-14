@@ -589,32 +589,52 @@
             const winRate = baseline.win_rate;
             const avgPosition = baseline.avg_position_size || 0;
             const totalPnl = baseline.total_pnl;
+            const totalTrades = baseline.total_trades;
             
             let message = "";
             
-            // Address the elephant in the room
-            if (winRate < 30 && totalPnl < -10000) {
-                message = `You're winning less than 1 in 3 trades and down $${formatMoney(Math.abs(totalPnl))}. The good news? Your winners like ${topTrades.winners[0]?.symbol || 'your best trade'} show you CAN pick winners. The problem is position sizing - you're betting $${formatMoney(avgPosition)} per trade when your win rate suggests starting with $${formatMoney(avgPosition * 0.2)} until you improve your entry timing.`;
-            } else if (winRate < 40) {
-                message = `Your ${winRate.toFixed(0)}% win rate isn't terrible, but you're fighting an uphill battle. `;
-                if (topTrades.losers && topTrades.losers[0]?.holdTimeSeconds > 7200) {
-                    message += `You held ${topTrades.losers[0].symbol} for ${formatHoldTime(topTrades.losers[0].holdTimeSeconds)} and lost $${formatMoney(Math.abs(topTrades.losers[0].realizedPnl))}. Set stop losses at -5% and stick to them - hope isn't a strategy.`;
+            // Be brutally honest based on win rate
+            if (winRate < 20) {
+                // Terrible win rate - be harsh
+                message = `Let's be real: ${winRate.toFixed(0)}% win rate means you're wrong 8 out of 10 times. `;
+                if (totalPnl > 0) {
+                    message += `You're only profitable because of a few lucky hits like ${topTrades.winners[0]?.symbol || 'your biggest win'}. This isn't skill, it's gambling. Cut your position size by 75% and focus on improving your entry selection before you give it all back.`;
                 } else {
-                    message += `Focus on what made ${topTrades.winners[0]?.symbol || 'your winners'} work and do more of that. Quality over quantity.`;
+                    message += `You've lost $${formatMoney(Math.abs(totalPnl))} being wrong this often. Your average position of $${formatMoney(avgPosition)} is way too big for someone who can't pick winners. Start with $${formatMoney(Math.min(avgPosition * 0.1, 100))} positions until you can hit at least 30% win rate.`;
+                }
+            } else if (winRate < 30) {
+                // Poor win rate
+                message = `A ${winRate.toFixed(0)}% win rate is rough - you're losing 7 out of 10 trades. `;
+                if (topTrades.losers && topTrades.losers.length > 0 && topTrades.losers[0].holdTimeSeconds > 3600) {
+                    message += `Holding ${topTrades.losers[0].symbol} for ${formatHoldTime(topTrades.losers[0].holdTimeSeconds)} while it bled out cost you $${formatMoney(Math.abs(topTrades.losers[0].realizedPnl))}. Set stop losses at -5% and actually use them.`;
+                } else {
+                    message += `You need to be way more selective. Look at what made ${topTrades.winners[0]?.symbol || 'your winners'} work and only trade setups that look exactly like that.`;
+                }
+            } else if (winRate < 40) {
+                // Below average
+                message = `Your ${winRate.toFixed(0)}% win rate is below average. `;
+                if (totalPnl < 0) {
+                    message += `You're down $${formatMoney(Math.abs(totalPnl))} because your losses are bigger than your wins. Your worst loss was $${formatMoney(Math.abs(topTrades.losers[0]?.realizedPnl || 0))} - that's probably wiping out 2-3 wins. Use tighter stops.`;
+                } else {
+                    message += `You're managing to stay profitable, but barely. Focus on consistency - your best trade ${topTrades.winners[0]?.symbol || ''} made $${formatMoney(topTrades.winners[0]?.realizedPnl || 0)}, try to replicate that setup.`;
                 }
             } else if (winRate > 60) {
-                message = `${winRate.toFixed(0)}% win rate is solid! You're doing something right. `;
+                // Good win rate
+                message = `Nice - ${winRate.toFixed(0)}% win rate means you're picking good trades. `;
                 if (totalPnl < 0) {
-                    message += `But you're still down money, which means your losses are too big when you're wrong. Your worst loss ${topTrades.losers[0]?.symbol || ''} was $${formatMoney(Math.abs(topTrades.losers[0]?.realizedPnl || 0))} - that's wiping out multiple wins. Tighten those stops.`;
+                    message += `But you're still down money! Your losses are too big when wrong. ${topTrades.losers[0]?.symbol || 'Your worst loss'} cost $${formatMoney(Math.abs(topTrades.losers[0]?.realizedPnl || 0))}. Even with a good win rate, one big loss can ruin everything.`;
                 } else {
-                    message += `Keep doing what you're doing, but consider scaling up gradually. Your average position of $${formatMoney(avgPosition)} is working.`;
+                    message += `You're up $${formatMoney(totalPnl)} with disciplined trading. Consider gradually increasing position size from $${formatMoney(avgPosition)} to $${formatMoney(avgPosition * 1.5)} on your highest conviction plays.`;
                 }
             } else {
-                // Average win rate
-                if (avgPosition > 50000) {
-                    message = `You're swinging big with $${formatMoney(avgPosition)} average positions. With a ${winRate.toFixed(0)}% win rate, that's like flipping coins with a sledgehammer. Consider cutting position size in half and doubling your focus on entry quality.`;
+                // Average (40-60%)
+                message = `With a ${winRate.toFixed(0)}% win rate, you're about average. `;
+                if (avgPosition > 10000) {
+                    message += `But you're risking $${formatMoney(avgPosition)} per trade - that's a lot for middling results. The math says reduce to $${formatMoney(avgPosition * 0.5)} until you improve your edge.`;
+                } else if (totalTrades < 50) {
+                    message += `You need more trades to really know if you have an edge. Keep position sizes small ($${formatMoney(avgPosition)}) while you're still learning your style.`;
                 } else {
-                    message = `Your trading is average - not terrible, not great. The quickest improvement? Look at ${topTrades.winners[0]?.symbol || 'your best win'} (+$${formatMoney(topTrades.winners[0]?.realizedPnl || 0)}) and ${topTrades.losers[0]?.symbol || 'your worst loss'} (-$${formatMoney(Math.abs(topTrades.losers[0]?.realizedPnl || 0))}). What was different about your mindset? That's your edge.`;
+                    message += `After ${totalTrades} trades, you should know your strengths. Double down on setups like ${topTrades.winners[0]?.symbol || 'your winners'} and avoid setups like ${topTrades.losers[0]?.symbol || 'your losers'}.`;
                 }
             }
             
@@ -624,40 +644,44 @@
         function generateKeyPatterns(baseline, topTrades) {
             const patterns = [];
             
-            // Position size pattern
-            if (baseline.avg_position_size > 10000) {
-                patterns.push(`💰 <strong>Large position sizes</strong> (avg $${formatMoney(baseline.avg_position_size)})`);
-            }
-            
-            // Win rate pattern
-            if (baseline.win_rate < 30) {
-                patterns.push(`📉 <strong>Low win rate</strong> but some wins are big`);
+            // Win rate patterns - be specific
+            if (baseline.win_rate < 20) {
+                patterns.push(`🚨 <strong>Critical: ${baseline.win_rate.toFixed(0)}% win rate</strong> - You're basically lighting money on fire`);
+                patterns.push(`💸 <strong>Wrong 8+ times out of 10</strong> - Your strategy isn't working`);
+            } else if (baseline.win_rate < 30) {
+                patterns.push(`📉 <strong>Low win rate (${baseline.win_rate.toFixed(0)}%)</strong> - Need much better trade selection`);
             } else if (baseline.win_rate > 60) {
-                patterns.push(`📈 <strong>High win rate</strong> - good trade selection`);
+                patterns.push(`📈 <strong>High win rate (${baseline.win_rate.toFixed(0)}%)</strong> - Good trade selection`);
             }
             
-            // Quick trades pattern
-            if (topTrades.winners && topTrades.winners.length > 0) {
-                const quickWins = topTrades.winners.filter(t => t.holdTimeSeconds < 300);
-                if (quickWins.length > 0) {
-                    patterns.push(`⚡ <strong>Quick trades can work</strong> (like ${quickWins[0].symbol})`);
-                }
+            // Position size pattern
+            if (baseline.avg_position_size > 5000 && baseline.win_rate < 40) {
+                patterns.push(`⚠️ <strong>Position size too large</strong> for your ${baseline.win_rate.toFixed(0)}% win rate`);
+            } else if (baseline.avg_position_size > 10000) {
+                patterns.push(`💰 <strong>Large positions</strong> (avg $${formatMoney(baseline.avg_position_size)})`);
             }
             
-            // Holding losers pattern
+            // Hold time patterns
             if (topTrades.losers && topTrades.losers.length > 0) {
                 const longHeldLosers = topTrades.losers.filter(t => t.holdTimeSeconds > 3600);
                 if (longHeldLosers.length > 0) {
-                    patterns.push(`⏰ <strong>Holding losers doesn't help</strong> (${longHeldLosers[0].symbol} held ${formatHoldTime(longHeldLosers[0].holdTimeSeconds)})`);
+                    patterns.push(`⏰ <strong>Holding losers too long</strong> (${longHeldLosers[0].symbol} held ${formatHoldTime(longHeldLosers[0].holdTimeSeconds)})`);
                 }
             }
             
-            // P&L pattern
-            if (baseline.total_pnl < -10000) {
-                patterns.push(`🎯 <strong>Focus on risk management</strong> - protect capital`);
+            // P&L patterns
+            if (baseline.total_pnl < -1000 && baseline.win_rate < 30) {
+                patterns.push(`🎯 <strong>Urgent: Down $${formatMoney(Math.abs(baseline.total_pnl))}</strong> - Need immediate strategy change`);
+            } else if (baseline.total_pnl > 0 && baseline.win_rate < 25) {
+                patterns.push(`🍀 <strong>Lucky to be profitable</strong> with only ${baseline.win_rate.toFixed(0)}% wins`);
             }
             
-            return patterns.length > 0 ? patterns.map(p => `<p style="margin:8px 0;">${p}</p>`).join('') : '<p>Add more trades to see patterns</p>';
+            // Special patterns
+            if (baseline.total_trades > 100 && baseline.win_rate < 30) {
+                patterns.push(`📊 <strong>${baseline.total_trades} trades proves</strong> this strategy doesn't work`);
+            }
+            
+            return patterns.length > 0 ? patterns.map(p => `<p style="margin:8px 0;">${p}</p>`).join('') : '<p>Keep trading to see patterns</p>';
         }
     </script>
 </body>
