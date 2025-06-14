@@ -55,6 +55,10 @@ def fetch_cielo_pnl(address: str, max_items: int = 1000) -> Dict[str, Any]:
         print(f"❌ CIELO_KEY is empty!")
         return {'status': 'error', 'data': {'items': []}}
         
+    # Special logging for problematic wallet
+    if address == "DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm":
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] DEBUG: Fetching data for known problematic wallet")
+        
     url = f"https://feed-api.cielo.finance/api/v1/{address}/pnl/tokens"
     headers = {"x-api-key": CIELO_KEY}
     
@@ -75,6 +79,14 @@ def fetch_cielo_pnl(address: str, max_items: int = 1000) -> Dict[str, Any]:
             response = requests.get(url, headers=headers, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
+            
+            # Special debug for problematic wallet
+            if address == "DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm" and page_count == 0:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] DEBUG: First page response keys: {list(data.keys())}")
+                if 'data' in data:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] DEBUG: Data keys: {list(data['data'].keys())}")
+                    if 'items' in data['data']:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] DEBUG: Items length: {len(data['data']['items'])}")
             
             if 'data' in data and 'items' in data['data']:
                 items = data['data']['items']
@@ -202,6 +214,11 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 
         mode: 'instant' for quick load (1000 tokens), 'full' for complete data (5000 tokens)
     """
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting to fetch data for {wallet_address} in {mode} mode")
+    
+    # Basic wallet address validation
+    if len(wallet_address) < 32 or len(wallet_address) > 44:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Invalid wallet address length: {len(wallet_address)}")
+        return False
     
     # Set limits based on mode
     max_items = 1000 if mode == 'instant' else 5000

@@ -122,7 +122,8 @@ def instant_load():
             'top_trades': top_trades,
             'is_partial_data': is_partial,
             'is_empty_wallet': token_count == 0,
-            'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.'
+            'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.',
+            'wallet_address': wallet  # Include wallet address for client-side checking
         }
         
         # Store wallet in session
