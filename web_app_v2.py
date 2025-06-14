@@ -14,6 +14,7 @@ import duckdb
 from scripts.instant_stats import InstantStatsGenerator
 from scripts.db_migrations import run_migrations, add_annotation, get_similar_annotations
 from scripts.trade_comparison import TradeComparator
+from scripts.data import fetch_cielo_pnl
 
 app = Flask(__name__, template_folder='templates_v2')
 app.secret_key = secrets.token_hex(16)
@@ -371,6 +372,36 @@ def find_common_patterns(notes: list) -> list:
             found.append(word)
     
     return found if found else ['emotional trading', 'lack of plan', 'poor timing']
+
+@app.route('/test_cielo/<wallet>', methods=['GET'])
+def test_cielo(wallet):
+    """Test endpoint to debug Cielo API responses."""
+    try:
+        # Fetch with instant mode limit
+        result = fetch_cielo_pnl(wallet, max_items=1000)
+        
+        response_info = {
+            'wallet': wallet,
+            'status': result.get('status', 'unknown'),
+            'has_data': 'data' in result,
+            'has_items': 'items' in result.get('data', {}),
+            'item_count': len(result.get('data', {}).get('items', [])),
+            'first_item': None
+        }
+        
+        if result.get('data', {}).get('items'):
+            first = result['data']['items'][0]
+            response_info['first_item'] = {
+                'symbol': first.get('symbol'),
+                'numSwaps': first.get('numSwaps'),
+                'realizedPnl': first.get('realizedPnl')
+            }
+            response_info['total_trades'] = sum(item.get('numSwaps', 0) for item in result['data']['items'])
+        
+        return jsonify(response_info)
+        
+    except Exception as e:
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 if __name__ == '__main__':
     # Create templates directory
