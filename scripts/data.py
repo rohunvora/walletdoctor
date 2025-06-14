@@ -193,9 +193,18 @@ def cache_to_duckdb(
     # Direct insert into existing table
     db_connection.execute(f"INSERT INTO {table_name} SELECT * FROM df")
 
-def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str) -> bool:
-    """Load wallet trades from Helius and Cielo."""
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting to fetch data for {wallet_address}")
+def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 'instant') -> bool:
+    """Load wallet trades from Helius and Cielo.
+    
+    Args:
+        db: Database connection
+        wallet_address: Solana wallet address
+        mode: 'instant' for quick load (1000 tokens), 'full' for complete data (5000 tokens)
+    """
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting to fetch data for {wallet_address} in {mode} mode")
+    
+    # Set limits based on mode
+    max_items = 1000 if mode == 'instant' else 5000
     
     try:
         # Fetch transactions from Helius
@@ -218,10 +227,10 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str) -> bool:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] No transactions found from Helius")
         
         # Fetch PnL data from Cielo
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching PnL from Cielo...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching PnL from Cielo (limit: {max_items})...")
         # For accurate stats, we need ALL tokens, not just recent ones
         # Increase limit and page limit for complete data
-        pnl_data = fetch_cielo_pnl(wallet_address, max_items=5000)
+        pnl_data = fetch_cielo_pnl(wallet_address, max_items=max_items)
         
         if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
             tokens = pnl_data['data']['items']

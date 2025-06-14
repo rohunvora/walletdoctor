@@ -317,6 +317,16 @@
                 const data = await response.json();
 
                 if (!response.ok) {
+                    // Handle large wallet error specially
+                    if (data.is_large_wallet) {
+                        showError(`
+                            <strong>⚠️ Large Wallet Detected</strong><br>
+                            ${data.error}<br>
+                            <small style="color:#666;">${data.suggestion}</small><br>
+                            <small style="color:#666;">Try: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya (83 trades)</small>
+                        `);
+                        return;
+                    }
                     throw new Error(data.error || 'Failed to load wallet');
                 }
 
@@ -326,8 +336,13 @@
                 // Show data info
                 document.getElementById('tokenCount').textContent = data.baseline.total_trades;
                 document.getElementById('dataInfo').style.display = 'block';
-                if (data.baseline.total_trades >= 500) {
+                
+                // Show warning for partial data
+                if (data.is_partial_data) {
                     document.getElementById('dataWarning').style.display = 'inline';
+                    document.getElementById('dataWarning').innerHTML = `
+                        <br>⚠️ Showing first 1,000 trades only. Full analysis requires premium access.
+                    `;
                 }
                 
                 // Show analysis if we have data
@@ -705,4 +720,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
