@@ -13,6 +13,15 @@ from typing import Optional
 def run_migrations(db_connection: duckdb.DuckDBPyConnection):
     """Run all database migrations."""
     
+    # Create sequences first
+    try:
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS annotation_seq START 1")
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS snapshot_seq START 1")
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS insight_seq START 1")
+        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS tracking_seq START 1")
+    except:
+        pass  # Sequences might already exist
+    
     # Create trade_annotations table
     db_connection.execute("""
         CREATE TABLE IF NOT EXISTS trade_annotations (
@@ -64,15 +73,6 @@ def run_migrations(db_connection: duckdb.DuckDBPyConnection):
             trades_since_last_check INTEGER DEFAULT 0
         )
     """)
-    
-    # Create sequences if they don't exist
-    try:
-        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS annotation_seq")
-        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS snapshot_seq")
-        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS insight_seq")
-        db_connection.execute("CREATE SEQUENCE IF NOT EXISTS tracking_seq")
-    except:
-        pass  # Sequences might already exist
     
     print("✅ Database migrations completed successfully")
 
