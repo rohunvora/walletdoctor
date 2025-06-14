@@ -75,19 +75,38 @@ def instant_load():
             print(f"[{datetime.now()}] Load failed with return code {result.returncode}")
             print(f"STDERR: {result.stderr}")
             print(f"STDOUT: {result.stdout}")
+            
+            # Check if it's a timeout or large wallet issue
+            if "timeout" in result.stderr.lower() or "502" in str(result.returncode):
+                return jsonify({
+                    'error': 'This wallet has too many trades for instant loading. Please try a wallet with fewer trades.',
+                    'is_large_wallet': True,
+                    'suggestion': 'Large wallets (3000+ trades) are not supported in the free version.'
+                }), 400
+                
             return jsonify({
                 'error': f'Load failed: {result.stderr}',
                 'stdout': result.stdout,
                 'command': ' '.join(cmd)
             }), 500
         
+        print(f"[{datetime.now()}] Load successful, reading stats...")
+        
         # Open a new connection for reading stats
         db = duckdb.connect("coach.db", read_only=True)
         try:
+            # Check how many tokens we loaded
+            token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+            print(f"[{datetime.now()}] Loaded {token_count} tokens")
+            
             # Get instant stats
             instant_gen = InstantStatsGenerator(db)
             stats = instant_gen.get_baseline_stats()
             top_trades = instant_gen.get_top_trades()
+            
+            # Add a warning if we hit the limit
+            is_partial = token_count >= 1000
+            
         finally:
             db.close()
         
@@ -100,7 +119,8 @@ def instant_load():
                 'total_pnl': stats.get('total_pnl', 0),
                 'avg_position_size': stats.get('avg_position_size', 0)
             },
-            'top_trades': top_trades
+            'top_trades': top_trades,
+            'is_partial_data': is_partial
         }
         
         # Store wallet in session
