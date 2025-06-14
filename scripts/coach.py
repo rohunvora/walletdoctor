@@ -17,7 +17,7 @@ from datetime import datetime
 # export OPENAI_API_KEY="your-openai-key"
 
 # Import our modules
-from data import fetch_helius_transactions, fetch_cielo_pnl, cache_to_duckdb
+from data import fetch_helius_transactions, fetch_cielo_pnl, cache_to_duckdb, load_wallet
 from transforms import (
     normalize_helius_transactions, 
     normalize_cielo_pnl,
@@ -478,7 +478,12 @@ def instant(address: str):
     # Load data
     console.print(f"[bold cyan]⚡ Loading {address} instantly...[/]")
     
-    load(address, limit=100)  # Quick load
+    # Use load_wallet from data.py with instant mode for limited data
+    success = load_wallet(db, address, mode='instant')
+    
+    if not success:
+        console.print("[red]Failed to load wallet data. Please check the wallet address.[/]")
+        return
     
     # Initialize instant stats generator
     instant_gen = InstantStatsGenerator(db)
@@ -505,6 +510,11 @@ def instant(address: str):
         console.print(f"\n📈 Recent Trend: {recent['trend'].upper()}")
         console.print(f"   Last {recent['recent_trades']} trades: {recent['recent_win_rate']:.1f}% win rate")
         console.print(f"   Recent avg P&L: ${recent['recent_avg_pnl']:+,.2f}")
+        
+    # Show data limit warning if needed
+    pnl_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+    if pnl_count >= 1000:
+        console.print("\n[yellow]⚠️  Showing first 1,000 trades only. Large wallets may have partial data.[/]")
 
 @app.command()
 def annotate(symbol: str, note: str):
