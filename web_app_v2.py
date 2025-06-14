@@ -68,9 +68,13 @@ def instant_load():
         
         # Make sure subprocess inherits environment variables
         env = os.environ.copy()
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20, env=env)
+        print(f"[{datetime.now()}] Starting instant load for wallet: {wallet}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
         
         if result.returncode != 0:
+            print(f"[{datetime.now()}] Load failed with return code {result.returncode}")
+            print(f"STDERR: {result.stderr}")
+            print(f"STDOUT: {result.stdout}")
             return jsonify({
                 'error': f'Load failed: {result.stderr}',
                 'stdout': result.stdout,
@@ -189,7 +193,7 @@ def refresh_trades():
         # Reload wallet data via subprocess
         cmd = ['python3', 'scripts/coach.py', 'load', wallet]
         env = os.environ.copy()
-        subprocess.run(cmd, capture_output=True, text=True, timeout=20, env=env)
+        subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
         
         # Open connection for analysis
         db = duckdb.connect("coach.db", read_only=True)

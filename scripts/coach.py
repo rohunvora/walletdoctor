@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from typing import Optional
 from rich.progress import track
+from datetime import datetime
 
 # Set API keys from environment variables
 # DO NOT hardcode API keys in code!
