@@ -363,9 +363,6 @@ def load_wallet(
             tokens = pnl_data['data']['items']
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Found PnL for {len(tokens)} tokens")
             
-            # Check if 30-day filter was applied
-            is_30d_filtered = pnl_data.get('is_30_day_filtered', False)
-            
             if len(tokens) == 0:
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING: Cielo returned 0 tokens for wallet {wallet_address}")
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] This might be a new wallet or one with no trading history")
@@ -389,35 +386,6 @@ def load_wallet(
                 pass
             # Store PnL data
             cache_to_duckdb(db, "pnl", pnl_df.to_dict('records'))
-            
-            # If 30-day filter was applied, store the metadata
-            if is_30d_filtered and 'data' in pnl_data:
-                # Create metadata table to store filter info
-                db.execute("""
-                    CREATE TABLE IF NOT EXISTS filter_metadata (
-                        filter_type TEXT,
-                        original_count INTEGER,
-                        filtered_count INTEGER,
-                        pnl_30d DOUBLE,
-                        wins_30d INTEGER,
-                        losses_30d INTEGER,
-                        win_rate_30d DOUBLE
-                    )
-                """)
-                
-                # Store the 30-day filter metadata
-                db.execute("""
-                    INSERT INTO filter_metadata VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, [
-                    '30_day',
-                    pnl_data['data'].get('original_count', 0),
-                    pnl_data['data'].get('filtered_count', 0),
-                    pnl_data['data'].get('pnl_30d', 0),
-                    pnl_data['data'].get('wins_30d', 0),
-                    pnl_data['data'].get('losses_30d', 0),
-                    pnl_data['data'].get('win_rate_30d', 0)
-                ])
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Stored 30-day filter metadata")
             
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Data stored successfully")
             return True
@@ -480,8 +448,7 @@ def fetch_cielo_aggregated_pnl(address: str) -> Dict[str, Any]:
 
 def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """
-    Smart fetch that gets summary data first, then filtered token data based on wallet size.
-    For wallets with 1000+ trades, filters to last 30 days for accuracy.
+    Smart fetch that gets summary data first, then token data.
     Returns: (trading_stats, aggregated_pnl, token_pnl)
     """
     # First, get the trading stats (overall performance)
@@ -490,102 +457,18 @@ def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, A
     # Get aggregated PnL - this has the best summary data!
     aggregated_pnl = fetch_cielo_aggregated_pnl(address)
     
-    # Check if this is a large wallet that needs 30-day filtering
-    is_large_wallet = False
-    if aggregated_pnl.get('status') == 'ok' and 'data' in aggregated_pnl:
-        agg_data = aggregated_pnl.get('data', {})
-        tokens_traded = agg_data.get('tokens_traded', 0)
-        
-        if tokens_traded > 1000:
-            is_large_wallet = True
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Large wallet detected ({tokens_traded:,} tokens traded)")
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Will filter to last 30 days for accurate analysis")
-    
-    # Determine fetch strategy based on wallet size
-    if is_large_wallet:
-        # For large wallets, get more data to have enough for 30-day filtering
-        max_pages = 5 if mode == 'instant' else 10
-        max_items = 500 if mode == 'instant' else 1000
-        use_30_day_filter = True
+    # Determine fetch strategy based on mode
+    if mode == 'instant':
+        max_pages = 2
+        max_items = 200
     else:
-        # For normal wallets, use existing logic
-        if mode == 'instant':
-            max_pages = 2
-            max_items = 200
-        else:
-            max_pages = 10
-            max_items = 1000
-        use_30_day_filter = False
+        max_pages = 10
+        max_items = 1000
     
     # Fetch token PnL data
     token_pnl = fetch_cielo_pnl_limited(address, max_items=max_items, max_pages=max_pages)
     
-    # Apply 30-day filter for large wallets
-    if use_30_day_filter and token_pnl.get('status') == 'ok':
-        token_pnl = apply_30_day_filter(token_pnl)
-        # Mark as 30-day filtered for UI messaging
-        token_pnl['is_30_day_filtered'] = True
-    
     return trading_stats, aggregated_pnl, token_pnl
-
-def apply_30_day_filter(token_pnl_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Filter token PnL data to only include trades from the last 30 days.
-    This gives accurate recent performance for large wallets.
-    """
-    if not token_pnl_data.get('data', {}).get('items'):
-        return token_pnl_data
-    
-    # Calculate 30 days ago timestamp
-    from datetime import datetime, timedelta
-    thirty_days_ago = datetime.now() - timedelta(days=30)
-    thirty_days_ago_timestamp = int(thirty_days_ago.timestamp())
-    
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Applying 30-day filter (since {thirty_days_ago.strftime('%Y-%m-%d')})")
-    
-    original_items = token_pnl_data['data']['items']
-    filtered_items = []
-    
-    # Calculate 30-day PnL totals
-    total_pnl_30d = 0
-    wins_30d = 0
-    losses_30d = 0
-    
-    for token in original_items:
-        # Check if token has been traded in last 30 days
-        last_trade = token.get('last_trade', 0)
-        
-        if last_trade and last_trade >= thirty_days_ago_timestamp:
-            filtered_items.append(token)
-            # Track 30-day stats
-            pnl = token.get('total_pnl_usd', 0) or 0
-            if pnl > 0:
-                wins_30d += 1
-                total_pnl_30d += pnl
-            elif pnl < 0:
-                losses_30d += 1
-                total_pnl_30d += pnl
-    
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Filtered from {len(original_items)} to {len(filtered_items)} tokens (30-day active)")
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] 30-day PnL: ${total_pnl_30d:,.0f}, Win Rate: {wins_30d/(wins_30d+losses_30d)*100 if (wins_30d+losses_30d) > 0 else 0:.1f}%")
-    
-    # Sort filtered items by PnL to get correct top performers for 30-day period
-    if filtered_items:
-        filtered_items.sort(key=lambda x: x.get('total_pnl_usd', 0), reverse=True)
-    
-    # Create filtered response
-    filtered_data = token_pnl_data.copy()
-    filtered_data['data']['items'] = filtered_items
-    filtered_data['data']['original_count'] = len(original_items)
-    filtered_data['data']['filtered_count'] = len(filtered_items)
-    filtered_data['data']['filter_applied'] = '30_day'
-    # Add 30-day specific stats
-    filtered_data['data']['pnl_30d'] = total_pnl_30d
-    filtered_data['data']['wins_30d'] = wins_30d
-    filtered_data['data']['losses_30d'] = losses_30d
-    filtered_data['data']['win_rate_30d'] = wins_30d/(wins_30d+losses_30d)*100 if (wins_30d+losses_30d) > 0 else 0
-    
-    return filtered_data
 
 def fetch_cielo_pnl_limited(address: str, max_items: int = 200, max_pages: int = 2) -> Dict[str, Any]:
     """Fetch limited PnL data from Cielo API with page limit."""

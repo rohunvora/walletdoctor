@@ -193,46 +193,11 @@ class TradeBroBot:
             # Initialize original_token_count to avoid undefined variable errors
             original_token_count = token_count
             
-            # Check if 30-day filtering was applied during data loading
-            is_30_day_filtered = False
-            filter_metadata = None
-            try:
-                # Check if we have filter metadata
-                filter_result = db.execute("""
-                    SELECT * FROM filter_metadata 
-                    WHERE filter_type = '30_day' 
-                    LIMIT 1
-                """).fetchone()
-                
-                if filter_result:
-                    is_30_day_filtered = True
-                    filter_metadata = {
-                        'original_count': filter_result[1],
-                        'filtered_count': filter_result[2],
-                        'pnl_30d': filter_result[3],
-                        'wins_30d': filter_result[4],
-                        'losses_30d': filter_result[5],
-                        'win_rate_30d': filter_result[6]
-                    }
-                    original_token_count = filter_result[1]
-                    token_count = filter_result[2]
-                    
-                    # Override stats with 30-day values
-                    stats['total_pnl'] = filter_metadata['pnl_30d']
-                    stats['win_rate'] = filter_metadata['win_rate_30d']
-                    stats['winning_trades'] = filter_metadata['wins_30d']
-                    stats['losing_trades'] = filter_metadata['losses_30d']
-                    stats['total_trades'] = filter_metadata['wins_30d'] + filter_metadata['losses_30d']
-                    
-                    logger.info(f"Using 30-day filtered data - PnL: ${filter_metadata['pnl_30d']:,.0f}, Win Rate: {filter_metadata['win_rate_30d']:.1f}%")
-            except:
-                # Table might not exist, continue with regular logic
-                pass
-            
             # Check if we have aggregated stats (the TRUE stats from API)
             use_aggregated_stats = False
             aggregated_pnl = 0
             aggregated_win_rate = 0
+            is_30_day_filtered = False  # No longer using 30-day filtering
             
             try:
                 # Get the REAL stats from aggregated_stats table
@@ -249,11 +214,9 @@ class TradeBroBot:
                     original_token_count = agg_result[2]  # Use real token count
                     use_aggregated_stats = True
                     
-                    # Only use aggregated stats if we haven't already applied 30-day filtering
-                    if not is_30_day_filtered:
-                        # Override the stats with real values
-                        stats['total_pnl'] = aggregated_pnl
-                        stats['win_rate'] = aggregated_win_rate
+                    # Override the stats with real values
+                    stats['total_pnl'] = aggregated_pnl
+                    stats['win_rate'] = aggregated_win_rate
                     
                     logger.info(f"Using aggregated stats - PnL: ${aggregated_pnl:,.0f}, Win Rate: {aggregated_win_rate:.1f}%")
                 else:
@@ -347,33 +310,60 @@ class TradeBroBot:
             # Analyze for revenge trading pattern
             revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
             
-            # Format initial response with accurate context
-            if is_30_day_filtered:
-                response = f"📊 Found {original_token_count:,} total tokens traded\n"
-                response += f"*Analyzing last 30 days* ({token_count} active tokens)\n\n"
+            # Format initial response with honest context
+            if original_token_count > 1000:
+                # Large wallet - be honest about limitations
+                response = f"📊 *Large Portfolio Detected ({original_token_count:,} tokens)*\n\n"
+                
+                # Show all-time stats (these are accurate)
+                if use_aggregated_stats:
+                    response += f"All-time performance: "
+                    if stats['total_pnl'] < 0:
+                        response += f"-${abs(stats['total_pnl']):,.0f}"
+                    else:
+                        response += f"+${stats['total_pnl']:,.0f}"
+                    response += f" ({stats['win_rate']:.1f}% win rate)\n\n"
+                else:
+                    response += f"Performance from {token_count} visible tokens: "
+                    if stats['total_pnl'] < 0:
+                        response += f"-${abs(stats['total_pnl']):,.0f}"
+                    else:
+                        response += f"+${stats['total_pnl']:,.0f}"
+                    response += f" ({stats['win_rate']:.1f}% win rate)\n\n"
+                
+                response += "Recent activity sample:\n"
+                
+                # Show a few specific trades if we have them
+                if top_trades.get('winners'):
+                    for i, trade in enumerate(top_trades['winners'][:2], 1):
+                        response += f"• {trade['symbol']}: +${trade['realizedPnl']:,.0f} ✅\n"
+                
+                if top_trades.get('losers'):
+                    for i, trade in enumerate(top_trades['losers'][:2], 1):
+                        response += f"• {trade['symbol']}: -${abs(trade['realizedPnl']):,.0f} ❌\n"
+                
+                response += "\n*Showing sample of recent trades. Full history available on Cielo.*\n\n"
+                
             elif use_aggregated_stats and token_count < original_token_count:
-                # We have a subset but showing real stats from full wallet
+                # Medium wallet - clear about what we're showing
                 response = f"📊 *Wallet Overview*\n"
                 response += f"• Total tokens traded: {original_token_count}\n"
-                response += f"• Showing top {token_count} tokens for analysis\n\n"
+                response += f"• Analyzing top {token_count} tokens\n\n"
+                
+                if stats['total_pnl'] < 0:
+                    response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
+                else:
+                    response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
+                response += f"\n*(All-time performance)*\n\n"
             else:
+                # Small wallet - full analysis
                 response = f"📊 Analyzed {token_count} tokens\n\n"
-            
-            if stats['total_pnl'] < 0:
-                response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
-            else:
-                response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
-            
-            # Add clarification if showing subset with real stats
-            if use_aggregated_stats and token_count < original_token_count and not is_30_day_filtered:
-                response += f"\n*(Stats reflect all {original_token_count} tokens traded)*"
-            
-            # Add time context for large wallets
-            if is_30_day_filtered:
-                response += " *(last 30 days)*"
-            
-            # Always add a newline before insights
-            response += "\n\n"
+                
+                if stats['total_pnl'] < 0:
+                    response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
+                else:
+                    response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
+                response += "\n\n"
             
             # Show immediate insight based on detected issues
             insight_added = False
