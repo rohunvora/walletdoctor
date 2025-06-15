@@ -201,6 +201,19 @@ class TradeBroBot:
             token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
             hit_limit = token_count >= 1000
             
+            # Check if 30-day filtering was applied
+            is_30_day_filtered = False
+            original_token_count = token_count
+            
+            # Check aggregated stats to see if this is a large wallet
+            try:
+                agg_stats = db.execute("SELECT tokens_traded FROM aggregated_stats LIMIT 1").fetchone()
+                if agg_stats and agg_stats[0] > 1000:
+                    is_30_day_filtered = True
+                    original_token_count = agg_stats[0]
+            except:
+                pass
+            
             # Get top losses for analysis with timeout protection
             top_trades = {'winners': [], 'losers': []}
             try:
@@ -266,16 +279,21 @@ class TradeBroBot:
             # Analyze for revenge trading pattern
             revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
             
-            # Format initial response with immediate insight
-            response = f"📊 Found {stats['total_trades']} trades"
-            if hit_limit:
-                response += " (analyzed subset for large wallet)"
-            response += "\n\n"
+            # Format initial response with time period context
+            if is_30_day_filtered:
+                response = f"📊 Found {original_token_count:,} total tokens traded\n"
+                response += f"*Analyzing last 30 days* ({token_count} active tokens)\n\n"
+            else:
+                response = f"📊 Found {stats['total_trades']} trades\n\n"
             
             if stats['total_pnl'] < 0:
                 response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
             else:
                 response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
+            
+            # Add time context for large wallets
+            if is_30_day_filtered:
+                response += " *(last 30 days)*"
             
             # Always add a newline before insights
             response += "\n\n"
