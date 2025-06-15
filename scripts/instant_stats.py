@@ -1,95 +1,187 @@
 #!/usr/bin/env python3
 """
-instant_stats.py - Immediate feedback without statistical gates
-
-Show users their baseline metrics instantly.
-No waiting for 30 trades or bootstrap confidence.
+Instant stats generation for quick feedback
+Works with both 'trades' and 'pnl' table schemas
 """
 
-import pandas as pd
 import duckdb
-from typing import Dict, List, Tuple, Any, Optional
-
+from typing import Dict, List, Any
+from datetime import datetime, timedelta
 
 class InstantStatsGenerator:
-    """Generate immediate, ungated statistics for instant gratification."""
-    
     def __init__(self, db_connection):
         self.db = db_connection
-    
-    def get_baseline_stats(self) -> Dict[str, Any]:
-        """Get core stats that always display, regardless of trade count."""
-        pnl_df = self.db.execute("SELECT * FROM pnl").df()
+        # Check which table exists
+        tables = [t[0] for t in self.db.execute("SHOW TABLES").fetchall()]
         
-        if pnl_df.empty:
-            return {
-                'has_data': False,
-                'message': 'No trading data found. This wallet may be new or have no DEX trading history on Solana.',
-                'win_rate': 0,
-                'total_trades': 0,
-                'total_pnl': 0,
-                'avg_pnl': 0,
-                'avg_position_size': 0,
-                'winning_trades': 0,
-                'losing_trades': 0
-            }
-        
-        # Core metrics - always show these
-        total_trades = len(pnl_df)
-        winners = len(pnl_df[pnl_df['realizedPnl'] > 0])
-        win_rate = (winners / total_trades * 100) if total_trades > 0 else 0
-        
-        total_pnl = pnl_df['realizedPnl'].sum()
-        avg_pnl = pnl_df['realizedPnl'].mean()
-        
-        # Calculate average trade size
-        pnl_df['entry_size_usd'] = pnl_df['totalBought'] * pnl_df['avgBuyPrice']
-        avg_position_size = pnl_df['entry_size_usd'].mean()
-        
-        return {
-            'has_data': True,
-            'win_rate': win_rate,
-            'total_trades': total_trades,
-            'total_pnl': total_pnl,
-            'avg_pnl': avg_pnl,
-            'avg_position_size': avg_position_size,
-            'winning_trades': winners,
-            'losing_trades': total_trades - winners,
-            'best_trade': pnl_df.loc[pnl_df['realizedPnl'].idxmax()] if total_trades > 0 else None,
-            'worst_trade': pnl_df.loc[pnl_df['realizedPnl'].idxmin()] if total_trades > 0 else None
-        }
-    
-    def get_top_trades(self, limit: int = 3) -> Dict[str, List[Dict]]:
-        """Get top winners and losers for immediate engagement."""
-        pnl_df = self.db.execute("SELECT * FROM pnl").df()
-        
-        if pnl_df.empty:
-            return {'winners': [], 'losers': []}
-        
-        # Calculate entry size for context
-        pnl_df['entry_size_usd'] = pnl_df['totalBought'] * pnl_df['avgBuyPrice']
-        
-        # Get top winners
-        winners = pnl_df.nlargest(limit, 'realizedPnl')[
-            ['symbol', 'realizedPnl', 'entry_size_usd', 'holdTimeSeconds']
-        ].to_dict('records')
-        
-        # Get top losers (but not all losers if < limit)
-        losers_df = pnl_df[pnl_df['realizedPnl'] < 0]
-        if len(losers_df) >= limit:
-            losers = losers_df.nsmallest(limit, 'realizedPnl')[
-                ['symbol', 'realizedPnl', 'entry_size_usd', 'holdTimeSeconds']
-            ].to_dict('records')
+        if 'trades' in tables:
+            self.table_name = 'trades'
+            self.pnl_column = 'realizedPnl'
+        elif 'pnl' in tables:
+            self.table_name = 'pnl'
+            self.pnl_column = 'totalPnl'  # or realizedProfit, check schema
         else:
-            losers = losers_df[
-                ['symbol', 'realizedPnl', 'entry_size_usd', 'holdTimeSeconds']
-            ].to_dict('records')
+            # Create trades table if neither exists
+            self.create_trades_table()
+            self.table_name = 'trades'
+            self.pnl_column = 'realizedPnl'
+    
+    def create_trades_table(self):
+        """Create trades table if it doesn't exist"""
+        self.db.execute("""
+            CREATE TABLE IF NOT EXISTS trades (
+                wallet VARCHAR,
+                symbol VARCHAR,
+                realizedPnl DOUBLE,
+                timestamp TIMESTAMP,
+                quantity DOUBLE,
+                entryPrice DOUBLE,
+                exitPrice DOUBLE
+            )
+        """)
+        
+    def get_baseline_stats(self) -> Dict[str, Any]:
+        """Get quick baseline statistics"""
+        # First, let's check what columns exist in our table
+        try:
+            if self.table_name == 'pnl':
+                # For pnl table, check actual column names
+                columns = self.db.execute(f"DESCRIBE {self.table_name}").fetchall()
+                col_names = [col[0] for col in columns]
+                
+                # Find the right PnL column
+                if 'totalPnl' in col_names:
+                    self.pnl_column = 'totalPnl'
+                elif 'realizedProfit' in col_names:
+                    self.pnl_column = 'realizedProfit'
+                elif 'realizedPnl' in col_names:
+                    self.pnl_column = 'realizedPnl'
+        except:
+            pass
+            
+        # Get basic stats
+        stats_query = f"""
+        SELECT 
+            COUNT(*) as total_trades,
+            COUNT(CASE WHEN {self.pnl_column} > 0 THEN 1 END) as winning_trades,
+            COUNT(CASE WHEN {self.pnl_column} < 0 THEN 1 END) as losing_trades,
+            COALESCE(SUM({self.pnl_column}), 0) as total_pnl,
+            COALESCE(AVG({self.pnl_column}), 0) as avg_pnl
+        FROM {self.table_name}
+        WHERE {self.pnl_column} IS NOT NULL
+        """
+        
+        result = self.db.execute(stats_query).fetchone()
+        
+        if result and result[0] > 0:
+            total_trades, winning_trades, losing_trades, total_pnl, avg_pnl = result
+            win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
+        else:
+            # No trades found, return zeros
+            total_trades = 0
+            winning_trades = 0
+            losing_trades = 0
+            total_pnl = 0
+            avg_pnl = 0
+            win_rate = 0
         
         return {
-            'winners': winners,
-            'losers': losers
+            'total_trades': total_trades,
+            'winning_trades': winning_trades,
+            'losing_trades': losing_trades,
+            'win_rate': win_rate,
+            'total_pnl': total_pnl,
+            'avg_pnl': avg_pnl
         }
     
+    def get_top_trades(self, limit: int = 5) -> Dict[str, List[Dict]]:
+        """Get top winning and losing trades"""
+        result = {'winners': [], 'losers': []}
+        
+        try:
+            # Get symbol column name - both tables use 'symbol'
+            symbol_col = 'symbol'
+            
+            # Top winners
+            winners_query = f"""
+            SELECT {symbol_col} as symbol, {self.pnl_column} as realizedPnl
+            FROM {self.table_name}
+            WHERE {self.pnl_column} > 0
+            ORDER BY {self.pnl_column} DESC
+            LIMIT {limit}
+            """
+            
+            winners = self.db.execute(winners_query).fetchall()
+            result['winners'] = [
+                {'symbol': row[0], 'realizedPnl': row[1]} 
+                for row in winners
+            ]
+            
+            # Top losers
+            losers_query = f"""
+            SELECT {symbol_col} as symbol, {self.pnl_column} as realizedPnl
+            FROM {self.table_name}
+            WHERE {self.pnl_column} < 0
+            ORDER BY {self.pnl_column} ASC
+            LIMIT {limit}
+            """
+            
+            losers = self.db.execute(losers_query).fetchall()
+            result['losers'] = [
+                {'symbol': row[0], 'realizedPnl': row[1]} 
+                for row in losers
+            ]
+        except Exception as e:
+            print(f"Error getting top trades: {e}")
+            
+        return result
+        
+    def get_recent_trades(self, days: int = 7) -> List[Dict]:
+        """Get recent trades"""
+        try:
+            symbol_col = 'symbol'
+            time_col = 'timestamp' if self.table_name == 'trades' else 'timestamp'
+            
+            # Check if timestamp column exists
+            columns = self.db.execute(f"DESCRIBE {self.table_name}").fetchall()
+            col_names = [col[0] for col in columns]
+            
+            if time_col not in col_names:
+                # No timestamp, just get latest trades
+                query = f"""
+                SELECT {symbol_col} as symbol, {self.pnl_column} as realizedPnl
+                FROM {self.table_name}
+                WHERE {self.pnl_column} IS NOT NULL
+                ORDER BY ABS({self.pnl_column}) DESC
+                LIMIT 20
+                """
+            else:
+                cutoff = datetime.now() - timedelta(days=days)
+                query = f"""
+                SELECT {symbol_col} as symbol, {self.pnl_column} as realizedPnl, {time_col} as timestamp
+                FROM {self.table_name}
+                WHERE {time_col} > '{cutoff}'
+                ORDER BY {time_col} DESC
+                """
+            
+            results = self.db.execute(query).fetchall()
+            
+            trades = []
+            for row in results:
+                trade = {
+                    'symbol': row[0],
+                    'realizedPnl': row[1]
+                }
+                if len(row) > 2:
+                    trade['timestamp'] = row[2]
+                trades.append(trade)
+                
+            return trades
+            
+        except Exception as e:
+            print(f"Error getting recent trades: {e}")
+            return []
+
     def get_recent_performance(self, days: int = 7) -> Dict[str, Any]:
         """Get recent performance trends without heavy analysis."""
         # For MVP, we'll use the last N trades as proxy for recency
