@@ -12,4 +12,5 @@ flask==3.0.0
 gunicorn==21.2.0
 scipy==1.11.4
 numpy
-python-telegram-bot==21.7 
+python-telegram-bot==21.7
+python-dateutil==2.8.2 

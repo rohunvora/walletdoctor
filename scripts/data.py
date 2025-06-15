@@ -448,7 +448,8 @@ def fetch_cielo_aggregated_pnl(address: str) -> Dict[str, Any]:
 
 def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """
-    Smart fetch that gets summary data first, then limited token data.
+    Smart fetch that gets summary data first, then filtered token data based on wallet size.
+    For wallets with 1000+ trades, filters to last 30 days for accuracy.
     Returns: (trading_stats, aggregated_pnl, token_pnl)
     """
     # First, get the trading stats (overall performance)
@@ -457,36 +458,106 @@ def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, A
     # Get aggregated PnL - this has the best summary data!
     aggregated_pnl = fetch_cielo_aggregated_pnl(address)
     
-    # Determine how many tokens to fetch based on mode and wallet size
-    if mode == 'instant':
-        # For instant mode, just get 1-2 pages to find top gainers/losers
-        max_pages = 2
-        max_items = 200  # ~100 items per page
-    else:
-        # For full mode, get more but still limit for huge wallets
-        max_pages = 10
-        max_items = 1000
-    
-    # Check aggregated PnL data to estimate wallet size
+    # Check if this is a large wallet that needs 30-day filtering
+    is_large_wallet = False
     if aggregated_pnl.get('status') == 'ok' and 'data' in aggregated_pnl:
         agg_data = aggregated_pnl.get('data', {})
         tokens_traded = agg_data.get('tokens_traded', 0)
         
         if tokens_traded > 1000:
+            is_large_wallet = True
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Large wallet detected ({tokens_traded:,} tokens traded)")
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Limiting token fetch to top performers only")
-            # For very large wallets, be even more conservative
-            if mode == 'instant':
-                max_pages = 1
-                max_items = 100
-            else:
-                max_pages = 5
-                max_items = 500
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Will filter to last 30 days for accurate analysis")
     
-    # Now fetch limited token PnL data
+    # Determine fetch strategy based on wallet size
+    if is_large_wallet:
+        # For large wallets, get more data to have enough for 30-day filtering
+        max_pages = 5 if mode == 'instant' else 10
+        max_items = 500 if mode == 'instant' else 1000
+        use_30_day_filter = True
+    else:
+        # For normal wallets, use existing logic
+        if mode == 'instant':
+            max_pages = 2
+            max_items = 200
+        else:
+            max_pages = 10
+            max_items = 1000
+        use_30_day_filter = False
+    
+    # Fetch token PnL data
     token_pnl = fetch_cielo_pnl_limited(address, max_items=max_items, max_pages=max_pages)
     
+    # Apply 30-day filter for large wallets
+    if use_30_day_filter and token_pnl.get('status') == 'ok':
+        token_pnl = apply_30_day_filter(token_pnl)
+        # Mark as 30-day filtered for UI messaging
+        token_pnl['is_30_day_filtered'] = True
+    
     return trading_stats, aggregated_pnl, token_pnl
+
+def apply_30_day_filter(token_pnl_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Filter token PnL data to only include trades from the last 30 days.
+    This gives accurate recent performance for large wallets.
+    """
+    if not token_pnl_data.get('data', {}).get('items'):
+        return token_pnl_data
+    
+    # Calculate 30 days ago timestamp
+    from datetime import datetime, timedelta
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    thirty_days_ago_timestamp = int(thirty_days_ago.timestamp())
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Applying 30-day filter (since {thirty_days_ago.strftime('%Y-%m-%d')})")
+    
+    original_items = token_pnl_data['data']['items']
+    filtered_items = []
+    
+    for token in original_items:
+        # Check if token has recent activity
+        # Look for last trade timestamp or similar field
+        has_recent_activity = False
+        
+        # Check various timestamp fields that might exist
+        for field in ['lastTradeTimestamp', 'last_trade_timestamp', 'updatedAt', 'updated_at']:
+            if field in token and token[field]:
+                try:
+                    # Convert to timestamp if needed
+                    if isinstance(token[field], str):
+                        # Try parsing ISO format
+                        from dateutil.parser import parse
+                        timestamp = int(parse(token[field]).timestamp())
+                    else:
+                        timestamp = int(token[field])
+                    
+                    if timestamp >= thirty_days_ago_timestamp:
+                        has_recent_activity = True
+                        break
+                except:
+                    continue
+        
+        # If no timestamp found, include tokens with significant PnL 
+        # (they're likely active if they have substantial gains/losses)
+        if not has_recent_activity:
+            total_pnl = token.get('totalPnl', 0) or 0
+            # Include if >$100 PnL (positive or negative) as likely recent
+            if abs(total_pnl) > 100:
+                has_recent_activity = True
+        
+        if has_recent_activity:
+            filtered_items.append(token)
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Filtered from {len(original_items)} to {len(filtered_items)} tokens (30-day active)")
+    
+    # Create filtered response
+    filtered_data = token_pnl_data.copy()
+    filtered_data['data']['items'] = filtered_items
+    filtered_data['data']['original_count'] = len(original_items)
+    filtered_data['data']['filtered_count'] = len(filtered_items)
+    filtered_data['data']['filter_applied'] = '30_day'
+    
+    return filtered_data
 
 def fetch_cielo_pnl_limited(address: str, max_items: int = 200, max_pages: int = 2) -> Dict[str, Any]:
     """Fetch limited PnL data from Cielo API with page limit."""
