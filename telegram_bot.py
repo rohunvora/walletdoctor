@@ -83,7 +83,7 @@ class TradeBroBot:
             "I help you learn from your trading mistakes.\n\n"
             "Send `/analyze <wallet_address>` to analyze any Solana wallet!\n\n"
             "_Example:_\n"
-            "`/analyze 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`"
+            "`/analyze rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK`"
         )
         
         await update.message.reply_text(
@@ -100,7 +100,7 @@ class TradeBroBot:
             await update.message.reply_text(
                 "Please provide a wallet address.\n\n"
                 "Example:\n"
-                "`/analyze 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`",
+                "`/analyze rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK`",
                 parse_mode='Markdown'
             )
             return
@@ -686,7 +686,7 @@ class TradeBroBot:
             "• /reset - Clear your session and start fresh\n"
             "• /help - Show this message\n\n"
             "_Example:_\n"
-            "`/analyze 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`\n\n"
+            "`/analyze rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK`\n\n"
             "The more honest you are about your mistakes, "
             "the better I can help you avoid repeating them.\n\n"
             "_Knowledge is power. Self-knowledge is superpower._"

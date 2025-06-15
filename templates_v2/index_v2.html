@@ -329,7 +329,7 @@
                             <strong>⚠️ Large Wallet Detected</strong><br>
                             ${data.error}<br>
                             <small style="color:#666;">${data.suggestion}</small><br>
-                            <small style="color:#666;">Try: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya (83 trades)</small>
+                            <small style="color:#666;">Try: rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK (83 trades)</small>
                         `);
                         return;
                     }
@@ -361,14 +361,14 @@
                             Cielo's API returned no data for this wallet.<br>
                             This wallet may be new or have no trading history on Solana.<br>
                             <small style="color:#666;">Try a different wallet or visit <a href="https://app.cielo.finance/profile/${wallet}" target="_blank">Cielo's website</a> to verify.</small><br>
-                            <small style="color:#666;">Working example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
+                            <small style="color:#666;">Working example: rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK</small>
                         `);
                     } else {
                         showError(`
                             <strong>📊 No Trading Data Found</strong><br>
                             ${data.empty_wallet_message}<br>
                             <small style="color:#666;">Try a wallet that has traded on DEXs like Raydium, Orca, or Jupiter.</small><br>
-                            <small style="color:#666;">Example: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya</small>
+                            <small style="color:#666;">Example: rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK</small>
                         `);
                     }
                     hideLoading();

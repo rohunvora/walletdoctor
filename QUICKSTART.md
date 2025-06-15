@@ -34,7 +34,7 @@ python3 telegram_bot.py
 You: /start
 Bot: Welcome to Tradebro! Send me your wallet address
 
-You: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+You: rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK
 Bot: Found 47 trades! Here are your biggest losses...
      [Button: Add note for BONK]
      [Button: Add note for WIF]

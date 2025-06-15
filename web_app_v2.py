@@ -43,7 +43,7 @@ def test_env():
     if os.getenv('CIELO_KEY'):
         try:
             import requests
-            test_wallet = '34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya'
+            test_wallet = 'rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK'
             url = f'https://feed-api.cielo.finance/api/v1/{test_wallet}/pnl/tokens'
             headers = {'x-api-key': os.getenv('CIELO_KEY')}
             response = requests.get(url, headers=headers, timeout=5)
