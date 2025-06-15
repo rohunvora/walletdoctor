@@ -273,11 +273,16 @@ class TradeBroBot:
             response += "\n\n"
             
             if stats['total_pnl'] < 0:
-                response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate\n\n"
+                response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
             else:
-                response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate\n\n"
+                response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
+            
+            # Always add a newline before insights
+            response += "\n\n"
             
             # Show immediate insight based on detected issues
+            insight_added = False
+            
             if revenge_pattern and stats['total_pnl'] < 0:
                 response += f"🎯 *Your biggest issue: Revenge Trading*\n"
                 response += f"After losses, you make bigger, riskier trades.\n"
@@ -285,16 +290,20 @@ class TradeBroBot:
                     worst = top_trades['losers'][0]
                     response += f"Your {worst['symbol']} trade lost ${abs(worst['realizedPnl']):,.0f}.\n\n"
                 response += "This behavior has cost you thousands."
+                insight_added = True
             elif stats['win_rate'] < 30 and stats['total_pnl'] < 0:
                 response += f"🎯 *Your biggest issue: Poor Entry Timing*\n"
                 response += f"You're buying at the wrong time.\n"
                 response += f"Only {stats['winning_trades']} of {stats['total_trades']} trades made money."
+                insight_added = True
             elif stats['avg_pnl'] < -100 and stats['total_pnl'] < 0:
                 response += f"🎯 *Your biggest issue: No Risk Management*\n"
                 response += f"Your average loss is ${abs(stats['avg_pnl']):,.0f}.\n"
                 response += f"You're letting losses run too far."
-            else:
-                # For all other cases, including profitable wallets
+                insight_added = True
+            
+            # Always show something for profitable wallets or if no insight was added
+            if not insight_added:
                 if stats['total_pnl'] > 0:
                     # Profitable wallet - still find issues
                     response += f"💰 *Good, but not great*\n\n"
@@ -324,69 +333,68 @@ class TradeBroBot:
             
             await loading_msg.edit_text(response, parse_mode='Markdown')
             
-            # ALWAYS offer deeper analysis - don't let large wallets miss out
+            # ALWAYS offer deeper analysis - simplified to ensure it works
             try:
                 # Debug log
                 logger.info(f"About to show follow-up buttons for wallet with {stats['total_trades']} trades, PnL: {stats['total_pnl']}")
                 
-                # Wait a moment for better UX
+                # Small delay for better UX
                 import asyncio
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(1.0)
                 
-                # Create buttons - ensure they work even without detailed trade data
-                worst_loss = None
-                if top_trades and top_trades.get('losers'):
-                    worst_loss = top_trades['losers'][0]
-                
+                # Simplified button creation
                 buttons = []
                 
-                # Only add specific loss button if we have the data
-                if worst_loss and 'symbol' in worst_loss and 'realizedPnl' in worst_loss:
-                    # Shorten symbol to max 10 chars and round PnL to avoid callback data limit
-                    symbol_short = worst_loss['symbol'][:10]
-                    pnl_rounded = int(worst_loss['realizedPnl'])
-                    buttons.append([InlineKeyboardButton(
-                        f"Why did I lose ${abs(worst_loss['realizedPnl']):,.0f} on {worst_loss['symbol']}?",
-                        callback_data=f"ex_{symbol_short}_{pnl_rounded}"
-                    )])
-                elif stats['total_pnl'] < 0:
-                    # Generic loss analysis button for large wallets
-                    pnl_rounded = int(stats['total_pnl'])
-                    buttons.append([InlineKeyboardButton(
-                        "Why am I losing money?",
-                        callback_data=f"ex_UNK_{pnl_rounded}"
-                    )])
+                # For profitable wallets, don't show loss button
+                if stats['total_pnl'] < 0:
+                    # Try to add specific loss button if we have data
+                    if top_trades and top_trades.get('losers') and len(top_trades['losers']) > 0:
+                        worst_loss = top_trades['losers'][0]
+                        if 'symbol' in worst_loss and 'realizedPnl' in worst_loss:
+                            symbol_short = str(worst_loss['symbol'])[:10]
+                            pnl_k = int(abs(worst_loss['realizedPnl']) / 1000)  # Convert to thousands
+                            buttons.append([InlineKeyboardButton(
+                                f"Why did I lose ${abs(worst_loss['realizedPnl']):,.0f} on {worst_loss['symbol']}?",
+                                callback_data=f"ex_{symbol_short}_{pnl_k}k"
+                            )])
+                    
+                    # If no specific loss data, add generic button
+                    if not buttons:
+                        total_loss_k = int(abs(stats['total_pnl']) / 1000)
+                        buttons.append([InlineKeyboardButton(
+                            "Why am I losing money?",
+                            callback_data=f"ex_UNK_{total_loss_k}k"
+                        )])
                 
-                # Always show these buttons - use shortened callbacks
+                # Always show these buttons - simplified IDs
                 buttons.extend([
                     [InlineKeyboardButton(
                         "Show detailed breakdown",
-                        callback_data=f"mistakes_{user_id}"
+                        callback_data=f"mistakes_{str(user_id)[-8:]}"  # Last 8 digits of user ID
                     )],
                     [InlineKeyboardButton(
                         "Get personalized rules",
-                        callback_data=f"advice_{user_id}"
+                        callback_data=f"advice_{str(user_id)[-8:]}"  # Last 8 digits of user ID
                     )]
                 ])
                 
                 reply_markup = InlineKeyboardMarkup(buttons)
                 
+                # Simple follow-up message
                 if stats['total_pnl'] > 0:
-                    followup_msg = (
-                        "You're profitable, but are you maximizing?\n\n"
-                        "Let me show you what's holding you back."
-                    )
+                    followup_msg = "You're profitable, but are you maximizing?\n\nLet me show you what's holding you back."
                 else:
-                    followup_msg = (
-                        "Want to understand what's going wrong?\n\n"
-                        "I can show you exactly why you're losing money."
-                    )
+                    followup_msg = "Want to understand what's going wrong?\n\nI can show you exactly why you're losing money."
                 
                 logger.info(f"Sending follow-up message with {len(buttons)} buttons")
+                
+                # Send the follow-up message
                 await update.message.reply_text(
                     followup_msg,
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
                 )
+                
                 logger.info("Follow-up message sent successfully")
                 
                 # Store analysis data for later use - ensure we handle missing data
