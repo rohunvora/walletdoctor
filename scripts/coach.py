@@ -38,8 +38,8 @@ from llm import TradingCoach, get_quick_insight, ANALYSIS_PROMPTS
 # Import blind spots detector
 from blind_spots import BlindSpotDetector
 
-# Import harsh insights generator
-from harsh_insights import HarshTruthGenerator, format_insights_for_web
+# Import wisdom generator
+from wisdom_generator import WisdomGenerator, WISDOM_SYSTEM_PROMPT
 
 # Import new modules for the pivot
 from instant_stats import InstantStatsGenerator
@@ -444,31 +444,46 @@ def clear():
 
 @app.command()
 def quick_analyze(address: str):
-    """Quick analysis for web interface - stats and patterns only, no AI"""
+    """Quick analysis for web interface - wisdom and patterns only, no AI"""
     # Load data for this wallet
     load(address)
     
     # Show stats
     stats()
     
-    # Generate harsh insights
-    console.print("\n[bold cyan]🔥 HARSH TRUTHS ABOUT YOUR TRADING[/]\n")
+    # Generate wisdom insights
+    console.print("\n[bold cyan]🧠 WISDOM FROM YOUR TRADING JOURNEY[/]\n")
     
-    # Initialize harsh truth generator
-    truth_generator = HarshTruthGenerator(db)
+    # Initialize wisdom generator
+    wisdom_gen = WisdomGenerator(db)
+    journey = wisdom_gen.extract_trading_journey()
     
-    # Generate insights
-    with console.status("[bold green]Analyzing your trading sins..."):
-        insights = truth_generator.generate_all_insights()
-    
-    # Display harsh truths
-    if insights:
-        formatted = format_insights_for_web(insights)
-        console.print(formatted)
+    if journey.get('has_data'):
+        # Display journey highlights
+        console.print(f"[yellow]Total journey: {journey['total_trades']} trades, ${journey['total_pnl']:,.0f} P&L[/]")
+        console.print(f"[yellow]Win rate: {journey['win_rate']:.1f}%[/]\n")
+        
+        if journey['worst_trades']:
+            console.print("[bold red]Your disasters:[/]")
+            for trade in journey['worst_trades'][:3]:
+                console.print(f"  • {trade}")
+        
+        if journey['best_trades']:
+            console.print("\n[bold green]Your triumphs:[/]")
+            for trade in journey['best_trades'][:3]:
+                console.print(f"  • {trade}")
+        
+        if journey['most_traded']:
+            console.print("\n[bold yellow]Tokens you can't quit:[/]")
+            for token, count in list(journey['most_traded'].items())[:3]:
+                console.print(f"  • {token}: {count} times")
+        
+        console.print(f"\n[dim]Quick flips (<10min): {len(journey['quick_trades'])} trades[/]")
+        console.print(f"[dim]Diamond hands (>24h): {len(journey['long_holds'])} trades[/]")
     else:
-        console.print("[yellow]No significant patterns detected. Keep trading![/]")
+        console.print("[yellow]No trading journey found. Load some wallet data first![/]")
     
-    console.print("\n[dim]💡 For deeper AI-powered insights, ask follow-up questions![/]")
+    console.print("\n[dim]💡 For AI-powered wisdom, use the web interface with OpenAI configured![/]")
 
 @app.command()
 def instant(address: str):
