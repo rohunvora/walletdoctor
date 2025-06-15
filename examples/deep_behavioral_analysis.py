@@ -2,7 +2,7 @@
 """
 Example: Deep Behavioral Analysis
 
-Shows how WalletDoctor can detect complex behavioral patterns like:
+Shows how Tradebro can detect complex behavioral patterns like:
 - Oversizing leading to forced selling
 - Liquidity traps causing missed opportunities  
 - Emotional spirals after losses
@@ -13,8 +13,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.walletdoctor.features.advanced_patterns import AdvancedPatternDetector
-from src.walletdoctor.insights.behavioral_insights import BehavioralInsightGenerator
+from src.tradebro.features.advanced_patterns import AdvancedPatternDetector
+from src.tradebro.insights.behavioral_insights import BehavioralInsightGenerator
 import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
@@ -149,7 +149,7 @@ def create_sample_data_with_behavioral_patterns():
 def demonstrate_deep_analysis():
     """Demonstrate the deep behavioral analysis"""
     
-    print("=== WalletDoctor Deep Behavioral Analysis Demo ===\n")
+    print("=== Tradebro Deep Behavioral Analysis Demo ===\n")
     
     # Create sample data
     tx_df = create_sample_data_with_behavioral_patterns()

@@ -7,7 +7,7 @@ The goal: They read it and think "Holy shit, this is exactly me."
 
 from typing import List, Dict, Tuple
 from dataclasses import dataclass
-from src.walletdoctor.features.realistic_patterns import TradingPattern
+from src.tradebro.features.realistic_patterns import TradingPattern
 
 
 @dataclass

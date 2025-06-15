@@ -33,7 +33,7 @@ except Exception as e:
 
 def initialize_app():
     """Initialize the application on startup."""
-    print("🚀 Starting WalletDoctor MVP initialization...")
+    print("🚀 Starting Tradebro MVP initialization...")
     
     # Ensure required environment variables are set
     required_vars = ['HELIUS_KEY', 'CIELO_KEY']

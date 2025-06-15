@@ -1,5 +1,5 @@
 """
-Realistic Pattern Detection for WalletDoctor
+Realistic Pattern Detection for Tradebro
 
 This module detects behavioral patterns using actually available data from
 Cielo and Helius APIs. Focuses on actionable insights we can deliver today.

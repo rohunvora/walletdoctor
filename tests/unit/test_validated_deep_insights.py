@@ -16,7 +16,7 @@ except ImportError:
     SCIPY_AVAILABLE = False
     print("Note: scipy not installed. Installing with: pip install scipy")
 
-from walletdoctor.insights.deep_generator import DeepInsightGenerator
+from tradebro.insights.deep_generator import DeepInsightGenerator
 
 
 def create_test_data_with_patterns():

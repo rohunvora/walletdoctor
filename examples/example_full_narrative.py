@@ -24,7 +24,7 @@ watch your equity curve smooth out.
 """
 
 if __name__ == "__main__":
-    print("Example WalletDoctor Output with Full LLM Narrative")
+    print("Example Tradebro Output with Full LLM Narrative")
     print("="*60)
     print()
     print("┌─ Wallet Doctor — Analysis ─┐")

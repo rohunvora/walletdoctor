@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced web interface for WalletDoctor - Annotation-driven coaching
+Enhanced web interface for Tradebro - Annotation-driven coaching
 """
 
 from flask import Flask, render_template, request, jsonify, session
@@ -555,6 +555,6 @@ if __name__ == '__main__':
     # Create templates directory
     os.makedirs('templates_v2', exist_ok=True)
     
-    print("Starting enhanced WalletDoctor web interface...")
+    print("Starting enhanced Tradebro web interface...")
     print("Open http://localhost:5002 in your browser")
     app.run(debug=True, port=5002) 

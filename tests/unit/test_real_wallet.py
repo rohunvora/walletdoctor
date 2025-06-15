@@ -14,9 +14,9 @@ from data import fetch_helius_transactions, fetch_cielo_pnl
 from transforms import normalize_helius_transactions, normalize_cielo_pnl
 
 # Import new insight engine
-from walletdoctor.features import behaviour
-from walletdoctor.insights import generate_full_report, calculate_extras
-from walletdoctor.llm import make_messages, make_quick_assessment, format_for_cli
+from tradebro.features import behaviour
+from tradebro.insights import generate_full_report, calculate_extras
+from tradebro.llm import make_messages, make_quick_assessment, format_for_cli
 
 # Set demo API keys (you'll need to replace these with real ones)
 os.environ['HELIUS_KEY'] = os.environ.get('HELIUS_KEY', 'demo-key')
@@ -65,7 +65,7 @@ def convert_real_data_to_polars(pnl_df: pd.DataFrame, tx_df: pd.DataFrame) -> pl
 
 def test_wallet(wallet_address: str):
     """Test the new insight engine with a real wallet."""
-    print(f"Testing WalletDoctor Insight Engine on wallet: {wallet_address[:8]}...{wallet_address[-8:]}\n")
+    print(f"Testing Tradebro Insight Engine on wallet: {wallet_address[:8]}...{wallet_address[-8:]}\n")
     
     try:
         # Fetch data

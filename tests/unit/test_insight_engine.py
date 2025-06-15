@@ -4,14 +4,14 @@ import sys
 sys.path.append('src')
 
 import polars as pl
-from walletdoctor.features import behaviour
-from walletdoctor.insights import generate_full_report
-from walletdoctor.llm import make_quick_assessment
+from tradebro.features import behaviour
+from tradebro.insights import generate_full_report
+from tradebro.llm import make_quick_assessment
 
 
 def test_insight_engine():
     """Test with mock trading data."""
-    print("Testing WalletDoctor Insight Engine 2.0\n")
+    print("Testing Tradebro Insight Engine 2.0\n")
     
     # Create mock trade data
     trades = pl.DataFrame({

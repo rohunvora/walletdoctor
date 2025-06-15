@@ -62,7 +62,7 @@ The question is: Do you want to be a trader or keep playing casino?
 
 if __name__ == "__main__":
     print("="*60)
-    print("REAL WalletDoctor Analysis - Deep Behavioral Patterns")
+    print("REAL Tradebro Analysis - Deep Behavioral Patterns")
     print("="*60)
     print()
     print("Raw Metrics:")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WalletDoctor Monitoring Service - Watches wallets and alerts on pattern matches
+Tradebro Monitoring Service - Watches wallets and alerts on pattern matches
 """
 
 import os

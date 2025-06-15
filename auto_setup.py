@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WalletDoctor Bot - Automated Setup
+Tradebro Bot - Automated Setup
 This does everything except getting your token from BotFather
 """
 
@@ -21,7 +21,7 @@ class BotSetup:
     def print_header(self):
         print(f"""
 {self.blue}╔══════════════════════════════════════╗
-║      🏥 WalletDoctor Bot Setup       ║
+        ║      🏥 Tradebro Bot Setup       ║
 ╚══════════════════════════════════════╝{self.end}
         """)
         
@@ -75,8 +75,8 @@ class BotSetup:
 
 3. {self.green}Send these messages to BotFather:{self.end}
    → /newbot
-   → My WalletDoctor     (when asked for name)
-   → mywalletdoctor_bot  (when asked for username)
+   → My Tradebro     (when asked for name)
+→ mytradebro_bot  (when asked for username)
 
 4. {self.green}BotFather will reply with:{self.end}
    "Done! Your token is: {self.yellow}1234567890:ABCdefGHIjklMNOpqrsTUVwxyz{self.end}"
@@ -112,7 +112,7 @@ class BotSetup:
         
         # Just check if imports work
         try:
-            from telegram_bot import WalletDoctorBot
+            from telegram_bot import TradeBroBot
             print(f"{self.green}✅ Bot code is valid!{self.end}")
             return True
         except Exception as e:
@@ -128,7 +128,7 @@ class BotSetup:
     python3 telegram_bot.py
 
 {self.yellow}Then in Telegram:{self.end}
-    1. Search for your bot: @mywalletdoctor_bot
+    1. Search for your bot: @mytradebro_bot
     2. Send: /start
     3. Follow the prompts!
 
@@ -162,7 +162,7 @@ class BotSetup:
                 
                 print(f"\n{self.yellow}🚀 Ready to start the bot? (y/n){self.end}")
                 if input("> ").lower() == 'y':
-                    print(f"\n{self.green}Starting WalletDoctor Bot...{self.end}")
+                    print(f"\n{self.green}Starting Tradebro Bot...{self.end}")
                     os.system("python3 telegram_bot.py")
         else:
             print(f"\n{self.yellow}You can add the token later to .env file{self.end}")

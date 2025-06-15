@@ -1,4 +1,4 @@
-# 🏥 WalletDoctor Bot - Quick Start
+# 🏥 Tradebro Bot - Quick Start
 
 ## 🎯 5-Minute Setup
 
@@ -7,8 +7,8 @@
 1. Open Telegram
 2. Message @BotFather
 3. Send: /newbot
-4. Name it: My WalletDoctor
-5. Username: mywalletdoctor_bot
+4. Name it: My Tradebro
+5. Username: mytradebro_bot
 6. Copy the token!
 ```
 
@@ -32,7 +32,7 @@ python3 telegram_bot.py
 ### First Time:
 ```
 You: /start
-Bot: Welcome to WalletDoctor! Send me your wallet address
+Bot: Welcome to Tradebro! Send me your wallet address
 
 You: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
 Bot: Found 47 trades! Here are your biggest losses...

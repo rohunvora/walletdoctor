@@ -8,14 +8,14 @@ import polars as pl
 from datetime import datetime, timedelta
 
 # Import new insight engine
-from walletdoctor.features import behaviour
-from walletdoctor.insights import generate_full_report
-from walletdoctor.llm import make_quick_assessment
+from tradebro.features import behaviour
+from tradebro.insights import generate_full_report
+from tradebro.llm import make_quick_assessment
 
 
 def test_with_csv():
     """Test the insight engine with CSV data."""
-    print("Testing WalletDoctor Insight Engine with CSV data\n")
+    print("Testing Tradebro Insight Engine with CSV data\n")
     
     try:
         # Load CSV data

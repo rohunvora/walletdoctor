@@ -8,7 +8,7 @@ import polars as pl
 from datetime import datetime, timedelta
 
 # Import pattern detection
-from walletdoctor.features import patterns
+from tradebro.features import patterns
 
 
 def test_deep_patterns():

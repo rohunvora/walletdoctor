@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Run the WalletDoctor Telegram Bot with proper environment variables
+Run the Tradebro Telegram Bot with proper environment variables
 """
 import os
 import sys
@@ -23,15 +23,15 @@ if missing_vars:
     print("\nPlease set them in your .env file or as environment variables")
     sys.exit(1)
 
-print("🚀 Starting WalletDoctor Telegram Bot...")
+print("🚀 Starting Tradebro Telegram Bot...")
 print(f"✅ HELIUS_KEY: {os.environ.get('HELIUS_KEY', '')[:8]}...")
 print(f"✅ CIELO_KEY: {os.environ.get('CIELO_KEY', '')[:8]}...")
 print(f"✅ TELEGRAM_BOT_TOKEN: Found")
 print("")
 
 # Now run the bot directly by importing it
-from telegram_bot import WalletDoctorBot
+from telegram_bot import TradeBroBot
 
-bot = WalletDoctorBot(os.getenv('TELEGRAM_BOT_TOKEN'))
-print("🤖 WalletDoctor Bot starting...")
+bot = TradeBroBot(os.getenv('TELEGRAM_BOT_TOKEN'))
+print("🤖 Tradebro Bot starting...")
 bot.run() 
