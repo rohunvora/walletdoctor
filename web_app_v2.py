@@ -153,6 +153,27 @@ def instant_load():
             is_partial = token_count >= 1000
             hit_token_limit = token_count >= 999  # Might be exactly 1000 or slightly less
             
+            # Check for window info (pagination approach)
+            window_info = None
+            try:
+                window_result = db.execute("""
+                    SELECT timeframe, window_description, pages_fetched, has_losers, warning_message
+                    FROM data_window_info
+                    WHERE wallet_address = ?
+                """, [wallet]).fetchone()
+                
+                if window_result:
+                    window_info = {
+                        'timeframe': window_result[0],
+                        'description': window_result[1],
+                        'pages_fetched': window_result[2],
+                        'has_losers': window_result[3],
+                        'warning': window_result[4]
+                    }
+                    print(f"[{datetime.now()}] Found window info: {window_info['description']} (pages: {window_info['pages_fetched']})")
+            except:
+                pass  # Table might not exist
+            
             # Initialize wisdom generator
             wisdom_gen = WisdomGenerator(db)
             journey = wisdom_gen.extract_trading_journey()
@@ -259,7 +280,8 @@ def instant_load():
             'is_empty_wallet': token_count == 0,
             'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.',
             'wallet_address': wallet,  # Include wallet address for client-side checking
-            'hit_token_limit': hit_token_limit if 'hit_token_limit' in locals() else False
+            'hit_token_limit': hit_token_limit if 'hit_token_limit' in locals() else False,
+            'window_info': window_info  # Add window info for date-window hack
         }
         
         # Store wallet in session

@@ -226,10 +226,13 @@
 
         <!-- Data Info -->
         <div id="dataInfo" style="display:none; background:#f0f8ff; padding:15px; margin:20px 0; border-radius:8px; border-left:4px solid #007bff;">
-            <strong>📊 Data Note:</strong> Showing <span id="tokenCount">0</span> tokens. 
+            <strong>📊 Data Note:</strong> Showing <span id="tokenCount">0</span> tokens<span id="windowInfoText"></span>. 
             <span id="dataWarning" style="display:none;">
                 <br>⚠️ Large wallets may have partial data. Full analysis available in premium version.
             </span>
+            <div id="windowWarning" style="display:none; margin-top:10px; color:#856404; background-color:#fff3cd; padding:10px; border-radius:4px; border:1px solid #ffeaa7;">
+                <strong>🔍 Date Window Applied:</strong> <span id="windowWarningText"></span>
+            </div>
         </div>
 
         <!-- Top Trades with Annotation -->
@@ -378,6 +381,31 @@
                 // Show data info
                 document.getElementById('tokenCount').textContent = data.baseline.total_trades;
                 document.getElementById('dataInfo').style.display = 'block';
+                
+                // Display window info if pagination was used to find losers
+                if (data.window_info) {
+                    const windowInfo = data.window_info;
+                    if (windowInfo.timeframe !== 'max') {
+                        // Update the token count text to show the window
+                        document.getElementById('windowInfoText').textContent = ` from the ${windowInfo.description}`;
+                        
+                        // Show window warning if needed
+                        if (windowInfo.warning) {
+                            document.getElementById('windowWarning').style.display = 'block';
+                            document.getElementById('windowWarningText').textContent = windowInfo.warning;
+                        } else if (windowInfo.timeframe === '7d') {
+                            document.getElementById('windowWarning').style.display = 'block';
+                            document.getElementById('windowWarningText').textContent = `Showing last 7 days. This wallet's full history required too many pages to find losing trades.`;
+                        } else if (windowInfo.timeframe === '30d') {
+                            document.getElementById('windowWarning').style.display = 'block';
+                            document.getElementById('windowWarningText').textContent = `Showing last 30 days. Found losers after ${windowInfo.pages_fetched} pages.`;
+                        }
+                    } else if (windowInfo.pages_fetched > 1) {
+                        // Show info about pagination even for max timeframe
+                        document.getElementById('windowWarning').style.display = 'block';
+                        document.getElementById('windowWarningText').textContent = `Fetched ${windowInfo.pages_fetched} pages to find losing trades.`;
+                    }
+                }
                 
                 // Show warning for partial data
                 if (data.is_partial_data) {
