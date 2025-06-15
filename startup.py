@@ -8,10 +8,28 @@ import os
 import sys
 import duckdb
 
-# Add scripts directory to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
+# Debug environment
+print(f"🔍 Python path: {sys.path}")
+print(f"🔍 Current directory: {os.getcwd()}")
+print(f"🔍 Directory contents: {os.listdir('.')}")
 
-from db_migrations import run_migrations
+# Add both root and scripts directory to path
+root_dir = os.path.dirname(os.path.abspath(__file__))
+scripts_dir = os.path.join(root_dir, 'scripts')
+
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+
+print(f"🔍 Updated Python path: {sys.path}")
+
+# Test imports
+try:
+    from db_migrations import run_migrations
+    print("✅ Successfully imported db_migrations")
+except Exception as e:
+    print(f"❌ Failed to import db_migrations: {e}")
 
 def initialize_app():
     """Initialize the application on startup."""
@@ -19,7 +37,15 @@ def initialize_app():
     
     # Ensure required environment variables are set
     required_vars = ['HELIUS_KEY', 'CIELO_KEY']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    missing_vars = []
+    
+    for var in required_vars:
+        value = os.getenv(var)
+        if not value:
+            missing_vars.append(var)
+            print(f"❌ {var} is not set")
+        else:
+            print(f"✅ {var} is set (length: {len(value)})")
     
     if missing_vars:
         print(f"⚠️  Warning: Missing environment variables: {', '.join(missing_vars)}")
@@ -58,6 +84,8 @@ def initialize_app():
         
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
+        import traceback
+        traceback.print_exc()
         # Don't exit - let the app start anyway
     
     # Create templates directory if it doesn't exist
