@@ -186,6 +186,48 @@ class TradeBroBot:
             instant_gen = InstantStatsGenerator(db)
             stats = instant_gen.get_baseline_stats()
             
+            # Check if we hit the token limit first
+            token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+            hit_limit = token_count >= 100  # Changed from 1000 to 100 to match actual API limit
+            
+            # Check if 30-day filtering was applied
+            is_30_day_filtered = False
+            original_token_count = token_count
+            
+            # Check if we have aggregated stats (the TRUE stats from API)
+            use_aggregated_stats = False
+            aggregated_pnl = 0
+            aggregated_win_rate = 0
+            
+            try:
+                # Get the REAL stats from aggregated_stats table
+                agg_result = db.execute("""
+                    SELECT realized_pnl, win_rate, tokens_traded 
+                    FROM aggregated_stats 
+                    WHERE wallet_address = ? 
+                    LIMIT 1
+                """, [wallet_address]).fetchone()
+                
+                if agg_result:
+                    aggregated_pnl = agg_result[0]
+                    aggregated_win_rate = agg_result[1] * 100  # Convert to percentage
+                    original_token_count = agg_result[2]  # Use real token count
+                    use_aggregated_stats = True
+                    
+                    # Check if this is a large wallet that needs 30-day filtering
+                    if original_token_count > 1000:
+                        is_30_day_filtered = True
+                    
+                    # Override the stats with real values
+                    stats['total_pnl'] = aggregated_pnl
+                    stats['win_rate'] = aggregated_win_rate
+                    
+                    logger.info(f"Using aggregated stats - PnL: ${aggregated_pnl:,.0f}, Win Rate: {aggregated_win_rate:.1f}%")
+                else:
+                    logger.warning("No aggregated stats found - using subset data")
+            except Exception as e:
+                logger.error(f"Error fetching aggregated stats: {e}")
+            
             if stats['total_trades'] == 0:
                 await loading_msg.edit_text(
                     "📊 *No trades found*\n\n"
@@ -197,24 +239,7 @@ class TradeBroBot:
                     os.remove(temp_db_path)
                 return
             
-            # Check if we hit the token limit
-            token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
-            hit_limit = token_count >= 100  # Changed from 1000 to 100 to match actual API limit
-            
-            # Check if 30-day filtering was applied
-            is_30_day_filtered = False
-            original_token_count = token_count
-            
-            # Check aggregated stats to see total tokens traded
-            try:
-                agg_stats = db.execute("SELECT tokens_traded FROM aggregated_stats LIMIT 1").fetchone()
-                if agg_stats:
-                    original_token_count = agg_stats[0]
-                    # Check if this is a large wallet that had 30-day filtering
-                    if original_token_count > 1000:
-                        is_30_day_filtered = True
-            except:
-                pass
+            # Token count is already set above, no need to duplicate
             
             # Get top losses for analysis with timeout protection
             top_trades = {'winners': [], 'losers': []}
@@ -281,23 +306,26 @@ class TradeBroBot:
             # Analyze for revenge trading pattern
             revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
             
-            # Format initial response with time period context
+            # Format initial response with accurate context
             if is_30_day_filtered:
                 response = f"📊 Found {original_token_count:,} total tokens traded\n"
                 response += f"*Analyzing last 30 days* ({token_count} active tokens)\n\n"
+            elif use_aggregated_stats and token_count < original_token_count:
+                # We have a subset but showing real stats from full wallet
+                response = f"📊 *Wallet Overview*\n"
+                response += f"• Total tokens traded: {original_token_count}\n"
+                response += f"• Showing top {token_count} tokens for analysis\n\n"
             else:
-                # More accurate messaging based on what we actually have
-                if token_count >= 100 and token_count < original_token_count:
-                    response = f"📊 Analyzed {token_count} of {original_token_count} tokens traded\n\n"
-                elif token_count >= 100:
-                    response = f"📊 Analyzed {token_count} tokens\n\n"
-                else:
-                    response = f"📊 Found {stats['total_trades']} trades\n\n"
+                response = f"📊 Analyzed {token_count} tokens\n\n"
             
             if stats['total_pnl'] < 0:
                 response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
             else:
                 response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
+            
+            # Add clarification if showing subset with real stats
+            if use_aggregated_stats and token_count < original_token_count and not is_30_day_filtered:
+                response += f"\n*(Stats reflect all {original_token_count} tokens traded)*"
             
             # Add time context for large wallets
             if is_30_day_filtered:
@@ -334,21 +362,32 @@ class TradeBroBot:
                     # Profitable wallet - still find issues
                     response += f"💰 *Good, but not great*\n\n"
                     
-                    if stats['win_rate'] < 70:
+                    # Show real win rate issues if we have aggregated stats
+                    if use_aggregated_stats and stats['win_rate'] < 50:
+                        response += f"• Despite profits, your {stats['win_rate']:.1f}% win rate is concerning\n"
+                        response += f"• You're losing {100-stats['win_rate']:.0f}% of trades\n"
+                    elif stats['win_rate'] < 70:
                         response += f"• {stats['win_rate']:.1f}% win rate leaves room for improvement\n"
                     
                     if top_trades.get('losers'):
                         worst = top_trades['losers'][0]
                         response += f"• Your {worst['symbol']} disaster: -${abs(worst['realizedPnl']):,.0f}\n"
                         response += f"• Even winners shouldn't blow up like this\n\n"
+                    elif use_aggregated_stats and stats['win_rate'] < 50:
+                        # No losers in subset but poor overall win rate
+                        response += f"• Limited data shown, but your losses are real\n"
+                        response += f"• Full analysis would reveal your problem trades\n\n"
                     
                     if top_trades.get('winners'):
                         best = top_trades['winners'][0]
-                        response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}\n"
+                        response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}"
+                        if use_aggregated_stats and token_count < original_token_count:
+                            response += " *(from visible tokens)*"
+                        response += "\n"
                         
                     # For large profitable wallets with no specific trade data, add generic insight
                     if not top_trades.get('winners') and not top_trades.get('losers'):
-                        response += f"• With {stats['total_trades']} trades, you're clearly experienced\n"
+                        response += f"• With {original_token_count if use_aggregated_stats else stats['total_trades']} tokens traded, you're clearly experienced\n"
                         response += f"• But are you maximizing every opportunity?\n"
                         response += f"• Even pros have blind spots\n"
                 else:
