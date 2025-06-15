@@ -132,13 +132,35 @@ class TradeBroBot:
             success = load_wallet(db, wallet_address, mode='instant')
             
             if not success:
-                await loading_msg.edit_text(
-                    "Failed to load wallet data.\n\n"
-                    "This could be due to:\n"
-                    "• Invalid wallet address\n"
-                    "• API rate limits\n"
-                    "• No trading activity found"
-                )
+                # Check if we have partial data
+                tables = [t[0] for t in db.execute("SHOW TABLES").fetchall()]
+                pnl_count = 0
+                if 'pnl' in tables:
+                    pnl_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+                
+                error_msg = "Failed to load wallet data.\n\n"
+                
+                if not os.getenv("HELIUS_KEY") or not os.getenv("CIELO_KEY"):
+                    error_msg += "❌ *API keys are missing*\n"
+                    error_msg += "The bot needs HELIUS_KEY and CIELO_KEY to fetch data.\n\n"
+                    error_msg += "Please run the bot using:\n"
+                    error_msg += "`python run_telegram_bot.py`\n\n"
+                    error_msg += "Or set your API keys:\n"
+                    error_msg += "`export HELIUS_KEY=your_key`\n"
+                    error_msg += "`export CIELO_KEY=your_key`"
+                elif pnl_count == 0:
+                    error_msg += "📊 *No trading data found*\n"
+                    error_msg += "This wallet either:\n"
+                    error_msg += "• Has never traded on Solana DEXs\n"
+                    error_msg += "• Is too new (data not indexed yet)\n"
+                    error_msg += "• Only holds tokens (no trades)\n\n"
+                    error_msg += "_Try a wallet that has traded on Raydium, Orca, or Jupiter_"
+                else:
+                    error_msg += "⚠️ *Partial data loaded*\n"
+                    error_msg += f"Found {pnl_count} tokens but couldn't complete analysis.\n"
+                    error_msg += "This might be due to API rate limits."
+                
+                await loading_msg.edit_text(error_msg, parse_mode='Markdown')
                 db.close()
                 # Clean up temp database
                 if os.path.exists(temp_db_path):
@@ -149,7 +171,12 @@ class TradeBroBot:
             tables = [t[0] for t in db.execute("SHOW TABLES").fetchall()]
             
             if 'pnl' not in tables:
-                await loading_msg.edit_text("No trading data found for this wallet.")
+                await loading_msg.edit_text(
+                    "📊 *No trading data found*\n\n"
+                    "This wallet has no trading history on Solana DEXs.\n"
+                    "Try a wallet that has traded on Raydium, Orca, or Jupiter.",
+                    parse_mode='Markdown'
+                )
                 db.close()
                 if os.path.exists(temp_db_path):
                     os.remove(temp_db_path)
@@ -160,11 +187,19 @@ class TradeBroBot:
             stats = instant_gen.get_baseline_stats()
             
             if stats['total_trades'] == 0:
-                await loading_msg.edit_text("No trades found for this wallet.")
+                await loading_msg.edit_text(
+                    "📊 *No trades found*\n\n"
+                    "This wallet has tokens but no completed trades to analyze.",
+                    parse_mode='Markdown'
+                )
                 db.close()
                 if os.path.exists(temp_db_path):
                     os.remove(temp_db_path)
                 return
+            
+            # Check if we hit the token limit
+            token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+            hit_limit = token_count >= 1000
             
             # Get top losses for analysis
             top_trades = instant_gen.get_top_trades(limit=5)
@@ -176,7 +211,10 @@ class TradeBroBot:
             revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
             
             # Format initial response with immediate insight
-            response = f"📊 Found {stats['total_trades']} trades\n\n"
+            response = f"📊 Found {stats['total_trades']} trades"
+            if hit_limit:
+                response += " (showing first 1000 tokens)"
+            response += "\n\n"
             
             if stats['total_pnl'] < 0:
                 response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate\n\n"
