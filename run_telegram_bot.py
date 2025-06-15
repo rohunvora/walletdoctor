@@ -1,37 +1,33 @@
 #!/usr/bin/env python3
 """
-Run the Tradebro Telegram Bot with proper environment variables
+Run the Tradebro Telegram Bot - Simplified Version
 """
+
 import os
 import sys
 
-# Load dotenv to get API keys and TELEGRAM_BOT_TOKEN
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Check if required environment variables are set
-required_vars = ['HELIUS_KEY', 'CIELO_KEY', 'TELEGRAM_BOT_TOKEN']
-missing_vars = [var for var in required_vars if not os.getenv(var)]
+from dotenv import load_dotenv
+load_dotenv()
 
-if missing_vars:
-    print("❌ Missing required environment variables:")
-    for var in missing_vars:
-        print(f"   - {var}")
-    print("\nPlease set them in your .env file or as environment variables")
-    sys.exit(1)
+# Import and run the simplified bot
+from telegram_bot_simple import TradeBroBot
 
-print("🚀 Starting Tradebro Telegram Bot...")
-print(f"✅ HELIUS_KEY: {os.environ.get('HELIUS_KEY', '')[:8]}...")
-print(f"✅ CIELO_KEY: {os.environ.get('CIELO_KEY', '')[:8]}...")
-print(f"✅ TELEGRAM_BOT_TOKEN: Found")
-print("")
-
-# Now run the bot directly by importing it
-from telegram_bot import TradeBroBot
-
-bot = TradeBroBot(os.getenv('TELEGRAM_BOT_TOKEN'))
-print("🤖 Tradebro Bot starting...")
-bot.run() 
+if __name__ == "__main__":
+    # Get token from environment
+    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    
+    if not TOKEN:
+        print("❌ Please set TELEGRAM_BOT_TOKEN environment variable")
+        print("Either export it or add to .env file:")
+        print('export TELEGRAM_BOT_TOKEN="your-bot-token"')
+        exit(1)
+    
+    # Create and run bot
+    print("🚀 Starting Tradebro Bot (Simplified Version)...")
+    print("📊 One insight at a time. Make it count.")
+    
+    bot = TradeBroBot(TOKEN)
+    bot.run() 

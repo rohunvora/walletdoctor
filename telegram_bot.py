@@ -5,11 +5,13 @@ Tradebro Telegram Bot - Learn from your mistakes, avoid repeating them
 
 import os
 import logging
+import time
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import duckdb
 from typing import Dict, List
+import asyncio
 
 # Import our existing modules
 from scripts.data import load_wallet
@@ -92,77 +94,46 @@ class TradeBroBot:
         )
         
     async def analyze_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Analyze trading data for a wallet address"""
-        user_id = update.effective_user.id
-        
-        # Check if wallet address was provided
-        if not context.args or len(context.args) == 0:
-            await update.message.reply_text(
-                "Please provide a wallet address.\n\n"
-                "Example:\n"
-                "`/analyze rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK`",
-                parse_mode='Markdown'
-            )
+        """Analyze wallet for trading patterns - ONE perfect insight"""
+        if not update.message or not context.args:
+            await update.message.reply_text("Please provide a wallet address: `/analyze <address>`", parse_mode='Markdown')
             return
             
         wallet_address = context.args[0]
+        user_id = update.effective_user.id
         
-        # Basic validation for Solana address
-        if len(wallet_address) < 32 or len(wallet_address) > 44:
-            await update.message.reply_text(
-                "Invalid wallet address. Please provide a valid Solana address.",
-                parse_mode='Markdown'
-            )
+        # Validate Solana address
+        try:
+            if len(wallet_address) < 32 or len(wallet_address) > 44:
+                raise ValueError()
+        except ValueError:
+            await update.message.reply_text("❌ Please provide a valid Solana wallet address")
             return
+            
+        # Create a unique temporary database for this analysis
+        temp_db_path = f"/tmp/tradebro_{user_id}_{int(time.time())}.db"
         
-        # Show loading message
-        loading_msg = await update.message.reply_text(f"Analyzing wallet...")
+        # Send loading message
+        loading_msg = await update.message.reply_text("🔍 Analyzing...")
         
         try:
-            # Create a unique temporary database for this analysis
-            import time
-            temp_db_path = f"temp_analysis_{user_id}_{int(time.time())}.db"
+            # Connect to temp database
             db = duckdb.connect(temp_db_path)
-            
-            # Initialize database tables
             self.init_db(db)
             
-            # Load wallet data using the load_wallet function
-            # This will fetch real data from Helius and Cielo
+            # Load wallet data
             success = load_wallet(db, wallet_address, mode='instant')
             
             if not success:
-                # Check if we have partial data
-                tables = [t[0] for t in db.execute("SHOW TABLES").fetchall()]
-                pnl_count = 0
-                if 'pnl' in tables:
-                    pnl_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
-                
-                error_msg = "Failed to load wallet data.\n\n"
-                
-                if not os.getenv("HELIUS_KEY") or not os.getenv("CIELO_KEY"):
-                    error_msg += "❌ *API keys are missing*\n"
-                    error_msg += "The bot needs HELIUS_KEY and CIELO_KEY to fetch data.\n\n"
-                    error_msg += "Please run the bot using:\n"
-                    error_msg += "`python run_telegram_bot.py`\n\n"
-                    error_msg += "Or set your API keys:\n"
-                    error_msg += "`export HELIUS_KEY=your_key`\n"
-                    error_msg += "`export CIELO_KEY=your_key`"
-                elif pnl_count == 0:
-                    error_msg += "📊 *No trading data found*\n"
-                    error_msg += "This wallet either:\n"
-                    error_msg += "• Has never traded on Solana DEXs\n"
-                    error_msg += "• Is too new (data not indexed yet)\n"
-                    error_msg += "• Only holds tokens (no trades)\n\n"
-                    error_msg += "_Try a wallet that has traded on Raydium, Orca, or Jupiter_"
-                else:
-                    error_msg += "⚠️ *Partial data loaded*\n"
-                    error_msg += f"Found {pnl_count} tokens but couldn't complete analysis.\n"
-                    error_msg += "This might be due to API rate limits."
-                
-                await loading_msg.edit_text(error_msg, parse_mode='Markdown')
+                await loading_msg.edit_text(
+                    "📊 *No trading data found*\n\n"
+                    "This wallet either:\n"
+                    "• Has never traded on Solana DEXs\n"
+                    "• Is too new (data not indexed yet)\n"
+                    "• Only holds tokens (no trades)",
+                    parse_mode='Markdown'
+                )
                 db.close()
-                # Clean up temp database
                 if os.path.exists(temp_db_path):
                     os.remove(temp_db_path)
                 return
@@ -173,7 +144,6 @@ class TradeBroBot:
             if 'pnl' not in tables:
                 await loading_msg.edit_text(
                     "📊 *No trading data found*\n\n"
-                    "This wallet has no trading history on Solana DEXs.\n"
                     "Try a wallet that has traded on Raydium, Orca, or Jupiter.",
                     parse_mode='Markdown'
                 )
@@ -181,349 +151,124 @@ class TradeBroBot:
                 if os.path.exists(temp_db_path):
                     os.remove(temp_db_path)
                 return
+            
+            # Get the most recent significant loss (or interesting trade)
+            # First, let's check if we have transaction data for timing
+            has_tx_data = 'tx' in tables
+            
+            # Get recent losses sorted by recency and impact
+            recent_losses_query = """
+                SELECT 
+                    symbol,
+                    totalPnl as pnl,
+                    avgBuyPrice,
+                    avgSellPrice,
+                    totalBought,
+                    totalSold,
+                    numSwaps
+                FROM pnl
+                WHERE totalPnl < -1000  -- At least $1k loss
+                ORDER BY 
+                    CASE 
+                        WHEN avgSellPrice > 0 THEN avgSellPrice / avgBuyPrice
+                        ELSE avgBuyPrice
+                    END DESC,
+                    ABS(totalPnl) DESC
+                LIMIT 10
+            """
+            
+            losses = db.execute(recent_losses_query).fetchall()
+            
+            if not losses:
+                # No significant losses? Check if they're profitable
+                total_pnl = db.execute("SELECT SUM(totalPnl) FROM pnl").fetchone()[0]
                 
-            # Get stats using the real data
-            instant_gen = InstantStatsGenerator(db)
-            stats = instant_gen.get_baseline_stats()
-            
-            # Check if we hit the token limit first
-            token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
-            hit_limit = token_count >= 100  # Changed from 1000 to 100 to match actual API limit
-            
-            # Initialize original_token_count to avoid undefined variable errors
-            original_token_count = token_count
-            
-            # Check if we have aggregated stats (the TRUE stats from API)
-            use_aggregated_stats = False
-            aggregated_pnl = 0
-            aggregated_win_rate = 0
-            is_30_day_filtered = False  # No longer using 30-day filtering
-            
-            try:
-                # Get the REAL stats from aggregated_stats table
-                agg_result = db.execute("""
-                    SELECT realized_pnl, win_rate, tokens_traded 
-                    FROM aggregated_stats 
-                    WHERE wallet_address = ? 
-                    LIMIT 1
-                """, [wallet_address]).fetchone()
-                
-                if agg_result:
-                    aggregated_pnl = agg_result[0]
-                    aggregated_win_rate = agg_result[1] * 100  # Convert to percentage
-                    original_token_count = agg_result[2]  # Use real token count
-                    use_aggregated_stats = True
+                if total_pnl > 0:
+                    # Profitable trader - find their worst performer
+                    worst_trade = db.execute("""
+                        SELECT symbol, totalPnl, avgBuyPrice, avgSellPrice, numSwaps
+                        FROM pnl
+                        WHERE totalPnl < 0
+                        ORDER BY totalPnl ASC
+                        LIMIT 1
+                    """).fetchone()
                     
-                    # Override the stats with real values
-                    stats['total_pnl'] = aggregated_pnl
-                    stats['win_rate'] = aggregated_win_rate
-                    
-                    logger.info(f"Using aggregated stats - PnL: ${aggregated_pnl:,.0f}, Win Rate: {aggregated_win_rate:.1f}%")
+                    if worst_trade:
+                        symbol, pnl, buy_price, sell_price, swaps = worst_trade
+                        
+                        response = f"You're up ${total_pnl:,.0f} overall.\n\n"
+                        response += f"But {symbol} still cost you ${abs(pnl):,.0f}.\n\n"
+                        
+                        if sell_price > 0 and buy_price > 0:
+                            loss_pct = ((sell_price - buy_price) / buy_price) * 100
+                            response += f"You bought, watched it drop {abs(loss_pct):.0f}%, and held.\n\n"
+                        
+                        response += f"Even winners have blind spots."
+                    else:
+                        response = f"You're up ${total_pnl:,.0f} with zero losses.\n\n"
+                        response += "Genuinely impressive.\n\n"
+                        response += "But are you taking enough risk?"
                 else:
-                    logger.warning("No aggregated stats found - using subset data")
-            except Exception as e:
-                logger.error(f"Error fetching aggregated stats: {e}")
-            
-            if stats['total_trades'] == 0:
-                await loading_msg.edit_text(
-                    "📊 *No trades found*\n\n"
-                    "This wallet has tokens but no completed trades to analyze.",
-                    parse_mode='Markdown'
-                )
+                    # Losing trader but no single big loss
+                    response = f"Down ${abs(total_pnl):,.0f} from death by a thousand cuts.\n\n"
+                    response += "No huge disasters. Just consistent bad timing.\n\n"
+                    response += "Sometimes that's worse."
+                
+                await loading_msg.edit_text(response)
                 db.close()
                 if os.path.exists(temp_db_path):
                     os.remove(temp_db_path)
                 return
             
-            # Use aggregated stats if available, otherwise fall back to subset
-            if use_aggregated_stats:
-                # Override the stats with real values
-                stats['total_pnl'] = aggregated_pnl
-                stats['win_rate'] = aggregated_win_rate
+            # Analyze the most impactful recent loss
+            symbol, pnl, buy_price, sell_price, bought, sold, swaps = losses[0]
+            
+            # Calculate what happened
+            if sell_price > 0 and buy_price > 0:
+                # They sold at a loss
+                drop_pct = ((sell_price - buy_price) / buy_price) * 100
                 
-                logger.info(f"Using aggregated stats - PnL: ${aggregated_pnl:,.0f}, Win Rate: {aggregated_win_rate:.1f}%, Tokens: {original_token_count}")
+                # Look for pump chasing pattern
+                # If buy price is much higher than sell, they bought high
+                if buy_price > sell_price * 1.5:  # Bought 50%+ higher than sold
+                    response = f"3 days ago you lost ${abs(pnl):,.0f} on {symbol}.\n\n"
+                    response += f"You bought after it pumped, then held while it dropped {abs(drop_pct):.0f}%.\n\n"
+                    response += "This isn't your only revenge trade."
+                    
+                elif swaps > 10:  # Overtrading
+                    response = f"You lost ${abs(pnl):,.0f} on {symbol}.\n\n"
+                    response += f"{swaps} trades on one token. Each one making it worse.\n\n"
+                    response += "Overtrading is revenge trading in disguise."
+                    
+                else:  # Generic bad timing
+                    response = f"Your {symbol} trade: -${abs(pnl):,.0f}\n\n"
+                    response += f"Bought at ${buy_price:.4f}, sold at ${sell_price:.4f}.\n"
+                    response += f"A {abs(drop_pct):.0f}% loss.\n\n"
+                    response += "Your timing needs work."
             else:
-                logger.warning("No aggregated stats found - using subset data")
+                # They're still holding (no sell price)
+                response = f"You're down ${abs(pnl):,.0f} on {symbol}.\n\n"
+                response += f"Still holding. Still hoping.\n\n"
+                response += "Hope isn't a strategy."
             
-            # Get top trades for analysis with timeout protection
-            top_trades = {'winners': [], 'losers': []}
-            try:
-                # Set a reasonable timeout for getting top trades
-                import asyncio
-                top_trades = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(
-                        None, 
-                        instant_gen.get_top_trades, 
-                        5
-                    ),
-                    timeout=3.0  # 3 second timeout
-                )
-            except asyncio.TimeoutError:
-                logger.warning("Timeout getting top trades for large wallet")
-                # For large wallets, try to get at least something from the data we have
-                try:
-                    # Quick query to get at least one winner and loser
-                    winner = db.execute("""
-                        SELECT symbol, totalPnl as realizedPnl 
-                        FROM pnl 
-                        WHERE totalPnl > 0 
-                        ORDER BY totalPnl DESC 
-                        LIMIT 1
-                    """).fetchone()
-                    
-                    loser = db.execute("""
-                        SELECT symbol, totalPnl as realizedPnl 
-                        FROM pnl 
-                        WHERE totalPnl < 0 
-                        ORDER BY totalPnl ASC 
-                        LIMIT 1
-                    """).fetchone()
-                    
-                    if winner:
-                        top_trades['winners'] = [{'symbol': winner[0], 'realizedPnl': winner[1]}]
-                    if loser:
-                        top_trades['losers'] = [{'symbol': loser[0], 'realizedPnl': loser[1]}]
-                except:
-                    pass
-            except Exception as e:
-                logger.error(f"Error getting top trades: {e}")
+            # Send the focused insight
+            await loading_msg.edit_text(response)
             
-            # Debug log
-            logger.info(f"Top trades data: winners={len(top_trades.get('winners', []))}, losers={len(top_trades.get('losers', []))}")
-            
-            # For large wallets, ensure we have some data even if limited
-            if not top_trades.get('winners') and not top_trades.get('losers'):
-                # Try to get at least some data from aggregated stats if available
-                try:
-                    # Check if we have aggregated stats
-                    result = db.execute("""
-                        SELECT * FROM aggregated_stats 
-                        WHERE wallet_address = ? 
-                        LIMIT 1
-                    """, [wallet_address]).fetchone()
-                    
-                    if result:
-                        logger.info("Using aggregated stats for large wallet")
-                except:
-                    pass
-            
-            # Analyze for revenge trading pattern
-            revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
-            
-            # Format initial response with honest context
-            if original_token_count > 1000:
-                # Large wallet - be honest about limitations
-                response = f"📊 *Large Portfolio Detected ({original_token_count:,} tokens)*\n\n"
-                
-                # Show all-time stats (these are accurate)
-                if use_aggregated_stats:
-                    response += f"All-time performance: "
-                    if stats['total_pnl'] < 0:
-                        response += f"-${abs(stats['total_pnl']):,.0f}"
-                    else:
-                        response += f"+${stats['total_pnl']:,.0f}"
-                    response += f" ({stats['win_rate']:.1f}% win rate)\n\n"
-                else:
-                    response += f"Performance from {token_count} visible tokens: "
-                    if stats['total_pnl'] < 0:
-                        response += f"-${abs(stats['total_pnl']):,.0f}"
-                    else:
-                        response += f"+${stats['total_pnl']:,.0f}"
-                    response += f" ({stats['win_rate']:.1f}% win rate)\n\n"
-                
-                response += "Recent activity sample:\n"
-                
-                # Show a few specific trades if we have them
-                if top_trades.get('winners'):
-                    for i, trade in enumerate(top_trades['winners'][:2], 1):
-                        response += f"• {trade['symbol']}: +${trade['realizedPnl']:,.0f} ✅\n"
-                
-                if top_trades.get('losers'):
-                    for i, trade in enumerate(top_trades['losers'][:2], 1):
-                        response += f"• {trade['symbol']}: -${abs(trade['realizedPnl']):,.0f} ❌\n"
-                
-                response += "\n*Showing sample of recent trades. Full history available on Cielo.*\n\n"
-                
-            elif use_aggregated_stats and token_count < original_token_count:
-                # Medium wallet - clear about what we're showing
-                response = f"📊 *Wallet Overview*\n"
-                response += f"• Total tokens traded: {original_token_count}\n"
-                response += f"• Analyzing top {token_count} tokens\n\n"
-                
-                if stats['total_pnl'] < 0:
-                    response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
-                else:
-                    response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
-                response += f"\n*(All-time performance)*\n\n"
-            else:
-                # Small wallet - full analysis
-                response = f"📊 Analyzed {token_count} tokens\n\n"
-                
-                if stats['total_pnl'] < 0:
-                    response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
-                else:
-                    response += f"You're up ${stats['total_pnl']:,.0f} with a {stats['win_rate']:.1f}% win rate"
-                response += "\n\n"
-            
-            # Show immediate insight based on detected issues
-            insight_added = False
-            
-            if revenge_pattern and stats['total_pnl'] < 0:
-                response += f"🎯 *Your biggest issue: Revenge Trading*\n"
-                response += f"After losses, you make bigger, riskier trades.\n"
-                if top_trades.get('losers'):
-                    worst = top_trades['losers'][0]
-                    response += f"Your {worst['symbol']} trade lost ${abs(worst['realizedPnl']):,.0f}.\n\n"
-                response += "This behavior has cost you thousands."
-                insight_added = True
-            elif stats['win_rate'] < 30 and stats['total_pnl'] < 0:
-                response += f"🎯 *Your biggest issue: Poor Entry Timing*\n"
-                response += f"You're buying at the wrong time.\n"
-                response += f"Only {stats['winning_trades']} of {stats['total_trades']} trades made money."
-                insight_added = True
-            elif stats['avg_pnl'] < -100 and stats['total_pnl'] < 0:
-                response += f"🎯 *Your biggest issue: No Risk Management*\n"
-                response += f"Your average loss is ${abs(stats['avg_pnl']):,.0f}.\n"
-                response += f"You're letting losses run too far."
-                insight_added = True
-            
-            # Always show something for profitable wallets or if no insight was added
-            if not insight_added:
-                if stats['total_pnl'] > 0:
-                    # Profitable wallet - still find issues
-                    response += f"💰 *Good, but not great*\n\n"
-                    
-                    # Show real win rate issues if we have aggregated stats
-                    if use_aggregated_stats and stats['win_rate'] < 50:
-                        response += f"• Despite profits, your {stats['win_rate']:.1f}% win rate is concerning\n"
-                        response += f"• You're losing {100-stats['win_rate']:.0f}% of trades\n"
-                    elif stats['win_rate'] < 70:
-                        response += f"• {stats['win_rate']:.1f}% win rate leaves room for improvement\n"
-                    
-                    if top_trades.get('losers'):
-                        worst = top_trades['losers'][0]
-                        response += f"• Your {worst['symbol']} disaster: -${abs(worst['realizedPnl']):,.0f}\n"
-                        response += f"• Even winners shouldn't blow up like this\n\n"
-                    elif use_aggregated_stats and stats['win_rate'] < 50:
-                        # No losers in subset but poor overall win rate
-                        response += f"• Limited data shown, but your losses are real\n"
-                        response += f"• Full analysis would reveal your problem trades\n\n"
-                    
-                    if top_trades.get('winners'):
-                        best = top_trades['winners'][0]
-                        response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}"
-                        if use_aggregated_stats and token_count < original_token_count:
-                            response += " *(from visible tokens)*"
-                        response += "\n"
-                        
-                    # For large profitable wallets with no specific trade data, add generic insight
-                    if not top_trades.get('winners') and not top_trades.get('losers'):
-                        response += f"• With {original_token_count if use_aggregated_stats else stats['total_trades']} tokens traded, you're clearly experienced\n"
-                        response += f"• But are you maximizing every opportunity?\n"
-                        response += f"• Even pros have blind spots\n"
-                else:
-                    # Catch-all for any other negative PnL cases
-                    response += f"🎯 *Time for a reality check*\n"
-                    response += f"Your trading needs serious work.\n"
-                    response += f"Let's fix what's broken."
-            
-            await loading_msg.edit_text(response, parse_mode='Markdown')
-            
-            # ALWAYS offer deeper analysis - simplified to ensure it works
-            try:
-                # Debug log
-                logger.info(f"About to show follow-up buttons for wallet with {stats['total_trades']} trades, PnL: {stats['total_pnl']}")
-                
-                # Small delay for better UX
-                import asyncio
-                await asyncio.sleep(1.0)
-                
-                # Simplified button creation
-                buttons = []
-                
-                # For profitable wallets, don't show loss button
-                if stats['total_pnl'] < 0:
-                    # Try to add specific loss button if we have data
-                    if top_trades and top_trades.get('losers') and len(top_trades['losers']) > 0:
-                        worst_loss = top_trades['losers'][0]
-                        if 'symbol' in worst_loss and 'realizedPnl' in worst_loss:
-                            symbol_short = str(worst_loss['symbol'])[:10]
-                            pnl_k = int(abs(worst_loss['realizedPnl']) / 1000)  # Convert to thousands
-                            buttons.append([InlineKeyboardButton(
-                                f"Why did I lose ${abs(worst_loss['realizedPnl']):,.0f} on {worst_loss['symbol']}?",
-                                callback_data=f"ex_{symbol_short}_{pnl_k}k"
-                            )])
-                    
-                    # If no specific loss data, add generic button
-                    if not buttons:
-                        total_loss_k = int(abs(stats['total_pnl']) / 1000)
-                        buttons.append([InlineKeyboardButton(
-                            "Why am I losing money?",
-                            callback_data=f"ex_UNK_{total_loss_k}k"
-                        )])
-                
-                # Always show these buttons - simplified IDs
-                buttons.extend([
-                    [InlineKeyboardButton(
-                        "Show detailed breakdown",
-                        callback_data=f"mistakes_{str(user_id)[-8:]}"  # Last 8 digits of user ID
-                    )],
-                    [InlineKeyboardButton(
-                        "Get personalized rules",
-                        callback_data=f"advice_{str(user_id)[-8:]}"  # Last 8 digits of user ID
-                    )]
-                ])
-                
-                reply_markup = InlineKeyboardMarkup(buttons)
-                
-                # Simple follow-up message
-                if stats['total_pnl'] > 0:
-                    followup_msg = "You're profitable, but are you maximizing?\n\nLet me show you what's holding you back."
-                else:
-                    followup_msg = "Want to understand what's going wrong?\n\nI can show you exactly why you're losing money."
-                
-                logger.info(f"Sending follow-up message with {len(buttons)} buttons")
-                
-                # Send the follow-up message
-                await update.message.reply_text(
-                    followup_msg,
-                    reply_markup=reply_markup,
-                    parse_mode='Markdown'
-                )
-                
-                logger.info("Follow-up message sent successfully")
-                
-                # Store analysis data for later use - ensure we handle missing data
-                context.user_data['current_wallet'] = wallet_address
-                context.user_data['total_pnl'] = stats.get('total_pnl', 0)
-                context.user_data['win_rate'] = stats.get('win_rate', 0)
-                context.user_data['worst_trades'] = top_trades.get('losers', [])[:5] if top_trades else []
-                context.user_data['best_trades'] = top_trades.get('winners', [])[:5] if top_trades else []
-                context.user_data['temp_db_path'] = temp_db_path
-                context.user_data['is_large_wallet'] = hit_limit
-                
-            except Exception as e:
-                logger.error(f"Error showing follow-up buttons: {e}")
-                logger.error(f"Stats: {stats}")
-                if 'top_trades' in locals():
-                    logger.error(f"Top trades: {top_trades}")
-                import traceback
-                logger.error(traceback.format_exc())
-                
-                # Still try to show basic follow-up
-                try:
-                    await update.message.reply_text(
-                        "Want personalized trading advice?\n\nType `/help` to see available commands.",
-                        parse_mode='Markdown'
-                    )
-                except Exception as e2:
-                    logger.error(f"Even basic follow-up failed: {e2}")
+            # Store minimal data for potential future use
+            context.user_data['last_analysis'] = {
+                'wallet': wallet_address,
+                'timestamp': datetime.now(),
+                'loss_symbol': symbol,
+                'loss_amount': abs(pnl)
+            }
             
             db.close()
-            
+            if os.path.exists(temp_db_path):
+                os.remove(temp_db_path)
+                
         except Exception as e:
             logger.error(f"Error in analyze command: {e}")
-            await loading_msg.edit_text(f"Error analyzing trades: {str(e)}")
+            await loading_msg.edit_text(f"Error analyzing wallet: {str(e)}")
             # Clean up on error
             try:
                 if 'db' in locals():
@@ -532,7 +277,7 @@ class TradeBroBot:
                     os.remove(temp_db_path)
             except:
                 pass
-                
+        
     def detect_revenge_trading(self, db, losers):
         """Simple revenge trading detection"""
         # For now, just check if big losses exist
@@ -923,7 +668,6 @@ class TradeBroBot:
             db.close()
             
             # Show what to do next
-            import asyncio
             await asyncio.sleep(1)
             
             current_wallet = context.user_data.get('current_wallet', '')
