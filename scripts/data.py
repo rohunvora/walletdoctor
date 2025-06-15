@@ -235,7 +235,10 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 
         if tx_data:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(tx_data)} transactions")
             # Normalize and store transaction data
-            from scripts.transforms import normalize_helius_transactions
+            try:
+                from scripts.transforms import normalize_helius_transactions
+            except ModuleNotFoundError:
+                from transforms import normalize_helius_transactions
             tx_df = normalize_helius_transactions(tx_data)
             # Clear existing data for this wallet
             try:
@@ -268,7 +271,10 @@ def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] This wallet likely has more trading data than we can process in instant mode")
             
             # Normalize and store PnL data
-            from scripts.transforms import normalize_cielo_pnl
+            try:
+                from scripts.transforms import normalize_cielo_pnl
+            except ModuleNotFoundError:
+                from transforms import normalize_cielo_pnl
             pnl_df = normalize_cielo_pnl({'tokens': tokens})
             # Clear existing PnL data
             try:
