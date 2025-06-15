@@ -139,7 +139,7 @@ The app is designed to run on [Railway](https://railway.app):
    - `OPENAI_API_KEY` (optional)
 4. Deploy!
 
-See [DEPLOY_TO_RAILWAY.md](DEPLOY_TO_RAILWAY.md) for detailed instructions.
+See [docs/DEPLOY_TO_RAILWAY.md](docs/DEPLOY_TO_RAILWAY.md) for detailed instructions.
 
 ## 🧠 Deep Behavioral Analysis
 
