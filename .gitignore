@@ -60,4 +60,4 @@ Thumbs.db
 
 # Data directory
 data/*
-!data/.gitkeep 
+!data/.gitkeep .env
