@@ -73,11 +73,20 @@ def instant_load():
             return jsonify({'error': 'No wallet provided'}), 400
         
         # Check if API keys are set
-        if not os.getenv('HELIUS_KEY') or not os.getenv('CIELO_KEY'):
+        helius_key = os.getenv('HELIUS_KEY')
+        cielo_key = os.getenv('CIELO_KEY')
+        
+        print(f"[{datetime.now()}] Instant load request for wallet: {wallet}")
+        print(f"[{datetime.now()}] HELIUS_KEY set: {bool(helius_key)} (length: {len(helius_key) if helius_key else 0})")
+        print(f"[{datetime.now()}] CIELO_KEY set: {bool(cielo_key)} (length: {len(cielo_key) if cielo_key else 0})")
+        
+        if not helius_key or not cielo_key:
             return jsonify({
                 'error': 'API keys not configured. Please set HELIUS_KEY and CIELO_KEY in Railway environment variables.',
-                'helius_set': bool(os.getenv('HELIUS_KEY')),
-                'cielo_set': bool(os.getenv('CIELO_KEY'))
+                'helius_set': bool(helius_key),
+                'cielo_set': bool(cielo_key),
+                'helius_length': len(helius_key) if helius_key else 0,
+                'cielo_length': len(cielo_key) if cielo_key else 0
             }), 500
         
         # Run quick load via subprocess (no DB connection held here)
@@ -85,13 +94,23 @@ def instant_load():
         
         # Make sure subprocess inherits environment variables
         env = os.environ.copy()
-        print(f"[{datetime.now()}] Starting instant load for wallet: {wallet}")
+        env['PYTHONPATH'] = os.getcwd()
+        env['HELIUS_KEY'] = helius_key
+        env['CIELO_KEY'] = cielo_key
+        
+        print(f"[{datetime.now()}] Starting subprocess with command: {' '.join(cmd)}")
+        print(f"[{datetime.now()}] Environment CIELO_KEY: {cielo_key[:8]}... (length: {len(cielo_key)})")
+        
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
+        
+        print(f"[{datetime.now()}] Subprocess completed with return code: {result.returncode}")
+        if result.stdout:
+            print(f"[{datetime.now()}] STDOUT:\n{result.stdout}")
+        if result.stderr:
+            print(f"[{datetime.now()}] STDERR:\n{result.stderr}")
         
         if result.returncode != 0:
             print(f"[{datetime.now()}] Load failed with return code {result.returncode}")
-            print(f"STDERR: {result.stderr}")
-            print(f"STDOUT: {result.stdout}")
             
             # Check if it's a timeout or large wallet issue
             if "timeout" in result.stderr.lower() or "502" in str(result.returncode):
@@ -104,6 +123,7 @@ def instant_load():
             return jsonify({
                 'error': f'Load failed: {result.stderr}',
                 'stdout': result.stdout,
+                'stderr': result.stderr,
                 'command': ' '.join(cmd)
             }), 500
         
@@ -151,7 +171,15 @@ def instant_load():
         return jsonify(response)
         
     except Exception as e:
-        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[{datetime.now()}] Exception in instant_load: {str(e)}")
+        print(f"[{datetime.now()}] Traceback:\n{error_trace}")
+        return jsonify({
+            'error': str(e), 
+            'type': type(e).__name__,
+            'traceback': error_trace
+        }), 500
 
 @app.route('/annotate', methods=['POST'])
 def annotate():
@@ -390,6 +418,41 @@ def find_common_patterns(notes: list) -> list:
             found.append(word)
     
     return found if found else ['emotional trading', 'lack of plan', 'poor timing']
+
+@app.route('/debug_cielo/<wallet>', methods=['GET'])
+def debug_cielo(wallet):
+    """Debug endpoint to test Cielo API directly."""
+    try:
+        cielo_key = os.getenv('CIELO_KEY')
+        
+        result = {
+            'wallet': wallet,
+            'cielo_key_set': bool(cielo_key),
+            'cielo_key_length': len(cielo_key) if cielo_key else 0,
+            'cielo_key_prefix': cielo_key[:8] if cielo_key else 'NOT SET'
+        }
+        
+        if cielo_key:
+            # Test the API directly
+            from scripts.data import fetch_cielo_pnl
+            pnl_result = fetch_cielo_pnl(wallet)
+            
+            result['api_response'] = {
+                'status': pnl_result.get('status'),
+                'items_count': len(pnl_result.get('data', {}).get('items', [])),
+                'has_data': bool(pnl_result.get('data', {}).get('items', []))
+            }
+        else:
+            result['api_response'] = {'error': 'CIELO_KEY not set'}
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 if __name__ == '__main__':
     # Create templates directory
