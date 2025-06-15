@@ -14,6 +14,9 @@ import duckdb
 from scripts.instant_stats import InstantStatsGenerator
 from scripts.db_migrations import run_migrations, add_annotation, get_similar_annotations
 from scripts.trade_comparison import TradeComparator
+from scripts.harsh_insights import HarshTruthGenerator
+from scripts.llm import TradingCoach
+from scripts.analytics import calculate_accurate_stats, calculate_portfolio_metrics, identify_leak_trades
 
 app = Flask(__name__, template_folder='templates_v2')
 app.secret_key = secrets.token_hex(16)
@@ -75,10 +78,12 @@ def instant_load():
         # Check if API keys are set
         helius_key = os.getenv('HELIUS_KEY')
         cielo_key = os.getenv('CIELO_KEY')
+        openai_key = os.getenv('OPENAI_API_KEY')
         
         print(f"[{datetime.now()}] Instant load request for wallet: {wallet}")
         print(f"[{datetime.now()}] HELIUS_KEY set: {bool(helius_key)} (length: {len(helius_key) if helius_key else 0})")
         print(f"[{datetime.now()}] CIELO_KEY set: {bool(cielo_key)} (length: {len(cielo_key) if cielo_key else 0})")
+        print(f"[{datetime.now()}] OPENAI_API_KEY set: {bool(openai_key)}")
         
         if not helius_key or not cielo_key:
             return jsonify({
@@ -97,6 +102,8 @@ def instant_load():
         env['PYTHONPATH'] = os.getcwd()
         env['HELIUS_KEY'] = helius_key
         env['CIELO_KEY'] = cielo_key
+        if openai_key:
+            env['OPENAI_API_KEY'] = openai_key
         
         print(f"[{datetime.now()}] Starting subprocess with command: {' '.join(cmd)}")
         print(f"[{datetime.now()}] Environment CIELO_KEY: {cielo_key[:8]}... (length: {len(cielo_key)})")
@@ -141,35 +148,122 @@ def instant_load():
             stats = instant_gen.get_baseline_stats()
             top_trades = instant_gen.get_top_trades()
             
-            # Generate harsh insights for Real Talk section
-            real_talk_message = None
-            key_patterns = []
-            
-            if token_count > 0:
-                try:
-                    from scripts.harsh_insights import HarshTruthGenerator
-                    harsh_gen = HarshTruthGenerator(db)
-                    all_insights = harsh_gen.generate_all_insights()
-                    
-                    # Generate personalized Real Talk message
-                    real_talk_message = generate_real_talk(stats, top_trades, all_insights)
-                    
-                    # Extract key patterns from insights
-                    for insight in all_insights[:3]:  # Top 3 most important
-                        if insight.get('type') != 'error':
-                            pattern_summary = f"{insight.get('title', '')}: {insight.get('facts', [''])[0]}"
-                            key_patterns.append({
-                                'title': insight.get('title', ''),
-                                'severity': insight.get('severity', 'medium'),
-                                'summary': pattern_summary,
-                                'fix': insight.get('fix', '')
-                            })
-                except Exception as e:
-                    print(f"[{datetime.now()}] Error generating harsh insights: {e}")
-            
             # Add a warning if we hit the limit
             is_partial = token_count >= 1000
             hit_token_limit = token_count >= 999  # Might be exactly 1000 or slightly less
+            
+            # Generate AI-powered insights if OpenAI is available
+            ai_patterns = []
+            ai_message = ""
+            
+            if openai_key and token_count > 0:
+                try:
+                    print(f"[{datetime.now()}] Generating AI insights...")
+                    
+                    # Get full data for analysis
+                    pnl_df = db.execute("SELECT * FROM pnl").df()
+                    tx_df = db.execute("SELECT * FROM tx").df()
+                    
+                    # Initialize harsh truth generator for structured insights
+                    truth_gen = HarshTruthGenerator(db)
+                    harsh_insights = truth_gen.generate_all_insights()
+                    
+                    # Calculate comprehensive metrics
+                    accurate_stats = calculate_accurate_stats(pnl_df)
+                    portfolio_metrics = calculate_portfolio_metrics(pnl_df, tx_df)
+                    leak_trades = identify_leak_trades(pnl_df)
+                    
+                    # Initialize trading coach
+                    coach = TradingCoach()
+                    
+                    # Generate pattern insights
+                    pattern_context = {
+                        'stats': accurate_stats,
+                        'portfolio': portfolio_metrics,
+                        'harsh_insights': harsh_insights,
+                        'top_winners': top_trades['winners'],
+                        'top_losers': top_trades['losers'],
+                        'leak_trades': leak_trades.head(5).to_dict('records') if not leak_trades.empty else []
+                    }
+                    
+                    # Get AI analysis for patterns
+                    pattern_question = f"""Analyze this wallet's trading patterns and generate 3-5 specific, data-driven insights. 
+                    Focus on position sizing patterns, timing issues, and behavioral tendencies. 
+                    Be specific about token names, amounts, and percentages. 
+                    Format each insight as a short, punchy statement."""
+                    
+                    pattern_response = coach.analyze_wallet(pattern_question, pattern_context)
+                    
+                    # Parse AI response into individual patterns
+                    ai_patterns = [line.strip() for line in pattern_response.split('\n') 
+                                 if line.strip() and not line.strip().startswith(('Based on', 'Here are', 'Analysis'))][:5]
+                    
+                    # Generate personal message
+                    message_question = f"""Write a direct, personal message about this trader's performance in 2-3 sentences.
+                    Be brutally honest but constructive. Reference specific trades and amounts.
+                    Start with 'Here's the truth:' and focus on their biggest issue and how to fix it."""
+                    
+                    ai_message = coach.analyze_wallet(message_question, pattern_context)
+                    
+                    print(f"[{datetime.now()}] AI insights generated successfully")
+                    
+                except Exception as e:
+                    print(f"[{datetime.now()}] Error generating AI insights: {str(e)}")
+                    # Fall back to harsh insights if AI fails
+                    if harsh_insights:
+                        for insight in harsh_insights[:3]:
+                            if 'facts' in insight:
+                                ai_patterns.extend(insight['facts'][:2])
+                        ai_message = "Analysis based on your trading data. Add annotations to trades for personalized AI coaching."
+            else:
+                # No OpenAI key - use harsh insights to provide personalized data
+                print(f"[{datetime.now()}] No OpenAI key, using harsh insights for personalization")
+                try:
+                    # Generate harsh insights for structured data
+                    truth_gen = HarshTruthGenerator(db)
+                    harsh_insights = truth_gen.generate_all_insights()
+                    
+                    if harsh_insights:
+                        # Extract the most impactful patterns
+                        for insight in harsh_insights[:4]:
+                            if 'facts' in insight:
+                                # Take the most specific facts
+                                for fact in insight['facts'][:2]:
+                                    if '$' in fact or '%' in fact:  # Prioritize facts with numbers
+                                        ai_patterns.append(fact)
+                        
+                        # Create a data-driven message from the insights
+                        if harsh_insights and len(harsh_insights) > 0:
+                            main_insight = harsh_insights[0]
+                            if 'cost' in main_insight and 'fix' in main_insight:
+                                ai_message = f"Here's the truth: {main_insight.get('cost', '')} {main_insight.get('fix', '')}"
+                            else:
+                                ai_message = "Your trading data shows clear patterns. The numbers tell the story - check the insights above."
+                    
+                    # Ensure we always have some patterns
+                    if not ai_patterns:
+                        pnl_df = db.execute("SELECT * FROM pnl").df()
+                        if not pnl_df.empty:
+                            total_pnl = pnl_df['realizedPnl'].sum()
+                            win_rate = (len(pnl_df[pnl_df['realizedPnl'] > 0]) / len(pnl_df) * 100)
+                            avg_loss = pnl_df[pnl_df['realizedPnl'] < 0]['realizedPnl'].mean()
+                            
+                            ai_patterns = [
+                                f"Total P&L across {len(pnl_df)} trades: ${total_pnl:,.0f}",
+                                f"Win rate: {win_rate:.0f}% - winning {int(win_rate * len(pnl_df) / 100)} out of {len(pnl_df)} trades",
+                                f"Average loss when wrong: ${avg_loss:,.0f}"
+                            ]
+                            
+                            # Add specific trade examples
+                            worst_trade = pnl_df.nsmallest(1, 'realizedPnl').iloc[0]
+                            ai_patterns.append(f"Biggest loss: {worst_trade['symbol']} cost you ${abs(worst_trade['realizedPnl']):,.0f}")
+                            
+                            ai_message = f"Here's the truth: Your trades are showing a {win_rate:.0f}% win rate with ${total_pnl:,.0f} total P&L. Focus on the patterns above to improve."
+                
+                except Exception as e:
+                    print(f"[{datetime.now()}] Error generating fallback insights: {str(e)}")
+                    ai_patterns = ["Loading complete trading analysis..."]
+                    ai_message = "Full analysis requires OpenAI API key for personalized coaching."
             
         finally:
             db.close()
@@ -184,8 +278,8 @@ def instant_load():
                 'avg_position_size': stats.get('avg_position_size', 0)
             },
             'top_trades': top_trades,
-            'real_talk': real_talk_message,  # New personalized message
-            'key_patterns': key_patterns,    # New key patterns
+            'ai_patterns': ai_patterns,  # Real AI-generated patterns
+            'ai_message': ai_message,    # Real AI-generated message
             'is_partial_data': is_partial,
             'is_empty_wallet': token_count == 0,
             'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.',
@@ -446,136 +540,6 @@ def find_common_patterns(notes: list) -> list:
             found.append(word)
     
     return found if found else ['emotional trading', 'lack of plan', 'poor timing']
-
-def generate_real_talk(stats: dict, top_trades: dict, insights: list) -> str:
-    """Generate a personalized Real Talk message based on harsh insights."""
-    
-    # If no insights, fall back to basic stats
-    if not insights or all(i.get('type') == 'error' for i in insights):
-        return generate_basic_real_talk(stats, top_trades)
-    
-    # Find the most critical insight
-    critical_insights = [i for i in insights if i.get('severity') == 'critical']
-    high_insights = [i for i in insights if i.get('severity') == 'high']
-    
-    # Start with the most impactful pattern
-    primary_insight = critical_insights[0] if critical_insights else (high_insights[0] if high_insights else insights[0])
-    
-    messages = []
-    
-    # Handle different insight types with personalized messages
-    if primary_insight.get('type') == 'position_sizing':
-        facts = primary_insight.get('facts', [])
-        best_size = facts[0].split(':')[0].replace('Best size range', '').strip() if facts else 'smaller positions'
-        worst_size = facts[1].split(':')[0].replace('Worst size range', '').strip() if facts else 'large positions'
-        cost = primary_insight.get('cost', '').replace('Wrong position sizing cost: ', '')
-        
-        messages.append(f"Here's the truth: Your {worst_size} trades are killing you. You've burned {cost} trying to hit home runs when singles would've made you rich.")
-        messages.append(f"The data screams one thing - stick to {best_size}. That's where you actually make money. Everything else is ego.")
-        
-    elif primary_insight.get('type') == 'behavioral' and 'Bag Holding' in primary_insight.get('title', ''):
-        facts = primary_insight.get('facts', [])
-        hold_ratio = facts[0].split('x')[0].split()[-1] if facts else '3'
-        worst_example = primary_insight.get('examples', [''])[0]
-        
-        messages.append(f"You hold losers {hold_ratio}x longer than winners. That's not investing, that's praying.")
-        if worst_example:
-            messages.append(f"Like when you watched {worst_example.split(':')[0]} bleed out. Hope isn't a strategy.")
-        messages.append("Set stops. Use them. Your future self will thank you.")
-        
-    elif primary_insight.get('type') == 'behavioral' and 'Gambling' in primary_insight.get('title', ''):
-        total_trades = stats.get('total_trades', 0)
-        win_rate = stats.get('win_rate', 0)
-        
-        messages.append(f"Real talk: {total_trades} trades with a {win_rate:.0f}% win rate isn't trading. It's slot machines with extra steps.")
-        messages.append("You're not a trader, you're a dopamine addict. The market isn't going anywhere - slow down.")
-        
-    elif primary_insight.get('type') == 'timing':
-        facts = primary_insight.get('facts', [])
-        best_window = None
-        for fact in facts:
-            if 'win rate' in fact and '%' in fact:
-                parts = fact.split(':')
-                if len(parts) > 1:
-                    time_window = parts[0].strip()
-                    win_rate_part = fact.split('%')[0].split()[-1]
-                    try:
-                        wr = float(win_rate_part)
-                        if wr > 40:  # Good win rate
-                            best_window = time_window
-                            break
-                    except:
-                        pass
-        
-        if best_window:
-            messages.append(f"You have a golden window: {best_window}. That's when you actually know what you're doing.")
-            messages.append("Outside that window? You're just feeding the sharks. Stick to your strengths.")
-        
-    elif 'disasters' in primary_insight.get('type', ''):
-        examples = primary_insight.get('examples', [])
-        if examples:
-            worst = examples[0].split(':')[0] if ':' in examples[0] else 'your biggest loss'
-            messages.append(f"Let's talk about {worst}. That single trade wiped out weeks of profits.")
-            messages.append("You don't need home runs. You need to stop striking out.")
-    
-    # Add win rate context
-    win_rate = stats.get('win_rate', 0)
-    total_pnl = stats.get('total_pnl', 0)
-    
-    if win_rate < 25 and total_pnl < 0:
-        messages.append(f"Bottom line: {win_rate:.0f}% win rate and down ${abs(total_pnl):,.0f}. The market is telling you something. Listen.")
-    elif win_rate < 25 and total_pnl > 0:
-        messages.append(f"You're up money with a {win_rate:.0f}% win rate. That's luck, not skill. Don't confuse the two.")
-    elif win_rate > 50 and total_pnl < 0:
-        messages.append(f"A {win_rate:.0f}% win rate but still losing money? Your position sizing is broken. Fix it.")
-    
-    # Join messages with proper spacing
-    return " ".join(messages)
-
-def generate_basic_real_talk(stats: dict, top_trades: dict) -> str:
-    """Fallback Real Talk generation using basic stats."""
-    win_rate = stats.get('win_rate', 0)
-    total_pnl = stats.get('total_pnl', 0)
-    avg_pnl = stats.get('avg_pnl', 0)
-    total_trades = stats.get('total_trades', 0)
-    
-    messages = []
-    
-    if win_rate < 20:
-        messages.append(f"A {win_rate:.0f}% win rate means you're wrong 8 out of 10 times.")
-        if total_pnl > 0:
-            messages.append("You're only up because of pure luck. This won't last.")
-        else:
-            messages.append(f"You've donated ${abs(total_pnl):,.0f} to better traders.")
-        messages.append("Stop trading everything. Start trading nothing until you figure out what actually works.")
-    
-    elif win_rate < 35:
-        messages.append(f"Your {win_rate:.0f}% win rate is telling you something: your strategy doesn't work.")
-        if avg_pnl < -100:
-            messages.append(f"Losing ${abs(avg_pnl):,.0f} per trade on average. That's not variance, that's a broken system.")
-        messages.append("Quality over quantity. One good trade beats ten bad ones.")
-    
-    elif win_rate > 60:
-        messages.append(f"A {win_rate:.0f}% win rate is impressive.")
-        if total_pnl < 0:
-            messages.append("But you're still losing money. Your losses are too big when you're wrong.")
-        else:
-            messages.append(f"You're up ${total_pnl:,.0f}. Keep doing exactly what you're doing.")
-        messages.append("The hard part is staying disciplined when it's working.")
-    
-    else:
-        # Average win rate
-        if total_trades > 500:
-            messages.append(f"After {total_trades} trades, you should know your edge by now.")
-        elif total_trades < 50:
-            messages.append(f"Only {total_trades} trades? You need more data to know if you're good or lucky.")
-        
-        if total_pnl < -1000:
-            messages.append(f"Down ${abs(total_pnl):,.0f}. Time to admit what you're doing isn't working.")
-        else:
-            messages.append("You're treading water. Break out by focusing on what actually works for you.")
-    
-    return " ".join(messages)
 
 @app.route('/debug_cielo/<wallet>', methods=['GET'])
 def debug_cielo(wallet):

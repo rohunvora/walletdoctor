@@ -383,7 +383,10 @@
                 
                 // Show analysis if we have data
                 if (data.baseline.total_trades > 0) {
-                    displayAnalysis(data.baseline, data.top_trades, data.real_talk, data.key_patterns);
+                    displayAnalysis(data.baseline, data.top_trades);
+                    
+                    // Display AI insights if available
+                    displayAIInsights(data.ai_patterns, data.ai_message);
                 }
                 
                 document.getElementById('baselineSection').style.display = 'block';
@@ -634,7 +637,7 @@
             document.getElementById('loadingBox').style.display = 'none';
         }
 
-        function displayAnalysis(baseline, topTrades, realTalk, keyPatterns) {
+        function displayAnalysis(baseline, topTrades) {
             document.getElementById('analysisSection').style.display = 'block';
             
             // Performance Summary
@@ -647,46 +650,24 @@
             `;
             document.getElementById('performanceSummary').innerHTML = perfHtml;
             
-            // Key Patterns - Now from backend
-            let patternsHtml = '';
-            if (keyPatterns && keyPatterns.length > 0) {
-                patternsHtml = keyPatterns.map(pattern => {
-                    const severityIcon = {
-                        'critical': '🚨',
-                        'high': '⚠️',
-                        'medium': '📊'
-                    }[pattern.severity] || '📌';
-                    
-                    return `
-                        <div style="margin-bottom:12px;">
-                            <p style="margin:0;"><strong>${severityIcon} ${pattern.title}</strong></p>
-                            <p style="margin:4px 0; font-size:14px; color:#666;">${pattern.summary}</p>
-                            ${pattern.fix ? `<p style="margin:4px 0; font-size:13px; color:#28a745;">→ ${pattern.fix}</p>` : ''}
-                        </div>
-                    `;
-                }).join('');
-            } else {
-                // Fallback if no patterns from backend
-                patternsHtml = '<p>Analyzing patterns... Keep trading to see insights.</p>';
-            }
-            document.getElementById('keyPatterns').innerHTML = patternsHtml;
-            
-            // Personal Message - Now from backend
-            const message = realTalk || generateFallbackMessage(baseline, topTrades);
-            document.getElementById('personalMessage').innerHTML = message;
+            // Key Patterns - these are now populated by the backend
+            // They will be set directly from the response, not generated here
         }
         
-        function generateFallbackMessage(baseline, topTrades) {
-            // Simple fallback if backend doesn't provide real talk
-            const winRate = baseline.win_rate;
-            const totalPnl = baseline.total_pnl;
-            
-            if (winRate < 30) {
-                return `Your ${winRate.toFixed(0)}% win rate needs work. Focus on better trade selection - quality over quantity. Look at what made your winners work and only trade setups that match those patterns.`;
-            } else if (winRate > 60) {
-                return `Strong ${winRate.toFixed(0)}% win rate! You're picking good trades. ${totalPnl > 0 ? `Keep doing what works - you're up $${formatMoney(totalPnl)}.` : `But watch your position sizing - you're still down despite winning often.`}`;
+        function displayAIInsights(patterns, message) {
+            // Display AI-generated patterns
+            if (patterns && patterns.length > 0) {
+                const patternsHtml = patterns.map(p => `<p style="margin:8px 0;">${p}</p>`).join('');
+                document.getElementById('keyPatterns').innerHTML = patternsHtml;
             } else {
-                return `With ${baseline.total_trades} trades and a ${winRate.toFixed(0)}% win rate, you're about average. ${totalPnl > 0 ? `You're profitable, but there's room to improve.` : `Focus on risk management to turn this around.`} Study your best and worst trades for patterns.`;
+                document.getElementById('keyPatterns').innerHTML = '<p>Analyzing patterns...</p>';
+            }
+            
+            // Display AI-generated personal message
+            if (message) {
+                document.getElementById('personalMessage').innerHTML = message;
+            } else {
+                document.getElementById('personalMessage').innerHTML = 'Loading personalized analysis...';
             }
         }
     </script>
