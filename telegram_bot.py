@@ -201,11 +201,67 @@ class TradeBroBot:
             token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
             hit_limit = token_count >= 1000
             
-            # Get top losses for analysis
-            top_trades = instant_gen.get_top_trades(limit=5)
+            # Get top losses for analysis with timeout protection
+            top_trades = {'winners': [], 'losers': []}
+            try:
+                # Set a reasonable timeout for getting top trades
+                import asyncio
+                top_trades = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, 
+                        instant_gen.get_top_trades, 
+                        5
+                    ),
+                    timeout=3.0  # 3 second timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Timeout getting top trades for large wallet")
+                # For large wallets, try to get at least something from the data we have
+                try:
+                    # Quick query to get at least one winner and loser
+                    winner = db.execute("""
+                        SELECT symbol, totalPnl as realizedPnl 
+                        FROM pnl 
+                        WHERE totalPnl > 0 
+                        ORDER BY totalPnl DESC 
+                        LIMIT 1
+                    """).fetchone()
+                    
+                    loser = db.execute("""
+                        SELECT symbol, totalPnl as realizedPnl 
+                        FROM pnl 
+                        WHERE totalPnl < 0 
+                        ORDER BY totalPnl ASC 
+                        LIMIT 1
+                    """).fetchone()
+                    
+                    if winner:
+                        top_trades['winners'] = [{'symbol': winner[0], 'realizedPnl': winner[1]}]
+                    if loser:
+                        top_trades['losers'] = [{'symbol': loser[0], 'realizedPnl': loser[1]}]
+                except:
+                    pass
+            except Exception as e:
+                logger.error(f"Error getting top trades: {e}")
             
             # Debug log
             logger.info(f"Top trades data: winners={len(top_trades.get('winners', []))}, losers={len(top_trades.get('losers', []))}")
+            
+            # For large wallets, ensure we have some data even if limited
+            if not top_trades.get('winners') and not top_trades.get('losers'):
+                # Try to get at least some data from aggregated stats if available
+                try:
+                    # Check if we have aggregated stats
+                    result = db.execute("""
+                        SELECT * FROM aggregated_stats 
+                        WHERE wallet_address = ? 
+                        LIMIT 1
+                    """, [wallet_address]).fetchone()
+                    
+                    if result:
+                        logger.info("Using aggregated stats for large wallet")
+                except:
+                    pass
             
             # Analyze for revenge trading pattern
             revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
@@ -213,7 +269,7 @@ class TradeBroBot:
             # Format initial response with immediate insight
             response = f"📊 Found {stats['total_trades']} trades"
             if hit_limit:
-                response += " (showing first 1000 tokens)"
+                response += " (analyzed subset for large wallet)"
             response += "\n\n"
             
             if stats['total_pnl'] < 0:
@@ -255,23 +311,33 @@ class TradeBroBot:
                 
             await loading_msg.edit_text(response, parse_mode='Markdown')
             
-            # Offer deeper analysis for ALL wallets
-            # Always show for profitable wallets, or for losing wallets with losses
-            if stats['total_pnl'] > 0 or (stats['total_pnl'] < 0 and top_trades.get('losers')):
+            # ALWAYS offer deeper analysis - don't let large wallets miss out
+            try:
                 # Wait a moment for better UX
                 import asyncio
                 await asyncio.sleep(1.5)
                 
-                # Create buttons based on wallet status
-                worst_loss = top_trades.get('losers', [None])[0] if top_trades.get('losers') else None
+                # Create buttons - ensure they work even without detailed trade data
+                worst_loss = None
+                if top_trades.get('losers'):
+                    worst_loss = top_trades['losers'][0]
                 
                 buttons = []
-                if worst_loss:
+                
+                # Only add specific loss button if we have the data
+                if worst_loss and 'symbol' in worst_loss and 'realizedPnl' in worst_loss:
                     buttons.append([InlineKeyboardButton(
                         f"Why did I lose ${abs(worst_loss['realizedPnl']):,.0f} on {worst_loss['symbol']}?",
                         callback_data=f"explain_{worst_loss['symbol']}_{worst_loss['realizedPnl']}"
                     )])
+                elif stats['total_pnl'] < 0:
+                    # Generic loss analysis button for large wallets
+                    buttons.append([InlineKeyboardButton(
+                        "Why am I losing money?",
+                        callback_data=f"explain_UNKNOWN_{stats['total_pnl']}"
+                    )])
                 
+                # Always show these buttons
                 buttons.extend([
                     [InlineKeyboardButton(
                         "Show detailed breakdown",
@@ -301,13 +367,25 @@ class TradeBroBot:
                     reply_markup=reply_markup
                 )
                 
-            # Store analysis data for later use
-            context.user_data['current_wallet'] = wallet_address
-            context.user_data['total_pnl'] = stats['total_pnl']
-            context.user_data['win_rate'] = stats['win_rate']
-            context.user_data['worst_trades'] = top_trades.get('losers', [])[:5]
-            context.user_data['best_trades'] = top_trades.get('winners', [])[:5]
-            context.user_data['temp_db_path'] = temp_db_path
+                # Store analysis data for later use - ensure we handle missing data
+                context.user_data['current_wallet'] = wallet_address
+                context.user_data['total_pnl'] = stats['total_pnl']
+                context.user_data['win_rate'] = stats['win_rate']
+                context.user_data['worst_trades'] = top_trades.get('losers', [])[:5] if top_trades else []
+                context.user_data['best_trades'] = top_trades.get('winners', [])[:5] if top_trades else []
+                context.user_data['temp_db_path'] = temp_db_path
+                context.user_data['is_large_wallet'] = hit_limit
+                
+            except Exception as e:
+                logger.error(f"Error showing follow-up buttons: {e}")
+                # Still try to show basic follow-up
+                try:
+                    await update.message.reply_text(
+                        "Want personalized trading advice?\n\nType `/help` to see available commands.",
+                        parse_mode='Markdown'
+                    )
+                except:
+                    pass
             
             db.close()
             
@@ -625,21 +703,38 @@ class TradeBroBot:
             symbol = parts[1]
             pnl = float(parts[2])
             
-            # Store what we're annotating
-            context.user_data['annotating_symbol'] = symbol
-            context.user_data['annotating_pnl'] = pnl
-            self.user_states[user_id] = WAITING_FOR_ANNOTATION
-            
-            # Clear, specific prompt about their decision making
-            prompt = (
-                f"Tell me about {symbol}:\n\n"
-                f"• Where did you first hear about it?\n"
-                f"• What made you buy at that exact moment?\n"
-                f"• Were you trying to recover from another loss?\n\n"
-                f"(This trade lost ${abs(pnl):,.0f})"
-            )
-            
-            await query.message.reply_text(prompt, parse_mode='Markdown')
+            # Handle the UNKNOWN case for large wallets
+            if symbol == "UNKNOWN":
+                # For large wallets without specific trade data
+                context.user_data['annotating_symbol'] = "your trades"
+                context.user_data['annotating_pnl'] = pnl
+                self.user_states[user_id] = WAITING_FOR_ANNOTATION
+                
+                prompt = (
+                    f"Your account shows ${abs(pnl):,.0f} in losses.\n\n"
+                    f"Tell me about your trading:\n\n"
+                    f"• What types of tokens do you usually buy?\n"
+                    f"• Where do you get your trading ideas?\n"
+                    f"• What's your biggest trading mistake?\n"
+                )
+                
+                await query.message.reply_text(prompt, parse_mode='Markdown')
+            else:
+                # Store what we're annotating
+                context.user_data['annotating_symbol'] = symbol
+                context.user_data['annotating_pnl'] = pnl
+                self.user_states[user_id] = WAITING_FOR_ANNOTATION
+                
+                # Clear, specific prompt about their decision making
+                prompt = (
+                    f"Tell me about {symbol}:\n\n"
+                    f"• Where did you first hear about it?\n"
+                    f"• What made you buy at that exact moment?\n"
+                    f"• Were you trying to recover from another loss?\n\n"
+                    f"(This trade lost ${abs(pnl):,.0f})"
+                )
+                
+                await query.message.reply_text(prompt, parse_mode='Markdown')
             
         elif data.startswith("show_mistakes_"):
             await self.show_all_mistakes(query.message, user_id, context)
