@@ -142,4 +142,105 @@ class InstantStatsGenerator:
                 hold_time = f"{t['holdTimeSeconds']/60:.0f}min" if t['holdTimeSeconds'] < 3600 else f"{t['holdTimeSeconds']/3600:.1f}hr"
                 output.append(f"  • {t['symbol']}: -${abs(t['realizedPnl']):,.2f} ({hold_time})")
         
-        return "\n".join(output) 
+        return "\n".join(output)
+    
+    def get_rich_patterns_for_ai(self) -> Dict[str, Any]:
+        """Extract rich patterns that make AI analysis actually smart."""
+        pnl_df = self.db.execute("SELECT * FROM pnl").df()
+        
+        if pnl_df.empty:
+            return {}
+            
+        # Calculate entry/exit prices relative to position
+        pnl_df['entry_size_usd'] = pnl_df['totalBought'] * pnl_df['avgBuyPrice']
+        pnl_df['exit_size_usd'] = pnl_df['totalSold'] * pnl_df['avgSellPrice']
+        pnl_df['pnl_percent'] = (pnl_df['realizedPnl'] / pnl_df['entry_size_usd'] * 100)
+        
+        patterns = {}
+        
+        # 1. Revenge Trading Pattern - consecutive losses
+        pnl_df['is_loss'] = pnl_df['realizedPnl'] < 0
+        consecutive_losses = []
+        current_streak = []
+        
+        for idx, row in pnl_df.iterrows():
+            if row['is_loss']:
+                current_streak.append(row)
+            else:
+                if len(current_streak) >= 3:
+                    consecutive_losses.append(current_streak)
+                current_streak = []
+        
+        if consecutive_losses:
+            worst_streak = max(consecutive_losses, key=len)
+            patterns['revenge_trading'] = {
+                'streak_length': len(worst_streak),
+                'total_loss': sum(t['realizedPnl'] for t in worst_streak),
+                'tokens': [t['symbol'] for t in worst_streak],
+                'avg_hold_time': sum(t['holdTimeSeconds'] for t in worst_streak) / len(worst_streak) / 3600
+            }
+        
+        # 2. FOMO Pattern - big positions on volatile tokens
+        volatile_trades = pnl_df[pnl_df['numSwaps'] > 5].copy()
+        if len(volatile_trades) > 0:
+            volatile_trades['position_vs_avg'] = volatile_trades['entry_size_usd'] / pnl_df['entry_size_usd'].mean()
+            fomo_trades = volatile_trades[volatile_trades['position_vs_avg'] > 2]
+            
+            if len(fomo_trades) > 0:
+                patterns['fomo_pattern'] = {
+                    'count': len(fomo_trades),
+                    'avg_loss': fomo_trades['realizedPnl'].mean(),
+                    'biggest_fomo': {
+                        'token': fomo_trades.iloc[0]['symbol'],
+                        'size': fomo_trades.iloc[0]['entry_size_usd'],
+                        'loss': fomo_trades.iloc[0]['realizedPnl'],
+                        'swaps': fomo_trades.iloc[0]['numSwaps']
+                    }
+                }
+        
+        # 3. Shitcoin Addiction - pattern in token names
+        shitcoin_keywords = ['INU', 'DOGE', 'PEPE', 'MOON', 'SAFE', 'BABY', 'ELON', 'SHIB', 'FLOKI']
+        pattern = '|'.join(shitcoin_keywords)
+        shitcoins = pnl_df[pnl_df['symbol'].str.contains(pattern, case=False, na=False)]
+        
+        if len(shitcoins) > 0:
+            patterns['shitcoin_addiction'] = {
+                'count': len(shitcoins),
+                'total_invested': shitcoins['entry_size_usd'].sum(),
+                'total_loss': shitcoins[shitcoins['realizedPnl'] < 0]['realizedPnl'].sum(),
+                'win_rate': (len(shitcoins[shitcoins['realizedPnl'] > 0]) / len(shitcoins) * 100),
+                'worst_shitcoins': shitcoins.nsmallest(3, 'realizedPnl')[['symbol', 'realizedPnl']].to_dict('records')
+            }
+        
+        # 4. Bag Holder Pattern - holding losers too long
+        losers = pnl_df[pnl_df['realizedPnl'] < 0]
+        winners = pnl_df[pnl_df['realizedPnl'] > 0]
+        
+        if len(losers) > 5 and len(winners) > 5:
+            patterns['bag_holding'] = {
+                'avg_loser_hold_hours': losers['holdTimeSeconds'].mean() / 3600,
+                'avg_winner_hold_hours': winners['holdTimeSeconds'].mean() / 3600,
+                'longest_held_loser': {
+                    'token': losers.nlargest(1, 'holdTimeSeconds').iloc[0]['symbol'],
+                    'hold_hours': losers.nlargest(1, 'holdTimeSeconds').iloc[0]['holdTimeSeconds'] / 3600,
+                    'loss': losers.nlargest(1, 'holdTimeSeconds').iloc[0]['realizedPnl']
+                }
+            }
+        
+        # 5. Size Mismanagement - biggest positions are biggest losses
+        top_positions = pnl_df.nlargest(10, 'entry_size_usd')
+        position_losses = top_positions[top_positions['realizedPnl'] < 0]
+        
+        if len(position_losses) > 3:
+            patterns['size_mismanagement'] = {
+                'big_position_loss_rate': len(position_losses) / len(top_positions) * 100,
+                'total_big_position_losses': position_losses['realizedPnl'].sum(),
+                'worst_big_bet': {
+                    'token': position_losses.iloc[0]['symbol'],
+                    'size': position_losses.iloc[0]['entry_size_usd'],
+                    'loss': position_losses.iloc[0]['realizedPnl'],
+                    'percent_loss': position_losses.iloc[0]['pnl_percent']
+                }
+            }
+        
+        return patterns 
