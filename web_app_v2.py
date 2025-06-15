@@ -14,7 +14,7 @@ import duckdb
 from scripts.instant_stats import InstantStatsGenerator
 from scripts.db_migrations import run_migrations, add_annotation, get_similar_annotations
 from scripts.trade_comparison import TradeComparator
-from scripts.dialogue_generator import DialogueGenerator, WALLET_OWNER_PROMPT, COACH_FINAL_RESPONSE_PROMPT
+from scripts.wisdom_generator import WisdomGenerator, WISDOM_SYSTEM_PROMPT
 from scripts.llm import TradingCoach
 from scripts.analytics import calculate_accurate_stats, calculate_portfolio_metrics, identify_leak_trades
 
@@ -153,127 +153,92 @@ def instant_load():
             is_partial = token_count >= 1000
             hit_token_limit = token_count >= 999  # Might be exactly 1000 or slightly less
             
-            # Initialize dialogue generator
-            dialogue_gen = DialogueGenerator(db)
-            trade_data = dialogue_gen.prepare_trade_data()
+            # Initialize wisdom generator
+            wisdom_gen = WisdomGenerator(db)
+            journey = wisdom_gen.extract_trading_journey()
             
-            # Generate AI-powered insights through dialogue
+            # Generate AI-powered insights
             ai_patterns = []
             ai_message = ""
             
-            if openai_key and trade_data.get('has_data'):
+            if openai_key and journey.get('has_data'):
                 try:
-                    print(f"[{datetime.now()}] Generating dialogue insights...")
+                    print(f"[{datetime.now()}] Generating wisdom insights...")
                     
-                    # Initialize trading coach
+                    # Initialize trading coach with wisdom prompt
                     coach = TradingCoach()
                     
-                    # Step 1: Generate initial generic insight
-                    initial_prompt = f"""Looking at this trader's summary:
-                    - {trade_data['total_trades']} total trades
-                    - ${trade_data['total_pnl']:,.0f} total P&L
-                    - {trade_data['summary_stats']['win_rate']:.0f}% win rate
+                    # Create the wisdom prompt
+                    wisdom_prompt = wisdom_gen.create_wisdom_prompt(journey)
                     
-                    Give a brief initial observation about their trading."""
-                    
-                    initial_response = coach.client.chat.completions.create(
+                    # Get AI to generate wisdom
+                    wisdom_response = coach.client.chat.completions.create(
                         model="o3",
                         messages=[
-                            {"role": "system", "content": "You are a trading coach. Give a brief initial observation."},
-                            {"role": "user", "content": initial_prompt}
+                            {"role": "system", "content": WISDOM_SYSTEM_PROMPT},
+                            {"role": "user", "content": wisdom_prompt}
                         ],
-                        temperature=0.7,
-                        max_tokens=200
-                    )
-                    
-                    initial_insight = initial_response.choices[0].message.content
-                    
-                    # Step 2: Wallet owner pushes back
-                    pushback_response = coach.client.chat.completions.create(
-                        model="o3",
-                        messages=[
-                            {"role": "system", "content": WALLET_OWNER_PROMPT},
-                            {"role": "user", "content": f"The coach just told me: '{initial_insight}'"}
-                        ],
-                        temperature=0.8,
-                        max_tokens=200
-                    )
-                    
-                    wallet_owner_pushback = pushback_response.choices[0].message.content
-                    
-                    # Step 3: Coach provides specific response with real data
-                    final_response = coach.client.chat.completions.create(
-                        model="o3",
-                        messages=[
-                            {"role": "system", "content": COACH_FINAL_RESPONSE_PROMPT},
-                            {"role": "user", "content": f"""The trader said: "{wallet_owner_pushback}"
-                            
-                            Here's their complete trading data to reference:
-                            {json.dumps(trade_data, indent=2)}
-                            
-                            Provide SPECIFIC examples from this data only."""}
-                        ],
-                        temperature=0.3,  # Lower temperature for accuracy
+                        temperature=0.8,  # Higher for more creative wisdom
                         max_tokens=800
                     )
                     
-                    coach_specific_response = final_response.choices[0].message.content
+                    wisdom_text = wisdom_response.choices[0].message.content
                     
-                    # Parse the specific response for patterns
-                    response_lines = coach_specific_response.split('\n')
-                    for line in response_lines:
+                    # Parse the wisdom into patterns and message
+                    wisdom_lines = wisdom_text.split('\n')
+                    
+                    # Extract individual insights
+                    current_insight = []
+                    for line in wisdom_lines:
                         line = line.strip()
-                        if line and ('$' in line or '%' in line or any(token in line for token in [':', '→'])):
-                            # This likely contains specific trade data
-                            if len(line) > 30 and not line.startswith(('You\'re right', 'Here\'s', 'Looking at')):
-                                ai_patterns.append(line)
+                        if line and not line.startswith(('---', '===', '***')):
+                            if line.startswith(('•', '-', '*', '1.', '2.', '3.', '4.', '5.')):
+                                if current_insight:
+                                    ai_patterns.append(' '.join(current_insight))
+                                    current_insight = []
+                                # Clean up bullet points
+                                clean_line = line.lstrip('•-*123456789. ')
+                                current_insight = [clean_line]
+                            elif current_insight:
+                                current_insight.append(line)
                     
-                    # Limit to best patterns
+                    # Add the last insight
+                    if current_insight:
+                        ai_patterns.append(' '.join(current_insight))
+                    
+                    # Limit to 5 best insights
                     ai_patterns = ai_patterns[:5]
                     
-                    # Create the dialogue message
-                    ai_message = f"""<div style="margin-bottom: 20px;">
-                        <strong>Initial Analysis:</strong> {initial_insight}
-                    </div>
-                    <div style="margin-bottom: 20px; padding-left: 20px; border-left: 3px solid #dc3545;">
-                        <strong>You:</strong> {wallet_owner_pushback}
-                    </div>
-                    <div style="padding-left: 20px; border-left: 3px solid #28a745;">
-                        <strong>Coach:</strong> {coach_specific_response[:500]}...
-                    </div>"""
+                    # Create a powerful personal message
+                    if journey['total_pnl'] < -1000:
+                        worst_trade = journey['worst_trades'][0].split(':')[0] if journey['worst_trades'] else 'your worst trade'
+                        ai_message = f"Here's the truth: You've burned ${abs(journey['total_pnl']):,.0f} learning expensive lessons. {worst_trade} wasn't a trade, it was hope dressed up as analysis."
+                    else:
+                        ai_message = wisdom_lines[0] if wisdom_lines else "Your trading tells a story only you can rewrite."
                     
-                    print(f"[{datetime.now()}] Dialogue insights generated successfully")
+                    print(f"[{datetime.now()}] Wisdom insights generated successfully")
                     
                 except Exception as e:
-                    print(f"[{datetime.now()}] Error generating dialogue: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    # Fallback to extracted patterns
-                    if trade_data.get('patterns'):
-                        # Use the pre-extracted patterns
-                        for pattern_type, patterns in trade_data['patterns'].items():
-                            if patterns:
-                                for pattern in patterns[:1]:  # One example per type
-                                    if 'examples' in pattern:
-                                        ai_patterns.extend(pattern['examples'][:2])
-                                    elif 'sequence' in pattern:
-                                        ai_patterns.extend(pattern['sequence'])
-                        
-                        ai_message = f"Here's the truth: Your P&L says ${trade_data['total_pnl']:,.0f}, but the patterns in your data tell the real story."
+                    print(f"[{datetime.now()}] Error generating wisdom: {str(e)}")
+                    # Fallback to journey facts
+                    if journey.get('has_data'):
+                        ai_patterns = [
+                            f"You've taken {journey['total_trades']} swings at the market",
+                            f"Your longest held position: {max([t.split('held ')[1].split('h')[0] for t in journey.get('long_holds', ['0h'])], key=float)}h of hope",
+                            f"You keep coming back to {list(journey.get('most_traded', {}).keys())[0]}" if journey.get('most_traded') else "The same patterns",
+                            f"Win rate: {journey['win_rate']:.0f}% - but that's not the real story"
+                        ]
+                        ai_message = f"Here's the truth: Your P&L says ${journey['total_pnl']:,.0f}, but the real cost is what you haven't learned yet."
             else:
-                # No OpenAI key - provide pattern-based insights
-                if trade_data.get('has_data') and trade_data.get('patterns'):
-                    for pattern_type, patterns in trade_data['patterns'].items():
-                        if patterns and patterns[0]:
-                            pattern = patterns[0]
-                            if pattern_type == 'revenge_trading' and 'sequence' in pattern:
-                                ai_patterns.append(f"Revenge pattern: {pattern['sequence'][0]}")
-                            elif pattern_type == 'size_patterns' and 'examples' in pattern:
-                                ai_patterns.append(f"Size issues: {pattern['examples'][0]}")
-                            elif pattern_type == 'hold_patterns' and 'examples' in pattern:
-                                ai_patterns.append(f"Hold pattern: {pattern['examples'][0]}")
-                    
-                    ai_message = "Add OpenAI API key for interactive coaching dialogue."
+                # No OpenAI key - provide journey-based insights
+                if journey.get('has_data'):
+                    ai_patterns = [
+                        f"Total journey: {journey['total_trades']} trades, ${journey['total_pnl']:,.0f} P&L",
+                        f"Your disasters tell the story: {journey['worst_trades'][0]}" if journey.get('worst_trades') else "Every loss has a lesson",
+                        f"You can't quit {list(journey.get('most_traded', {}).keys())[0]}" if journey.get('most_traded') else "Your favorite tokens",
+                        f"Quick flips: {len(journey.get('quick_trades', []))} trades under 10 minutes"
+                    ]
+                    ai_message = "Add OpenAI API key for personalized wisdom about your trading journey."
             
         finally:
             db.close()
