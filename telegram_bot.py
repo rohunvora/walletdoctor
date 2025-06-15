@@ -279,6 +279,52 @@ class TradeBroBot:
             else:
                 logger.warning("No aggregated stats found - using subset data")
             
+            # Get top trades for analysis with timeout protection
+            top_trades = {'winners': [], 'losers': []}
+            try:
+                # Set a reasonable timeout for getting top trades
+                import asyncio
+                top_trades = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None, 
+                        instant_gen.get_top_trades, 
+                        5
+                    ),
+                    timeout=3.0  # 3 second timeout
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Timeout getting top trades for large wallet")
+                # For large wallets, try to get at least something from the data we have
+                try:
+                    # Quick query to get at least one winner and loser
+                    winner = db.execute("""
+                        SELECT symbol, totalPnl as realizedPnl 
+                        FROM pnl 
+                        WHERE totalPnl > 0 
+                        ORDER BY totalPnl DESC 
+                        LIMIT 1
+                    """).fetchone()
+                    
+                    loser = db.execute("""
+                        SELECT symbol, totalPnl as realizedPnl 
+                        FROM pnl 
+                        WHERE totalPnl < 0 
+                        ORDER BY totalPnl ASC 
+                        LIMIT 1
+                    """).fetchone()
+                    
+                    if winner:
+                        top_trades['winners'] = [{'symbol': winner[0], 'realizedPnl': winner[1]}]
+                    if loser:
+                        top_trades['losers'] = [{'symbol': loser[0], 'realizedPnl': loser[1]}]
+                except:
+                    pass
+            except Exception as e:
+                logger.error(f"Error getting top trades: {e}")
+            
+            # Debug log
+            logger.info(f"Top trades data: winners={len(top_trades.get('winners', []))}, losers={len(top_trades.get('losers', []))}")
+            
             # For large wallets, ensure we have some data even if limited
             if not top_trades.get('winners') and not top_trades.get('losers'):
                 # Try to get at least some data from aggregated stats if available
