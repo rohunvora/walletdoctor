@@ -210,7 +210,7 @@ class WalletDoctorBot:
                 
                 buttons = [
                     [InlineKeyboardButton(
-                        f"Tell me about {worst_loss['symbol']}",
+                        f"Why did I buy {worst_loss['symbol']}?",
                         callback_data=f"explain_{worst_loss['symbol']}_{worst_loss['realizedPnl']}"
                     )],
                     [InlineKeyboardButton(
@@ -270,56 +270,122 @@ class WalletDoctorBot:
         """Generate brutal, personalized advice based on user's explanation"""
         loss_amount = abs(pnl)
         
-        # Check for revenge trading indicators
-        if any(word in annotation for word in ['recover', 'make back', 'revenge', 'angry', 'lost', 'get back']):
+        # More sophisticated analysis using actual content
+        annotation_lower = annotation.lower()
+        worst_trades = context.user_data.get('worst_trades', [])
+        total_pnl = context.user_data.get('total_pnl', 0)
+        
+        # Check for social media driven trades
+        if any(word in annotation_lower for word in ['twitter', 'telegram', 'discord', 'youtube', 'tiktok', 'reddit', 'friend', 'group', 'heard']):
+            source = next((word for word in ['twitter', 'telegram', 'discord', 'youtube', 'tiktok', 'reddit'] if word in annotation_lower), 'social media')
             return (
-                f"\nHere's the truth:\n\n"
-                f"You're not trading, you're gambling to recover losses.\n"
-                f"That ${loss_amount:,.0f} loss? It happened because you were emotional.\n\n"
-                f"*The fix:*\n"
-                f"• After any loss over $1k, take 24 hours off\n"
-                f"• Set a daily loss limit: $500 max\n"
-                f"• If you hit it, close everything\n\n"
-                f"Revenge trading has cost you over $30k. Stop it."
+                f"I see what happened.\n\n"
+                f"You bought {symbol} because {source} told you to.\n"
+                f"You're not trading - you're following strangers who dump on you.\n\n"
+                f"Look at your results:\n"
+                f"• This trade: -${loss_amount:,.0f}\n"
+                f"• Total damage: -${abs(total_pnl):,.0f}\n"
+                f"• Following others' calls has destroyed your account\n\n"
+                f"*Fix this or go broke:*\n"
+                f"• Delete {source}. Today.\n"
+                f"• Never buy what others are shilling\n"
+                f"• If you can't find your own trades, stop trading\n\n"
+                f"Harsh? Your -${abs(total_pnl):,.0f} is harsher."
             )
+            
+        # Check for revenge trading with context
+        elif any(word in annotation_lower for word in ['recover', 'make back', 'lost', 'down', 'red', 'loss', 'trying to get']):
+            # Calculate how much revenge trading has cost them
+            if worst_trades and len(worst_trades) >= 2:
+                revenge_losses = sum(abs(t['realizedPnl']) for t in worst_trades[:3])
+                return (
+                    f"I knew it.\n\n"
+                    f"You were trying to recover losses when you bought {symbol}.\n"
+                    f"This isn't trading - it's gambling addiction.\n\n"
+                    f"The numbers don't lie:\n"
+                    f"• This revenge trade: -${loss_amount:,.0f}\n"
+                    f"• Your top 3 disasters: -${revenge_losses:,.0f}\n"
+                    f"• That's {revenge_losses/abs(total_pnl)*100:.0f}% of all losses!\n\n"
+                    f"*You have two choices:*\n"
+                    f"1. Keep revenge trading until you're broke\n"
+                    f"2. Follow these rules:\n"
+                    f"   • After ANY loss: 24 hour timeout\n"
+                    f"   • Daily loss limit: $500\n"
+                    f"   • Hit the limit = close everything\n\n"
+                    f"Your ego or your money. Choose."
+                )
             
         # Check for FOMO/pump chasing
-        elif any(word in annotation for word in ['pump', 'pumping', 'moon', 'twitter', 'telegram', 'youtube', 'influencer']):
+        elif any(word in annotation_lower for word in ['pump', 'pumping', 'moon', 'rising', 'going up', 'green', '100x', 'missed']):
             return (
-                f"\nHere's the truth:\n\n"
-                f"You bought {symbol} because someone else was already making money.\n"
-                f"By the time you see it pumping, you're exit liquidity.\n\n"
-                f"*The fix:*\n"
-                f"• Never buy after a 30%+ pump\n"
-                f"• Unfollow all crypto influencers\n"
-                f"• Find entries before Twitter knows\n\n"
-                f"Chasing pumps is why you're down ${abs(context.user_data.get('total_pnl', 0)):,.0f}."
+                f"Classic FOMO.\n\n"
+                f"You saw {symbol} pumping and couldn't resist.\n"
+                f"You know what you were? Exit liquidity.\n\n"
+                f"This pattern is killing you:\n"
+                f"• See green candles → FOMO buy → Red portfolio\n"
+                f"• Your loss rate proves it: {100 - context.user_data.get('win_rate', 0):.0f}%\n"
+                f"• You're literally buying other people's profits\n\n"
+                f"*Want to stop being exit liquidity?*\n"
+                f"• Never buy after 20%+ daily gains\n"
+                f"• Only buy red. Only sell green.\n"
+                f"• If you missed it, you missed it. Move on.\n\n"
+                f"Stop chasing. Start thinking."
             )
             
-        # Check for no plan/random trading
-        elif any(word in annotation for word in ['thought', 'seemed', 'maybe', 'looked good', 'why not']):
+        # Check for no plan/hope trading
+        elif any(word in annotation_lower for word in ['thought', 'maybe', 'hoped', 'seemed', 'looked', 'felt', 'guess', 'why not']):
             return (
-                f"\nHere's the truth:\n\n"
-                f"You had no plan. You just clicked buy and hoped.\n"
-                f"Trading without a plan is just expensive gambling.\n\n"
-                f"*The fix:*\n"
-                f"• Before any trade, write: entry, target, stop loss\n"
-                f"• If you can't explain why in one sentence, don't trade\n"
-                f"• Max position until you have a system: $500\n\n"
-                f"Random trades like this are bleeding you dry."
+                f"No plan. No strategy. Just hope.\n\n"
+                f"You bought {symbol} on a feeling.\n"
+                f"Feelings cost you ${loss_amount:,.0f} this time.\n"
+                f"Total feelings bill: ${abs(total_pnl):,.0f}\n\n"
+                f"*Professional traders have:*\n"
+                f"• Entry rules\n"
+                f"• Exit rules\n"
+                f"• Position sizing rules\n\n"
+                f"*You have:*\n"
+                f"• Feelings\n"
+                f"• Hope\n"
+                f"• -${abs(total_pnl):,.0f}\n\n"
+                f"Get a system or get a job."
             )
             
-        # Generic but still brutal
+        # Check for specific token patterns
+        elif any(pattern in symbol.lower() for pattern in ['inu', 'elon', 'doge', 'shib', 'floki', 'moon', 'rocket']):
+            return (
+                f"Another memecoin. Of course.\n\n"
+                f"{symbol} was never an investment.\n"
+                f"It was a lottery ticket. You lost.\n\n"
+                f"Your memecoin addiction:\n"
+                f"• This loss: -${loss_amount:,.0f}\n"
+                f"• Total account damage: -${abs(total_pnl):,.0f}\n"
+                f"• Memecoins are why you're broke\n\n"
+                f"*The only cure:*\n"
+                f"• Blacklist ALL memecoins\n"
+                f"• Trade only top 50 market cap\n"
+                f"• If it has a dog logo, run\n\n"
+                f"Stop gambling on garbage."
+            )
+            
+        # More intelligent generic response based on their trading data
         else:
+            # Calculate some key metrics
+            avg_loss = sum(abs(t['realizedPnl']) for t in worst_trades[:5]) / min(len(worst_trades), 5) if worst_trades else loss_amount
+            
             return (
-                f"\nHere's the truth:\n\n"
-                f"This ${loss_amount:,.0f} loss happened because you don't have rules.\n"
-                f"You're trading on feelings, not facts.\n\n"
-                f"*The fix:*\n"
-                f"• Create written rules for entries and exits\n"
-                f"• Never break them, even if you 'feel' different\n"
-                f"• Start small: $500 max per trade\n\n"
-                f"Without discipline, you'll keep losing."
+                f"Let me be clear.\n\n"
+                f"You lost ${loss_amount:,.0f} on {symbol} because you trade without rules.\n"
+                f"No edge. No system. No discipline.\n\n"
+                f"Your account tells the story:\n"
+                f"• Average disaster: -${avg_loss:,.0f}\n"
+                f"• Win rate: {context.user_data.get('win_rate', 0):.0f}%\n"
+                f"• Total destruction: -${abs(total_pnl):,.0f}\n\n"
+                f"*Three rules to save your account:*\n"
+                f"1. Max position: $500 until profitable\n"
+                f"2. Stop loss on EVERY trade: 5%\n"
+                f"3. Journal before you buy, not after you lose\n\n"
+                f"Follow rules or lose everything.\n"
+                f"Your choice."
             )
             
     async def show_all_mistakes(self, message, user_id, context):
@@ -377,43 +443,78 @@ class WalletDoctorBot:
             win_rate = context.user_data.get('win_rate', 0)
             worst_trades = context.user_data.get('worst_trades', [])
             
-            response = "*Your Trading Fix*\n\n"
+            # Calculate key metrics for personalized advice
+            avg_loss = sum(abs(t['realizedPnl']) for t in worst_trades[:5]) / min(len(worst_trades), 5) if worst_trades else 0
+            biggest_loss = abs(worst_trades[0]['realizedPnl']) if worst_trades else 0
+            loss_tokens = [t['symbol'] for t in worst_trades[:3]] if worst_trades else []
             
-            # Rule 1 - Position sizing
-            response += "*Rule 1: Position Sizing*\n"
+            response = f"*Your Personal Trading Fix*\n\n"
+            response += f"Based on your ${abs(total_pnl):,.0f} loss:\n\n"
+            
+            # Rule 1 - Position sizing based on their actual losses
+            response += "*Rule 1: Position Size (Your Biggest Problem)*\n"
+            if biggest_loss > 10000:
+                response += f"• Your {worst_trades[0]['symbol']} disaster: -${biggest_loss:,.0f}\n"
+                response += f"• New max position: $300 (not negotiable)\n"
+                response += f"• You've proven you can't handle larger sizes\n"
+            elif biggest_loss > 5000:
+                response += f"• Your worst loss: -${biggest_loss:,.0f}\n"
+                response += f"• New max position: $500\n"
+                response += f"• Earn the right to trade bigger\n"
+            else:
+                response += f"• Max position: ${min(1000, biggest_loss * 0.2):,.0f}\n"
+                response += f"• That's 20% of your biggest loss\n"
+                
+            # Rule 2 - Entry rules specific to their patterns
+            response += "\n*Rule 2: When You Can Buy*\n"
+            if win_rate < 25:
+                response += f"• Your {win_rate:.0f}% win rate = you buy tops\n"
+                response += f"• Only buy on -15% red days or more\n"
+                response += f"• If it's green, you don't touch it\n"
+            elif any(token in ['BONK', 'SHIB', 'PEPE', 'WIF', 'DOGE'] for token in loss_tokens):
+                response += f"• You lost money on: {', '.join(loss_tokens[:3])}\n"
+                response += f"• No more memecoins. Period.\n"
+                response += f"• Top 20 market cap only\n"
+            else:
+                response += f"• Set limit orders 10% below current price\n"
+                response += f"• Never market buy again\n"
+                response += f"• Patience or poverty\n"
+                
+            # Rule 3 - Stop losses based on their actual behavior
+            response += "\n*Rule 3: Mandatory Stop Losses*\n"
+            if avg_loss > 5000:
+                response += f"• Your average disaster: -${avg_loss:,.0f}\n"
+                response += f"• Stop loss: 5% max (set it before buying)\n"
+                response += f"• Break this rule = quit trading\n"
+            else:
+                response += f"• Stop loss: 7% on every trade\n"
+                response += f"• No stop loss = no trade\n"
+                response += f"• Your ego isn't worth ${abs(total_pnl):,.0f}\n"
+            
+            # Rule 4 - Specific behavioral rules
+            response += "\n*Rule 4: Your Personal Rules*\n"
             if abs(total_pnl) > 50000:
-                response += "• Maximum position: $500 until profitable\n"
-            elif abs(total_pnl) > 20000:
-                response += "• Maximum position: $1,000\n"
+                response += f"• After losing ${abs(total_pnl):,.0f}, you need supervision\n"
+                response += f"• Screenshot every trade plan before entering\n"
+                response += f"• If you can't explain it, you can't trade it\n"
+            elif worst_trades and len(set(t['symbol'] for t in worst_trades[:5])) == 5:
+                response += f"• You jump between too many tokens\n"
+                response += f"• Pick 3 tokens max. Master them.\n"
+                response += f"• Quality over quantity\n"
             else:
-                response += "• Maximum position: 2% of account\n"
+                response += f"• One trade per day maximum\n"
+                response += f"• Win or lose, laptop closes after\n"
+                response += f"• More trades = more losses for you\n"
                 
-            # Rule 2 - Entry rules
-            response += "\n*Rule 2: Entry Rules*\n"
-            if win_rate < 30:
-                response += "• Never buy after 30%+ daily pump\n"
-                response += "• Wait for red days to enter\n"
-            else:
-                response += "• Only buy with clear support levels\n"
-                response += "• Set stop loss before entry\n"
-                
-            # Rule 3 - Loss limits
-            response += "\n*Rule 3: Loss Limits*\n"
-            response += "• Daily loss limit: $500\n"
-            response += "• Weekly loss limit: $2,000\n"
-            response += "• Hit limit = close laptop\n"
+            response += f"\n📌 *Print this. Follow it. Or stay broke.*"
             
-            # Rule 4 - Specific to their issues
-            response += "\n*Rule 4: Your Specific Fix*\n"
-            if worst_trades and worst_trades[0]['realizedPnl'] < -5000:
-                response += "• No trading within 24h of a >$1k loss\n"
-            if any('pump' in str(t.get('symbol', '')).lower() for t in worst_trades[:3]):
-                response += "• Blacklist all memecoins\n"
-            else:
-                response += "• Journal every trade before entering\n"
-                
-            response += f"\n*Follow these rules or keep losing money.*\n"
-            response += f"*Your choice.*"
+            # Clean up temp database
+            temp_db_path = context.user_data.get('temp_db_path')
+            if temp_db_path and os.path.exists(temp_db_path):
+                try:
+                    os.remove(temp_db_path)
+                except:
+                    pass
             
             await message.reply_text(response, parse_mode='Markdown')
             
@@ -440,10 +541,13 @@ class WalletDoctorBot:
             context.user_data['annotating_pnl'] = pnl
             self.user_states[user_id] = WAITING_FOR_ANNOTATION
             
-            # Clear, simple prompt
+            # Clear, specific prompt about their decision making
             prompt = (
-                f"What happened with {symbol}?\n\n"
-                f"This trade lost ${abs(pnl):,.0f}."
+                f"Tell me about {symbol}:\n\n"
+                f"• Where did you first hear about it?\n"
+                f"• What made you buy at that exact moment?\n"
+                f"• Were you trying to recover from another loss?\n\n"
+                f"(This trade lost ${abs(pnl):,.0f})"
             )
             
             await query.message.reply_text(prompt, parse_mode='Markdown')
