@@ -76,15 +76,46 @@ Be specific and actionable. Reference the numbers to support your points."""
             prompt += f"\n\nAdditional Context:\n{json.dumps(detailed_data, indent=2)}"
         
         # Get response
-        response = self.client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": self.context},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
+        # Using o3 - OpenAI's most advanced reasoning model
+        # Note: o3 may not be available to all users yet as it's very new
+        # Fallback chain: o3 -> o3-mini -> gpt-4o
+        try:
+            response = self.client.chat.completions.create(
+                model="o3",
+                messages=[
+                    {"role": "system", "content": self.context},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+        except Exception as e:
+            # Fallback to o3-mini or gpt-4o if o3 isn't available
+            if "model" in str(e).lower() or "not found" in str(e).lower():
+                print(f"⚠️  o3 model not available, falling back to o3-mini")
+                try:
+                    response = self.client.chat.completions.create(
+                        model="o3-mini",
+                        messages=[
+                            {"role": "system", "content": self.context},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=500
+                    )
+                except:
+                    print(f"⚠️  o3-mini not available either, falling back to gpt-4o")
+                    response = self.client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": self.context},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=500
+                    )
+            else:
+                raise e
         
         return response.choices[0].message.content
     
