@@ -2,11 +2,9 @@
 
 Analyze your Solana wallet trading patterns and get harsh, direct insights backed by data. No fluff, no generic advice - just brutal truths about your trading behavior.
 
-## 🚀 Quick Start (Web Interface)
+## 🚀 Quick Start
 
-Visit the deployed app: **[Your Railway URL Here]**
-
-Or run locally:
+### Web Interface
 ```bash
 # Set your API keys
 export CIELO_KEY="your_cielo_api_key"
@@ -17,7 +15,18 @@ export OPENAI_API_KEY="your_openai_key"  # Optional, for AI insights
 python web_app_v2.py
 ```
 
-Then visit: http://localhost:5002
+Visit: http://localhost:5002
+
+### Telegram Bot
+```bash
+# Set up your bot token
+export TELEGRAM_BOT_TOKEN="your_bot_token"
+
+# Run the bot
+python run_telegram_bot.py
+```
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
 
 ## 🎯 What It Does
 
@@ -33,35 +42,39 @@ WalletDoctor provides brutal, actionable insights about your trading:
 - **Overtrading Alerts**: When you're gambling, not trading
 - **Win Rate Reality**: No sugar coating, just facts
 
-## 🛠️ Architecture
+## 🛠️ Features
 
-```
-web_app_v2.py                # Flask web interface
-├── scripts/
-│   ├── coach.py            # Core CLI commands
-│   ├── data.py             # Helius/Cielo API integration
-│   ├── transforms.py       # Data normalization
-│   ├── analytics.py        # Statistical analysis
-│   ├── harsh_insights.py   # Brutal truth generation
-│   └── instant_stats.py    # Quick baseline stats
-└── src/walletdoctor/
-    ├── features/           # Pattern detection
-    └── insights/           # Deep psychological analysis
-```
+### Web Application
+- Instant wallet analysis with visual insights
+- Interactive charts and statistics
+- Export capabilities for further analysis
+
+### Telegram Bot
+- Interactive trading journal
+- Pattern annotation and tracking
+- Real-time monitoring and alerts
+- Personalized trading rules based on your patterns
+
+### CLI Tools
+- Batch wallet analysis
+- Deep behavioral pattern detection
+- Multi-wallet comparison
+- Database management
 
 ## 📋 Prerequisites
 
-- Python 3.8+
-- API keys for:
+- Python 3.8-3.12
+- API keys:
   - [Helius](https://dev.helius.xyz/) - Transaction data
   - [Cielo](https://cielo.finance/) - P&L analysis
   - [OpenAI](https://platform.openai.com/) - AI insights (optional)
+  - [Telegram Bot Token](https://core.telegram.org/bots#how-do-i-create-a-bot) - For bot features
 
 ## 🔧 Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/rohunvora/walletdoctor.git
+git clone https://github.com/yourusername/walletdoctor.git
 cd walletdoctor
 ```
 
@@ -82,10 +95,6 @@ pip install -r requirements.txt
 cp env.example .env
 
 # Edit .env and add your API keys
-# Or export them in your shell:
-export HELIUS_KEY="your-helius-api-key"
-export CIELO_KEY="your-cielo-api-key"
-export OPENAI_API_KEY="your-openai-api-key"  # Optional
 ```
 
 ## 💻 CLI Usage (Advanced)
@@ -133,13 +142,10 @@ The app is designed to run on [Railway](https://railway.app):
 
 1. Fork this repository
 2. Connect Railway to your GitHub
-3. Set environment variables in Railway:
-   - `HELIUS_KEY`
-   - `CIELO_KEY`
-   - `OPENAI_API_KEY` (optional)
+3. Set environment variables in Railway
 4. Deploy!
 
-See [DEPLOY_TO_RAILWAY.md](DEPLOY_TO_RAILWAY.md) for detailed instructions.
+See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for detailed instructions.
 
 ## 🧠 Deep Behavioral Analysis
 
@@ -155,6 +161,13 @@ Each pattern is:
 - Backed by multiple data points
 - Given a confidence score
 - Paired with a specific, actionable fix
+
+## 📚 Documentation
+
+- [Project Structure](PROJECT_STRUCTURE.md) - Detailed code organization
+- [Architecture](docs/ARCHITECTURE.md) - System design and components
+- [Quick Start Guide](QUICKSTART.md) - Get started in 5 minutes
+- [Railway Deployment](RAILWAY_DEPLOYMENT.md) - Deploy to production
 
 ## 🤝 Contributing
 
