@@ -164,6 +164,21 @@ def instant_load():
                     pnl_df = db.execute("SELECT * FROM pnl").df()
                     tx_df = db.execute("SELECT * FROM tx").df()
                     
+                    # Add more detailed trade analysis
+                    if not pnl_df.empty:
+                        # Sort by P&L to get best and worst
+                        pnl_df['entry_size_usd'] = pnl_df['totalBought'] * pnl_df['avgBuyPrice']
+                        pnl_df['exit_size_usd'] = pnl_df['totalSold'] * pnl_df['avgSellPrice']
+                        
+                        # Get worst 10 trades for pattern analysis
+                        worst_trades = pnl_df.nsmallest(10, 'realizedPnl')
+                        
+                        # Look for patterns in losers
+                        meme_tokens = worst_trades[worst_trades['symbol'].str.contains('INU|DOGE|PEPE|SHIB|BONK|WIF|MYRO|BOME', case=False, na=False)]
+                        if len(meme_tokens) > 0:
+                            meme_loss = meme_tokens['realizedPnl'].sum()
+                            meme_tokens_list = meme_tokens['symbol'].tolist()
+                    
                     # Initialize harsh truth generator for structured insights
                     truth_gen = HarshTruthGenerator(db)
                     harsh_insights = truth_gen.generate_all_insights()
@@ -176,34 +191,88 @@ def instant_load():
                     # Initialize trading coach
                     coach = TradingCoach()
                     
-                    # Generate pattern insights
-                    pattern_context = {
-                        'stats': accurate_stats,
-                        'portfolio': portfolio_metrics,
-                        'harsh_insights': harsh_insights,
-                        'top_winners': top_trades['winners'],
-                        'top_losers': top_trades['losers'],
-                        'leak_trades': leak_trades.head(5).to_dict('records') if not leak_trades.empty else []
-                    }
+                    # Format specific trade data for AI
+                    specific_trades = []
                     
-                    # Get AI analysis for patterns
-                    pattern_question = f"""Analyze this wallet's trading patterns and generate 3-5 specific, data-driven insights. 
-                    Focus on position sizing patterns, timing issues, and behavioral tendencies. 
-                    Be specific about token names, amounts, and percentages. 
-                    Format each insight as a short, punchy statement."""
+                    # Add top losers with details
+                    if top_trades['losers']:
+                        for trade in top_trades['losers'][:5]:
+                            specific_trades.append(f"{trade['symbol']}: Lost ${abs(trade['realizedPnl']):,.0f} (held {trade['holdTimeSeconds']/3600:.1f} hours, position size ${trade.get('entry_size_usd', 0):,.0f})")
                     
-                    pattern_response = coach.analyze_wallet(pattern_question, pattern_context)
+                    # Add top winners with details  
+                    if top_trades['winners']:
+                        for trade in top_trades['winners'][:3]:
+                            specific_trades.append(f"{trade['symbol']}: Won ${trade['realizedPnl']:,.0f} (held {trade['holdTimeSeconds']/3600:.1f} hours, position size ${trade.get('entry_size_usd', 0):,.0f})")
                     
-                    # Parse AI response into individual patterns
-                    ai_patterns = [line.strip() for line in pattern_response.split('\n') 
-                                 if line.strip() and not line.strip().startswith(('Based on', 'Here are', 'Analysis'))][:5]
+                    # Extract key insights from harsh_insights
+                    key_facts = []
+                    if harsh_insights:
+                        for insight in harsh_insights[:3]:
+                            if 'facts' in insight:
+                                key_facts.extend([fact for fact in insight['facts'] if '$' in fact or '%' in fact][:2])
                     
-                    # Generate personal message
-                    message_question = f"""Write a direct, personal message about this trader's performance in 2-3 sentences.
-                    Be brutally honest but constructive. Reference specific trades and amounts.
-                    Start with 'Here's the truth:' and focus on their biggest issue and how to fix it."""
+                    # Build a clear, specific prompt with actual data
+                    pattern_prompt = f"""Analyze this specific wallet data and generate 4-5 ultra-specific insights:
+
+WALLET STATS:
+- Total P&L: ${accurate_stats['total_realized_pnl']:,.0f} across {accurate_stats['total_tokens_traded']} tokens
+- Win Rate: {accurate_stats['win_rate_pct']:.0f}% ({accurate_stats['winning_tokens']} wins / {accurate_stats['losing_tokens']} losses)
+- Average Position: ${stats.get('avg_position_size', 0):,.0f}
+
+SPECIFIC TRADES:
+{chr(10).join(specific_trades)}
+
+{'MEME TOKEN LOSSES:' + chr(10) + f'Lost ${abs(meme_loss):,.0f} on: {", ".join(meme_tokens_list)}' if 'meme_loss' in locals() and meme_loss < 0 else ''}
+
+KEY PATTERNS FOUND:
+{chr(10).join(key_facts) if key_facts else 'No clear patterns yet'}
+
+Generate 4-5 insights that:
+1. Reference specific token names and exact dollar amounts from the trades above
+2. Identify patterns (e.g., "Lost $X on 3 dog-themed tokens: BONK, SHIB, FLOKI")
+3. Be brutally specific - no generic advice
+4. Format as short, punchy statements
+
+DO NOT say generic things like "improve timing" or "diversify holdings". Reference the actual tokens and amounts."""
                     
-                    ai_message = coach.analyze_wallet(message_question, pattern_context)
+                    pattern_response = coach.analyze_wallet(pattern_prompt, {})
+                    
+                    # Parse AI response into individual patterns - better parsing
+                    raw_patterns = pattern_response.split('\n')
+                    ai_patterns = []
+                    for line in raw_patterns:
+                        line = line.strip()
+                        # Skip empty lines, numbered items, and generic intros
+                        if (line and 
+                            not line.startswith(('Based on', 'Here are', 'Analysis', 'Looking at')) and
+                            not line[0].isdigit() and
+                            not line.startswith(('-', '*', '•')) and
+                            len(line) > 20):  # Ensure it's substantial
+                            # Clean up the line
+                            clean_line = line.lstrip('- ').lstrip('* ').lstrip('• ').strip()
+                            if '$' in clean_line or '%' in clean_line:  # Prioritize lines with specific data
+                                ai_patterns.append(clean_line)
+                    
+                    # Ensure we get at least 3-5 patterns
+                    ai_patterns = ai_patterns[:5]
+                    
+                    # Generate personal message with specific data
+                    biggest_loser_symbol = top_trades['losers'][0]['symbol'] if top_trades['losers'] else 'None'
+                    biggest_loss_amount = abs(top_trades['losers'][0]['realizedPnl']) if top_trades['losers'] else 0
+                    
+                    message_prompt = f"""Write a brutally honest 2-3 sentence message about this trader's performance.
+
+THEIR ACTUAL DATA:
+- Lost ${abs(accurate_stats['total_realized_pnl']):,.0f} total with {accurate_stats['win_rate_pct']:.0f}% win rate
+- Biggest disaster: {biggest_loser_symbol} lost ${biggest_loss_amount:,.0f}
+- Pattern: {key_facts[0] if key_facts else 'Multiple small losses adding up'}
+
+Start with "Here's the truth:" and reference specific tokens and amounts. Be harsh but actionable. 
+Example: "Here's the truth: Your BONK trade cost you $8,400 because you bought after a 47% pump. You've done this on 8 different meme coins, losing $43,000 total."
+
+DO NOT be generic. Use their actual tokens and numbers."""
+                    
+                    ai_message = coach.analyze_wallet(message_prompt, {})
                     
                     print(f"[{datetime.now()}] AI insights generated successfully")
                     
