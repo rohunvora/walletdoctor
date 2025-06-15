@@ -199,18 +199,20 @@ class TradeBroBot:
             
             # Check if we hit the token limit
             token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
-            hit_limit = token_count >= 1000
+            hit_limit = token_count >= 100  # Changed from 1000 to 100 to match actual API limit
             
             # Check if 30-day filtering was applied
             is_30_day_filtered = False
             original_token_count = token_count
             
-            # Check aggregated stats to see if this is a large wallet
+            # Check aggregated stats to see total tokens traded
             try:
                 agg_stats = db.execute("SELECT tokens_traded FROM aggregated_stats LIMIT 1").fetchone()
-                if agg_stats and agg_stats[0] > 1000:
-                    is_30_day_filtered = True
+                if agg_stats:
                     original_token_count = agg_stats[0]
+                    # Check if this is a large wallet that had 30-day filtering
+                    if original_token_count > 1000:
+                        is_30_day_filtered = True
             except:
                 pass
             
@@ -284,7 +286,13 @@ class TradeBroBot:
                 response = f"📊 Found {original_token_count:,} total tokens traded\n"
                 response += f"*Analyzing last 30 days* ({token_count} active tokens)\n\n"
             else:
-                response = f"📊 Found {stats['total_trades']} trades\n\n"
+                # More accurate messaging based on what we actually have
+                if token_count >= 100 and token_count < original_token_count:
+                    response = f"📊 Analyzed {token_count} of {original_token_count} tokens traded\n\n"
+                elif token_count >= 100:
+                    response = f"📊 Analyzed {token_count} tokens\n\n"
+                else:
+                    response = f"📊 Found {stats['total_trades']} trades\n\n"
             
             if stats['total_pnl'] < 0:
                 response += f"You're down ${abs(stats['total_pnl']):,.0f} with a {stats['win_rate']:.1f}% win rate"
