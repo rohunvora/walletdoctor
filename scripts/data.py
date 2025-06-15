@@ -3,7 +3,7 @@ import os
 import requests
 import duckdb
 import pandas as pd
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 from datetime import datetime
 
 # Try to load from .env file if it exists (for local development)
@@ -272,11 +272,92 @@ def load_wallet(
         else:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] No transactions found from Helius")
         
-        # Fetch PnL data from Cielo
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching PnL from Cielo (limit: {max_items})...")
-        # For accurate stats, we need ALL tokens, not just recent ones
-        # Increase limit and page limit for complete data
-        pnl_data = fetch_cielo_pnl(wallet_address, max_items=max_items)
+        # Use smart fetch for PnL data from Cielo
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Using smart fetch for Cielo data...")
+        trading_stats, aggregated_pnl, pnl_data = fetch_cielo_pnl_smart(wallet_address, mode=mode)
+        
+        # Store aggregated PnL if available (this has the best summary data!)
+        if aggregated_pnl.get('status') == 'ok' and 'data' in aggregated_pnl:
+            # Create aggregated_stats table if needed
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS aggregated_stats (
+                    wallet_address TEXT,
+                    tokens_traded INTEGER,
+                    win_rate DOUBLE,
+                    realized_pnl DOUBLE,
+                    unrealized_pnl DOUBLE,
+                    combined_pnl DOUBLE,
+                    realized_roi DOUBLE,
+                    unrealized_roi DOUBLE,
+                    combined_roi DOUBLE,
+                    total_buy_usd DOUBLE,
+                    total_sell_usd DOUBLE,
+                    avg_holding_time_seconds BIGINT,
+                    data_timestamp TIMESTAMP
+                )
+            """)
+            
+            agg = aggregated_pnl['data']
+            db.execute("""
+                INSERT INTO aggregated_stats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                wallet_address,
+                agg.get('tokens_traded', 0),
+                agg.get('winrate', 0) / 100.0,  # Convert percentage to decimal
+                agg.get('realized_pnl_usd', 0),
+                agg.get('unrealized_pnl_usd', 0),
+                agg.get('combined_pnl_usd', 0),
+                agg.get('realized_roi_percentage', 0) / 100.0,
+                agg.get('unrealized_roi_percentage', 0) / 100.0,
+                agg.get('combined_roi_percentage', 0) / 100.0,
+                agg.get('total_buy_usd', 0),
+                agg.get('total_sell_usd', 0),
+                agg.get('average_holding_time_seconds', 0),
+                datetime.now()
+            ])
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Stored aggregated stats")
+        
+        # Store trading stats if available (kept for compatibility)
+        if trading_stats.get('status') == 'ok' and 'data' in trading_stats:
+            # Create trading_stats table if needed
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS trading_stats (
+                    wallet_address TEXT,
+                    total_trades INTEGER,
+                    win_rate DOUBLE,
+                    total_pnl DOUBLE,
+                    realized_pnl DOUBLE,
+                    unrealized_pnl DOUBLE,
+                    roi DOUBLE,
+                    avg_trade_size DOUBLE,
+                    largest_win DOUBLE,
+                    largest_loss DOUBLE,
+                    data_timestamp TIMESTAMP
+                )
+            """)
+            
+            stats = trading_stats['data']
+            # Map the actual field names from the API
+            swaps_count = stats.get('swaps_count', 0)
+            pnl = stats.get('pnl', 0)
+            winrate = stats.get('winrate', 0)
+            
+            db.execute("""
+                INSERT INTO trading_stats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                wallet_address,
+                swaps_count,
+                winrate,
+                pnl,
+                0,  # realized_pnl not provided separately
+                0,  # unrealized_pnl not provided separately
+                0,  # roi not provided
+                stats.get('average_buy_amount_usd', 0),
+                0,  # largest_win not provided
+                0,  # largest_loss not provided
+                datetime.now()
+            ])
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Stored trading stats")
         
         if pnl_data and 'data' in pnl_data and 'items' in pnl_data.get('data', {}):
             tokens = pnl_data['data']['items']
@@ -320,3 +401,163 @@ def load_wallet(
         import traceback
         traceback.print_exc()
         return False 
+
+def fetch_cielo_trading_stats(address: str) -> Dict[str, Any]:
+    """Fetch trading statistics from Cielo API - overall performance summary."""
+    if not CIELO_KEY:
+        print(f"❌ CIELO_KEY is empty!")
+        return {'status': 'error', 'data': {}}
+    
+    url = f"https://feed-api.cielo.finance/api/v1/{address}/trading-stats"
+    headers = {"x-api-key": CIELO_KEY}
+    
+    try:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching trading stats for {address}")
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Got trading stats successfully")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Cielo Trading Stats API error: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response content: {e.response.text[:200]}...")
+        return {'status': 'error', 'data': {}}
+
+def fetch_cielo_aggregated_pnl(address: str) -> Dict[str, Any]:
+    """Fetch aggregated PnL stats from Cielo API."""
+    if not CIELO_KEY:
+        print(f"❌ CIELO_KEY is empty!")
+        return {'status': 'error', 'data': {}}
+    
+    url = f"https://feed-api.cielo.finance/api/v1/{address}/pnl/total-stats"
+    headers = {"x-api-key": CIELO_KEY}
+    
+    try:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching aggregated PnL for {address}")
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Got aggregated PnL successfully")
+        return data
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Cielo Aggregated PnL API error: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response content: {e.response.text[:200]}...")
+        return {'status': 'error', 'data': {}}
+
+def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """
+    Smart fetch that gets summary data first, then limited token data.
+    Returns: (trading_stats, aggregated_pnl, token_pnl)
+    """
+    # First, get the trading stats (overall performance)
+    trading_stats = fetch_cielo_trading_stats(address)
+    
+    # Get aggregated PnL - this has the best summary data!
+    aggregated_pnl = fetch_cielo_aggregated_pnl(address)
+    
+    # Determine how many tokens to fetch based on mode and wallet size
+    if mode == 'instant':
+        # For instant mode, just get 1-2 pages to find top gainers/losers
+        max_pages = 2
+        max_items = 200  # ~100 items per page
+    else:
+        # For full mode, get more but still limit for huge wallets
+        max_pages = 10
+        max_items = 1000
+    
+    # Check aggregated PnL data to estimate wallet size
+    if aggregated_pnl.get('status') == 'ok' and 'data' in aggregated_pnl:
+        agg_data = aggregated_pnl.get('data', {})
+        tokens_traded = agg_data.get('tokens_traded', 0)
+        
+        if tokens_traded > 1000:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Large wallet detected ({tokens_traded:,} tokens traded)")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Limiting token fetch to top performers only")
+            # For very large wallets, be even more conservative
+            if mode == 'instant':
+                max_pages = 1
+                max_items = 100
+            else:
+                max_pages = 5
+                max_items = 500
+    
+    # Now fetch limited token PnL data
+    token_pnl = fetch_cielo_pnl_limited(address, max_items=max_items, max_pages=max_pages)
+    
+    return trading_stats, aggregated_pnl, token_pnl
+
+def fetch_cielo_pnl_limited(address: str, max_items: int = 200, max_pages: int = 2) -> Dict[str, Any]:
+    """Fetch limited PnL data from Cielo API with page limit."""
+    if not CIELO_KEY:
+        print(f"❌ CIELO_KEY is empty!")
+        return {'status': 'error', 'data': {'items': []}}
+    
+    url = f"https://feed-api.cielo.finance/api/v1/{address}/pnl/tokens"
+    headers = {"x-api-key": CIELO_KEY}
+    
+    all_items = []
+    next_object = None
+    page_count = 0
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching limited Cielo PnL data (max {max_pages} pages, {max_items} items)")
+    
+    while page_count < max_pages:
+        try:
+            params = {}
+            if next_object:
+                params['next_object'] = next_object
+            
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching page {page_count + 1}...")
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            if 'data' in data and 'items' in data['data']:
+                items = data['data']['items']
+                all_items.extend(items)
+                page_count += 1
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Page {page_count}: {len(items)} items (total: {len(all_items)})")
+                
+                # Check if we've reached the max items limit
+                if len(all_items) >= max_items:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Reached max items limit ({max_items})")
+                    all_items = all_items[:max_items]
+                    break
+                
+                # Check if there's a next page
+                paging = data['data'].get('paging', {})
+                if not paging.get('has_next_page', False):
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] No more pages available")
+                    break
+                    
+                next_object = paging.get('next_object')
+            else:
+                break
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Cielo API error: {e}")
+            if page_count == 0:
+                return {'status': 'error', 'data': {'items': []}}
+            else:
+                # Return what we have so far
+                break
+    
+    # Sort items by totalPnl to get top gainers and losers
+    if all_items:
+        sorted_items = sorted(all_items, key=lambda x: x.get('totalPnl', 0), reverse=True)
+        
+        # Get top 10 gainers and bottom 10 losers
+        top_gainers = sorted_items[:10]
+        top_losers = sorted_items[-10:] if len(sorted_items) > 10 else []
+        
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(top_gainers)} top gainers and {len(top_losers)} top losers")
+        
+        # Include all items but mark which are top performers
+        for item in all_items:
+            item['is_top_gainer'] = item in top_gainers
+            item['is_top_loser'] = item in top_losers
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Limited fetch complete: {len(all_items)} tokens")
+    return {'status': 'ok', 'data': {'items': all_items, 'is_limited': True}} 

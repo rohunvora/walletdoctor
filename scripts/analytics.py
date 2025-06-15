@@ -328,4 +328,134 @@ def calculate_accurate_stats(pnl_df: pd.DataFrame) -> Dict[str, Any]:
         'median_hold_minutes': hold_stats['median_hold_minutes'],
         'winning_tokens': winning_tokens,
         'losing_tokens': total_tokens - winning_tokens
+    }
+
+def get_wallet_stats_smart(db_connection, pnl_df: pd.DataFrame = None) -> Dict[str, Any]:
+    """
+    Get wallet statistics using aggregated_stats table if available (best data),
+    otherwise trading_stats table, otherwise calculate from PnL data.
+    
+    This allows us to show accurate stats even when we only fetch limited token data.
+    """
+    try:
+        # Check if aggregated_stats table exists and has data (BEST SOURCE)
+        tables = [t[0] for t in db_connection.execute("SHOW TABLES").fetchall()]
+        
+        if 'aggregated_stats' in tables:
+            # Try to get stats from aggregated_stats table
+            stats_result = db_connection.execute("""
+                SELECT * FROM aggregated_stats 
+                ORDER BY data_timestamp DESC 
+                LIMIT 1
+            """).fetchone()
+            
+            if stats_result:
+                # Convert to dict using column names
+                columns = [desc[0] for desc in db_connection.execute("SELECT * FROM aggregated_stats LIMIT 0").description]
+                stats_dict = dict(zip(columns, stats_result))
+                
+                # Format for consistency
+                return {
+                    'total_tokens_traded': stats_dict.get('tokens_traded', 0),
+                    'win_rate_pct': stats_dict.get('win_rate', 0) * 100,  # Convert to percentage
+                    'total_realized_pnl': stats_dict.get('realized_pnl', 0),
+                    'total_unrealized_pnl': stats_dict.get('unrealized_pnl', 0),
+                    'total_pnl': stats_dict.get('combined_pnl', 0),
+                    'roi_pct': stats_dict.get('combined_roi', 0) * 100,  # Convert to percentage
+                    'total_buy_usd': stats_dict.get('total_buy_usd', 0),
+                    'total_sell_usd': stats_dict.get('total_sell_usd', 0),
+                    'avg_holding_seconds': stats_dict.get('avg_holding_time_seconds', 0),
+                    'from_trading_stats': True,  # Flag to indicate source
+                    'data_source': 'aggregated_stats',  # Specific source
+                    'is_limited_data': False  # We have full stats
+                }
+        
+        if 'trading_stats' in tables:
+            # Try to get stats from trading_stats table
+            stats_result = db_connection.execute("""
+                SELECT * FROM trading_stats 
+                ORDER BY data_timestamp DESC 
+                LIMIT 1
+            """).fetchone()
+            
+            if stats_result:
+                # Convert to dict using column names
+                columns = [desc[0] for desc in db_connection.execute("SELECT * FROM trading_stats LIMIT 0").description]
+                stats_dict = dict(zip(columns, stats_result))
+                
+                # Format for consistency with calculate_accurate_stats
+                return {
+                    'total_tokens_traded': stats_dict.get('total_trades', 0),
+                    'win_rate_pct': stats_dict.get('win_rate', 0) * 100,  # Convert to percentage
+                    'total_realized_pnl': stats_dict.get('realized_pnl', 0),
+                    'total_unrealized_pnl': stats_dict.get('unrealized_pnl', 0),
+                    'total_pnl': stats_dict.get('total_pnl', 0),
+                    'roi_pct': stats_dict.get('roi', 0) * 100,  # Convert to percentage
+                    'avg_trade_size': stats_dict.get('avg_trade_size', 0),
+                    'largest_win': stats_dict.get('largest_win', 0),
+                    'largest_loss': stats_dict.get('largest_loss', 0),
+                    'from_trading_stats': True,  # Flag to indicate source
+                    'data_source': 'trading_stats',  # Specific source
+                    'is_limited_data': False  # We have full stats
+                }
+    except Exception as e:
+        print(f"Error reading stats tables: {e}")
+    
+    # Fall back to calculating from PnL data
+    if pnl_df is not None and not pnl_df.empty:
+        stats = calculate_accurate_stats(pnl_df)
+        stats['from_trading_stats'] = False
+        stats['data_source'] = 'calculated'
+        
+        # Check if this is limited data
+        try:
+            # Check if pnl table has is_limited flag
+            result = db_connection.execute("""
+                SELECT COUNT(*) as count FROM pnl
+            """).fetchone()
+            token_count = result[0] if result else len(pnl_df)
+            
+            # If we have exactly 100, 200, or 1000 tokens, it's likely limited
+            stats['is_limited_data'] = token_count in [100, 200, 1000]
+        except:
+            stats['is_limited_data'] = False
+            
+        return stats
+    
+    # No data available
+    return {
+        'total_tokens_traded': 0,
+        'win_rate_pct': 0,
+        'total_realized_pnl': 0,
+        'total_unrealized_pnl': 0,
+        'total_pnl': 0,
+        'from_trading_stats': False,
+        'data_source': 'none',
+        'is_limited_data': False
+    }
+
+def get_top_performers_from_limited_data(pnl_df: pd.DataFrame, top_n: int = 5) -> Dict[str, pd.DataFrame]:
+    """
+    Get top gainers and losers from limited PnL data.
+    Useful when we only fetch a subset of tokens for large wallets.
+    """
+    if pnl_df.empty:
+        return {
+            'top_gainers': pd.DataFrame(),
+            'top_losers': pd.DataFrame()
+        }
+    
+    # Sort by total PnL
+    sorted_df = pnl_df.sort_values('totalPnl', ascending=False)
+    
+    # Get top gainers
+    top_gainers = sorted_df.head(top_n)
+    
+    # Get top losers (exclude tokens with 0 PnL)
+    losers = sorted_df[sorted_df['totalPnl'] < 0]
+    top_losers = losers.tail(top_n) if not losers.empty else pd.DataFrame()
+    
+    return {
+        'top_gainers': top_gainers,
+        'top_losers': top_losers
     } 
