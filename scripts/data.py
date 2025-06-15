@@ -209,25 +209,47 @@ def cache_to_duckdb(
     # Direct insert into existing table
     db_connection.execute(f"INSERT INTO {table_name} SELECT * FROM df")
 
-def load_wallet(db: duckdb.DuckDBPyConnection, wallet_address: str, mode: str = 'instant') -> bool:
-    """Load wallet trades from Helius and Cielo.
+def load_wallet(
+    db: duckdb.DuckDBPyConnection,
+    wallet_address: str,
+    mode: str = "full"
+) -> bool:
+    """Load wallet data based on mode."""
     
-    Args:
-        db: Database connection
-        wallet_address: Solana wallet address
-        mode: 'instant' for quick load (1000 tokens), 'full' for complete data (5000 tokens)
-    """
+    # Check if we already have data in pnl table (no wallet column means it's pre-loaded)
+    tables = [t[0] for t in db.execute("SHOW TABLES").fetchall()]
+    
+    if 'pnl' in tables:
+        # Check if pnl table has data
+        count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
+        if count > 0:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Using existing data ({count} trades)")
+            return True
+    
+    if 'trades' in tables:
+        # Check if trades table has data for this wallet
+        count = db.execute(
+            "SELECT COUNT(*) FROM trades WHERE wallet = ?", 
+            [wallet_address]
+        ).fetchone()[0]
+        if count > 0:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Using existing trades data ({count} trades)")
+            return True
+    
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting to fetch data for {wallet_address} in {mode} mode")
     
-    # Basic wallet address validation
-    if len(wallet_address) < 32 or len(wallet_address) > 44:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Invalid wallet address length: {len(wallet_address)}")
+    # If HELIUS_KEY or CIELO_KEY are missing, we can't fetch new data
+    if not os.getenv("HELIUS_KEY") or not os.getenv("CIELO_KEY"):
+        print("❌ API keys missing - using existing data only")
+        # Return True if we have any data, False otherwise
+        if 'pnl' in tables or 'trades' in tables:
+            return True
         return False
     
-    # Set limits based on mode
-    max_items = 1000 if mode == 'instant' else 5000
-    
     try:
+        # Set limits based on mode
+        max_items = 1000 if mode == 'instant' else 5000
+        
         # Fetch transactions from Helius
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching transactions from Helius...")
         tx_data = fetch_helius_transactions(wallet_address, limit=100)
