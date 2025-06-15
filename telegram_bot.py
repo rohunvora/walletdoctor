@@ -285,67 +285,87 @@ class TradeBroBot:
                     worst = top_trades['losers'][0]
                     response += f"Your {worst['symbol']} trade lost ${abs(worst['realizedPnl']):,.0f}.\n\n"
                 response += "This behavior has cost you thousands."
-            elif stats['win_rate'] < 30:
+            elif stats['win_rate'] < 30 and stats['total_pnl'] < 0:
                 response += f"🎯 *Your biggest issue: Poor Entry Timing*\n"
                 response += f"You're buying at the wrong time.\n"
                 response += f"Only {stats['winning_trades']} of {stats['total_trades']} trades made money."
-            elif stats['avg_pnl'] < -100:
+            elif stats['avg_pnl'] < -100 and stats['total_pnl'] < 0:
                 response += f"🎯 *Your biggest issue: No Risk Management*\n"
                 response += f"Your average loss is ${abs(stats['avg_pnl']):,.0f}.\n"
                 response += f"You're letting losses run too far."
-            elif stats['total_pnl'] > 0:
-                # Profitable wallet - still find issues
-                response += f"💰 *Good, but not great*\n\n"
-                
-                if stats['win_rate'] < 70:
-                    response += f"• {stats['win_rate']:.1f}% win rate leaves room for improvement\n"
-                
-                if top_trades.get('losers'):
-                    worst = top_trades['losers'][0]
-                    response += f"• Your {worst['symbol']} disaster: -${abs(worst['realizedPnl']):,.0f}\n"
-                    response += f"• Even winners shouldn't blow up like this\n\n"
-                
-                if top_trades.get('winners'):
-                    best = top_trades['winners'][0]
-                    response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}"
-                
+            else:
+                # For all other cases, including profitable wallets
+                if stats['total_pnl'] > 0:
+                    # Profitable wallet - still find issues
+                    response += f"💰 *Good, but not great*\n\n"
+                    
+                    if stats['win_rate'] < 70:
+                        response += f"• {stats['win_rate']:.1f}% win rate leaves room for improvement\n"
+                    
+                    if top_trades.get('losers'):
+                        worst = top_trades['losers'][0]
+                        response += f"• Your {worst['symbol']} disaster: -${abs(worst['realizedPnl']):,.0f}\n"
+                        response += f"• Even winners shouldn't blow up like this\n\n"
+                    
+                    if top_trades.get('winners'):
+                        best = top_trades['winners'][0]
+                        response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}\n"
+                        
+                    # For large profitable wallets with no specific trade data, add generic insight
+                    if not top_trades.get('winners') and not top_trades.get('losers'):
+                        response += f"• With {stats['total_trades']} trades, you're clearly experienced\n"
+                        response += f"• But are you maximizing every opportunity?\n"
+                        response += f"• Even pros have blind spots\n"
+                else:
+                    # Catch-all for any other negative PnL cases
+                    response += f"🎯 *Time for a reality check*\n"
+                    response += f"Your trading needs serious work.\n"
+                    response += f"Let's fix what's broken."
+            
             await loading_msg.edit_text(response, parse_mode='Markdown')
             
             # ALWAYS offer deeper analysis - don't let large wallets miss out
             try:
+                # Debug log
+                logger.info(f"About to show follow-up buttons for wallet with {stats['total_trades']} trades, PnL: {stats['total_pnl']}")
+                
                 # Wait a moment for better UX
                 import asyncio
                 await asyncio.sleep(1.5)
                 
                 # Create buttons - ensure they work even without detailed trade data
                 worst_loss = None
-                if top_trades.get('losers'):
+                if top_trades and top_trades.get('losers'):
                     worst_loss = top_trades['losers'][0]
                 
                 buttons = []
                 
                 # Only add specific loss button if we have the data
                 if worst_loss and 'symbol' in worst_loss and 'realizedPnl' in worst_loss:
+                    # Shorten symbol to max 10 chars and round PnL to avoid callback data limit
+                    symbol_short = worst_loss['symbol'][:10]
+                    pnl_rounded = int(worst_loss['realizedPnl'])
                     buttons.append([InlineKeyboardButton(
                         f"Why did I lose ${abs(worst_loss['realizedPnl']):,.0f} on {worst_loss['symbol']}?",
-                        callback_data=f"explain_{worst_loss['symbol']}_{worst_loss['realizedPnl']}"
+                        callback_data=f"ex_{symbol_short}_{pnl_rounded}"
                     )])
                 elif stats['total_pnl'] < 0:
                     # Generic loss analysis button for large wallets
+                    pnl_rounded = int(stats['total_pnl'])
                     buttons.append([InlineKeyboardButton(
                         "Why am I losing money?",
-                        callback_data=f"explain_UNKNOWN_{stats['total_pnl']}"
+                        callback_data=f"ex_UNK_{pnl_rounded}"
                     )])
                 
-                # Always show these buttons
+                # Always show these buttons - use shortened callbacks
                 buttons.extend([
                     [InlineKeyboardButton(
                         "Show detailed breakdown",
-                        callback_data=f"show_mistakes_{user_id}"
+                        callback_data=f"mistakes_{user_id}"
                     )],
                     [InlineKeyboardButton(
                         "Get personalized rules",
-                        callback_data=f"skip_to_advice_{user_id}"
+                        callback_data=f"advice_{user_id}"
                     )]
                 ])
                 
@@ -362,15 +382,17 @@ class TradeBroBot:
                         "I can show you exactly why you're losing money."
                     )
                 
+                logger.info(f"Sending follow-up message with {len(buttons)} buttons")
                 await update.message.reply_text(
                     followup_msg,
                     reply_markup=reply_markup
                 )
+                logger.info("Follow-up message sent successfully")
                 
                 # Store analysis data for later use - ensure we handle missing data
                 context.user_data['current_wallet'] = wallet_address
-                context.user_data['total_pnl'] = stats['total_pnl']
-                context.user_data['win_rate'] = stats['win_rate']
+                context.user_data['total_pnl'] = stats.get('total_pnl', 0)
+                context.user_data['win_rate'] = stats.get('win_rate', 0)
                 context.user_data['worst_trades'] = top_trades.get('losers', [])[:5] if top_trades else []
                 context.user_data['best_trades'] = top_trades.get('winners', [])[:5] if top_trades else []
                 context.user_data['temp_db_path'] = temp_db_path
@@ -378,14 +400,19 @@ class TradeBroBot:
                 
             except Exception as e:
                 logger.error(f"Error showing follow-up buttons: {e}")
+                logger.error(f"Stats: {stats}")
+                logger.error(f"Top trades: {top_trades}")
+                import traceback
+                logger.error(traceback.format_exc())
+                
                 # Still try to show basic follow-up
                 try:
                     await update.message.reply_text(
                         "Want personalized trading advice?\n\nType `/help` to see available commands.",
                         parse_mode='Markdown'
                     )
-                except:
-                    pass
+                except Exception as e2:
+                    logger.error(f"Even basic follow-up failed: {e2}")
             
             db.close()
             
@@ -580,7 +607,7 @@ class TradeBroBot:
             buttons = [
                 [InlineKeyboardButton(
                     "Get specific advice",
-                    callback_data=f"skip_to_advice_{user_id}"
+                    callback_data=f"advice_{user_id}"
                 )],
                 [InlineKeyboardButton(
                     "Analyze another wallet",
@@ -697,14 +724,14 @@ class TradeBroBot:
         data = query.data
         user_id = query.from_user.id
         
-        if data.startswith("explain_"):
-            # Parse the callback data
+        if data.startswith("ex_"):
+            # Parse the shortened callback data
             parts = data.split("_")
             symbol = parts[1]
             pnl = float(parts[2])
             
-            # Handle the UNKNOWN case for large wallets
-            if symbol == "UNKNOWN":
+            # Handle the UNK case for large wallets
+            if symbol == "UNK":
                 # For large wallets without specific trade data
                 context.user_data['annotating_symbol'] = "your trades"
                 context.user_data['annotating_pnl'] = pnl
@@ -736,10 +763,10 @@ class TradeBroBot:
                 
                 await query.message.reply_text(prompt, parse_mode='Markdown')
             
-        elif data.startswith("show_mistakes_"):
+        elif data.startswith("mistakes_"):
             await self.show_all_mistakes(query.message, user_id, context)
             
-        elif data.startswith("skip_to_advice_"):
+        elif data.startswith("advice_"):
             await self.give_trading_advice(query.message, user_id, context)
             
         elif data == "show_patterns":
