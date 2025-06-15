@@ -141,6 +141,32 @@ def instant_load():
             stats = instant_gen.get_baseline_stats()
             top_trades = instant_gen.get_top_trades()
             
+            # Generate harsh insights for Real Talk section
+            real_talk_message = None
+            key_patterns = []
+            
+            if token_count > 0:
+                try:
+                    from scripts.harsh_insights import HarshTruthGenerator
+                    harsh_gen = HarshTruthGenerator(db)
+                    all_insights = harsh_gen.generate_all_insights()
+                    
+                    # Generate personalized Real Talk message
+                    real_talk_message = generate_real_talk(stats, top_trades, all_insights)
+                    
+                    # Extract key patterns from insights
+                    for insight in all_insights[:3]:  # Top 3 most important
+                        if insight.get('type') != 'error':
+                            pattern_summary = f"{insight.get('title', '')}: {insight.get('facts', [''])[0]}"
+                            key_patterns.append({
+                                'title': insight.get('title', ''),
+                                'severity': insight.get('severity', 'medium'),
+                                'summary': pattern_summary,
+                                'fix': insight.get('fix', '')
+                            })
+                except Exception as e:
+                    print(f"[{datetime.now()}] Error generating harsh insights: {e}")
+            
             # Add a warning if we hit the limit
             is_partial = token_count >= 1000
             hit_token_limit = token_count >= 999  # Might be exactly 1000 or slightly less
@@ -158,6 +184,8 @@ def instant_load():
                 'avg_position_size': stats.get('avg_position_size', 0)
             },
             'top_trades': top_trades,
+            'real_talk': real_talk_message,  # New personalized message
+            'key_patterns': key_patterns,    # New key patterns
             'is_partial_data': is_partial,
             'is_empty_wallet': token_count == 0,
             'empty_wallet_message': 'This wallet has no DEX trading history on Solana. It may be a new wallet, a validator, or only used for NFT/non-DEX activities.',
@@ -418,6 +446,136 @@ def find_common_patterns(notes: list) -> list:
             found.append(word)
     
     return found if found else ['emotional trading', 'lack of plan', 'poor timing']
+
+def generate_real_talk(stats: dict, top_trades: dict, insights: list) -> str:
+    """Generate a personalized Real Talk message based on harsh insights."""
+    
+    # If no insights, fall back to basic stats
+    if not insights or all(i.get('type') == 'error' for i in insights):
+        return generate_basic_real_talk(stats, top_trades)
+    
+    # Find the most critical insight
+    critical_insights = [i for i in insights if i.get('severity') == 'critical']
+    high_insights = [i for i in insights if i.get('severity') == 'high']
+    
+    # Start with the most impactful pattern
+    primary_insight = critical_insights[0] if critical_insights else (high_insights[0] if high_insights else insights[0])
+    
+    messages = []
+    
+    # Handle different insight types with personalized messages
+    if primary_insight.get('type') == 'position_sizing':
+        facts = primary_insight.get('facts', [])
+        best_size = facts[0].split(':')[0].replace('Best size range', '').strip() if facts else 'smaller positions'
+        worst_size = facts[1].split(':')[0].replace('Worst size range', '').strip() if facts else 'large positions'
+        cost = primary_insight.get('cost', '').replace('Wrong position sizing cost: ', '')
+        
+        messages.append(f"Here's the truth: Your {worst_size} trades are killing you. You've burned {cost} trying to hit home runs when singles would've made you rich.")
+        messages.append(f"The data screams one thing - stick to {best_size}. That's where you actually make money. Everything else is ego.")
+        
+    elif primary_insight.get('type') == 'behavioral' and 'Bag Holding' in primary_insight.get('title', ''):
+        facts = primary_insight.get('facts', [])
+        hold_ratio = facts[0].split('x')[0].split()[-1] if facts else '3'
+        worst_example = primary_insight.get('examples', [''])[0]
+        
+        messages.append(f"You hold losers {hold_ratio}x longer than winners. That's not investing, that's praying.")
+        if worst_example:
+            messages.append(f"Like when you watched {worst_example.split(':')[0]} bleed out. Hope isn't a strategy.")
+        messages.append("Set stops. Use them. Your future self will thank you.")
+        
+    elif primary_insight.get('type') == 'behavioral' and 'Gambling' in primary_insight.get('title', ''):
+        total_trades = stats.get('total_trades', 0)
+        win_rate = stats.get('win_rate', 0)
+        
+        messages.append(f"Real talk: {total_trades} trades with a {win_rate:.0f}% win rate isn't trading. It's slot machines with extra steps.")
+        messages.append("You're not a trader, you're a dopamine addict. The market isn't going anywhere - slow down.")
+        
+    elif primary_insight.get('type') == 'timing':
+        facts = primary_insight.get('facts', [])
+        best_window = None
+        for fact in facts:
+            if 'win rate' in fact and '%' in fact:
+                parts = fact.split(':')
+                if len(parts) > 1:
+                    time_window = parts[0].strip()
+                    win_rate_part = fact.split('%')[0].split()[-1]
+                    try:
+                        wr = float(win_rate_part)
+                        if wr > 40:  # Good win rate
+                            best_window = time_window
+                            break
+                    except:
+                        pass
+        
+        if best_window:
+            messages.append(f"You have a golden window: {best_window}. That's when you actually know what you're doing.")
+            messages.append("Outside that window? You're just feeding the sharks. Stick to your strengths.")
+        
+    elif 'disasters' in primary_insight.get('type', ''):
+        examples = primary_insight.get('examples', [])
+        if examples:
+            worst = examples[0].split(':')[0] if ':' in examples[0] else 'your biggest loss'
+            messages.append(f"Let's talk about {worst}. That single trade wiped out weeks of profits.")
+            messages.append("You don't need home runs. You need to stop striking out.")
+    
+    # Add win rate context
+    win_rate = stats.get('win_rate', 0)
+    total_pnl = stats.get('total_pnl', 0)
+    
+    if win_rate < 25 and total_pnl < 0:
+        messages.append(f"Bottom line: {win_rate:.0f}% win rate and down ${abs(total_pnl):,.0f}. The market is telling you something. Listen.")
+    elif win_rate < 25 and total_pnl > 0:
+        messages.append(f"You're up money with a {win_rate:.0f}% win rate. That's luck, not skill. Don't confuse the two.")
+    elif win_rate > 50 and total_pnl < 0:
+        messages.append(f"A {win_rate:.0f}% win rate but still losing money? Your position sizing is broken. Fix it.")
+    
+    # Join messages with proper spacing
+    return " ".join(messages)
+
+def generate_basic_real_talk(stats: dict, top_trades: dict) -> str:
+    """Fallback Real Talk generation using basic stats."""
+    win_rate = stats.get('win_rate', 0)
+    total_pnl = stats.get('total_pnl', 0)
+    avg_pnl = stats.get('avg_pnl', 0)
+    total_trades = stats.get('total_trades', 0)
+    
+    messages = []
+    
+    if win_rate < 20:
+        messages.append(f"A {win_rate:.0f}% win rate means you're wrong 8 out of 10 times.")
+        if total_pnl > 0:
+            messages.append("You're only up because of pure luck. This won't last.")
+        else:
+            messages.append(f"You've donated ${abs(total_pnl):,.0f} to better traders.")
+        messages.append("Stop trading everything. Start trading nothing until you figure out what actually works.")
+    
+    elif win_rate < 35:
+        messages.append(f"Your {win_rate:.0f}% win rate is telling you something: your strategy doesn't work.")
+        if avg_pnl < -100:
+            messages.append(f"Losing ${abs(avg_pnl):,.0f} per trade on average. That's not variance, that's a broken system.")
+        messages.append("Quality over quantity. One good trade beats ten bad ones.")
+    
+    elif win_rate > 60:
+        messages.append(f"A {win_rate:.0f}% win rate is impressive.")
+        if total_pnl < 0:
+            messages.append("But you're still losing money. Your losses are too big when you're wrong.")
+        else:
+            messages.append(f"You're up ${total_pnl:,.0f}. Keep doing exactly what you're doing.")
+        messages.append("The hard part is staying disciplined when it's working.")
+    
+    else:
+        # Average win rate
+        if total_trades > 500:
+            messages.append(f"After {total_trades} trades, you should know your edge by now.")
+        elif total_trades < 50:
+            messages.append(f"Only {total_trades} trades? You need more data to know if you're good or lucky.")
+        
+        if total_pnl < -1000:
+            messages.append(f"Down ${abs(total_pnl):,.0f}. Time to admit what you're doing isn't working.")
+        else:
+            messages.append("You're treading water. Break out by focusing on what actually works for you.")
+    
+    return " ".join(messages)
 
 @app.route('/debug_cielo/<wallet>', methods=['GET'])
 def debug_cielo(wallet):
