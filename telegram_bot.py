@@ -190,6 +190,9 @@ class TradeBroBot:
             token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
             hit_limit = token_count >= 100  # Changed from 1000 to 100 to match actual API limit
             
+            # Initialize original_token_count to avoid undefined variable errors
+            original_token_count = token_count
+            
             # Check if 30-day filtering was applied during data loading
             is_30_day_filtered = False
             filter_metadata = None
@@ -512,7 +515,8 @@ class TradeBroBot:
             except Exception as e:
                 logger.error(f"Error showing follow-up buttons: {e}")
                 logger.error(f"Stats: {stats}")
-                logger.error(f"Top trades: {top_trades}")
+                if 'top_trades' in locals():
+                    logger.error(f"Top trades: {top_trades}")
                 import traceback
                 logger.error(traceback.format_exc())
                 
