@@ -216,6 +216,13 @@ def load_wallet(
 ) -> bool:
     """Load wallet data based on mode."""
     
+    print(f"\n{'='*80}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🏁 LOAD_WALLET: Starting for {wallet_address[:8]}...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   Mode: {mode}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   HELIUS_KEY: {'✅ Set' if os.getenv('HELIUS_KEY') else '❌ Missing'}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   CIELO_KEY: {'✅ Set' if os.getenv('CIELO_KEY') else '❌ Missing'}")
+    print(f"{'='*80}\n")
+    
     print(f"[DEBUG] load_wallet called with wallet={wallet_address}, mode={mode}")
     print(f"[DEBUG] HELIUS_KEY exists: {bool(os.getenv('HELIUS_KEY'))}")
     print(f"[DEBUG] CIELO_KEY exists: {bool(os.getenv('CIELO_KEY'))}")
@@ -520,7 +527,10 @@ def fetch_cielo_pnl_with_timeframe(address: str, timeframe: str = "max", max_pag
     found_losers = 0
     TOP_N_LOSERS = 5  # Stop when we find 5 losers
     
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Fetching Cielo PnL data for {address} (timeframe={timeframe})")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 PAGINATION: Starting fetch for {address[:8]}...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Timeframe: {timeframe}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Max pages: {max_pages}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Target losers: {TOP_N_LOSERS}")
     
     while page_count < max_pages:
         # Build params
@@ -529,6 +539,7 @@ def fetch_cielo_pnl_with_timeframe(address: str, timeframe: str = "max", max_pag
             params['next_object'] = next_object
         
         try:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] 📄 Fetching page {page_count + 1}...")
             response = requests.get(url, headers=headers, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
@@ -537,17 +548,28 @@ def fetch_cielo_pnl_with_timeframe(address: str, timeframe: str = "max", max_pag
                 items = data['data']['items']
                 page_count += 1
                 
+                # Count winners/losers in this page
+                page_winners = sum(1 for item in items if item.get('total_pnl_usd', 0) > 0)
+                page_losers = sum(1 for item in items if item.get('total_pnl_usd', 0) < 0)
+                
                 # Add items and count losers
                 for item in items:
                     all_items.append(item)
                     if item.get('total_pnl_usd', 0) < 0:
                         found_losers += 1
                 
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Page {page_count}: {len(items)} items, {found_losers} losers found so far")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}]   ✅ Page {page_count}: {len(items)} items ({page_winners}W/{page_losers}L)")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}]   📊 Total so far: {len(all_items)} items, {found_losers} losers")
+                
+                # Log first loser found
+                if found_losers > 0 and page_losers > 0:
+                    first_loser = next((item for item in items if item.get('total_pnl_usd', 0) < 0), None)
+                    if first_loser:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}]   💔 First loser this page: {first_loser.get('token_symbol')} (${first_loser.get('total_pnl_usd', 0):,.0f})")
                 
                 # Stop if we found enough losers
                 if found_losers >= TOP_N_LOSERS:
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Found {found_losers} losers, stopping pagination")
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}]   🎯 Found {found_losers} losers, stopping pagination")
                     break
                 
                 # Check if there's a next page
@@ -555,17 +577,30 @@ def fetch_cielo_pnl_with_timeframe(address: str, timeframe: str = "max", max_pag
                 next_object = paging.get('next_object')
                 
                 if not next_object:
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] No more pages available")
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}]   📭 No more pages available")
                     break
+                else:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}]   ➡️  Next page cursor: {next_object[:20]}...")
             else:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}]   ❌ No items in response")
                 break
                 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Cielo API error: {e}")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Cielo API error: {e}")
             if page_count == 0:
                 return {'status': 'error', 'data': {'items': [], 'timeframe': timeframe}}
             else:
                 break
+    
+    # Final summary
+    total_winners = sum(1 for item in all_items if item.get('total_pnl_usd', 0) > 0)
+    total_losers = sum(1 for item in all_items if item.get('total_pnl_usd', 0) < 0)
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 📈 PAGINATION COMPLETE:")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Pages fetched: {page_count}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Total items: {len(all_items)}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Winners: {total_winners}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Losers: {total_losers}")
     
     return {
         'status': 'ok', 
@@ -580,7 +615,7 @@ def fetch_cielo_pnl_with_timeframe(address: str, timeframe: str = "max", max_pag
 def fetch_cielo_pnl_stream_losers(address: str) -> Tuple[Dict[str, Any], str]:
     """
     Stream PnL data using pagination to find losers.
-    Tries different timeframes: max → 30d → 7d until losers are found.
+    Tries different timeframes: max → 30d → 7d → 1d until losers are found.
     
     Returns:
         Tuple of (data dict, timeframe_used)
@@ -588,8 +623,10 @@ def fetch_cielo_pnl_stream_losers(address: str) -> Tuple[Dict[str, Any], str]:
     TIMEFRAMES = ["max", "30d", "7d", "1d"]
     TOP_N_LOSERS = 5
     
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🎯 SMART LOSER DETECTION: Starting for {address[:8]}...")
+    
     for timeframe in TIMEFRAMES:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Trying timeframe={timeframe}...")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] \n🕐 Trying timeframe: {timeframe}")
         
         # For shorter timeframes, we can afford more pages
         max_pages = 10 if timeframe == "max" else 5
@@ -597,23 +634,33 @@ def fetch_cielo_pnl_stream_losers(address: str) -> Tuple[Dict[str, Any], str]:
         data = fetch_cielo_pnl_with_timeframe(address, timeframe, max_pages)
         
         if data.get('status') != 'ok':
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Failed to fetch data for timeframe {timeframe}")
             continue
         
         # Count losers in the results
         items = data.get('data', {}).get('items', [])
         losers = [item for item in items if item.get('total_pnl_usd', 0) < 0]
+        winners = [item for item in items if item.get('total_pnl_usd', 0) > 0]
+        
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 📊 Results for {timeframe}: {len(winners)}W / {len(losers)}L")
         
         # If we found some losers, we're done
         if len(losers) >= TOP_N_LOSERS or (len(losers) > 0 and timeframe == "1d"):
-            winners = len([item for item in items if item.get('total_pnl_usd', 0) > 0])
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Using timeframe={timeframe}: {winners} winners, {len(losers)} losers")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ SUCCESS: Found sufficient losers with timeframe={timeframe}")
+            
+            # Log top losers
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] 💔 Top losers found:")
+            for i, loser in enumerate(losers[:5]):
+                print(f"[{datetime.now().strftime('%H:%M:%S')}]   {i+1}. {loser.get('token_symbol')}: ${loser.get('total_pnl_usd', 0):,.0f}")
+            
             return data, timeframe
         
         # If this timeframe had no losers but we haven't tried shorter ones, continue
         if timeframe != "1d":
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Not enough losers found, trying shorter timeframe...")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Not enough losers ({len(losers)}/{TOP_N_LOSERS}), trying shorter timeframe...")
     
     # Return the last attempt
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  WARNING: Could not find {TOP_N_LOSERS} losers even with shortest timeframe")
     return data, timeframe
 
 def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
@@ -622,14 +669,26 @@ def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, A
     Uses pagination to surface losers on wallets with many winners.
     Returns: (trading_stats, aggregated_pnl, token_pnl)
     """
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🚀 SMART FETCH: Starting for {address[:8]}... (mode: {mode})")
+    
     # First, get the trading stats (overall performance)
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 📊 Fetching trading stats...")
     trading_stats = fetch_cielo_trading_stats(address)
     
     # Get aggregated PnL - this has the best summary data!
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 💰 Fetching aggregated PnL...")
     aggregated_pnl = fetch_cielo_aggregated_pnl(address)
     
+    # Log aggregated stats if available
+    if aggregated_pnl.get('status') == 'ok' and 'data' in aggregated_pnl:
+        agg_data = aggregated_pnl['data']
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 📈 Aggregated stats:")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Tokens traded: {agg_data.get('tokens_traded', 'N/A')}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Win rate: {agg_data.get('winrate', 'N/A')}%")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Realized PnL: ${agg_data.get('realized_pnl_usd', 0):,.0f}")
+    
     # Use pagination to find losers
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Using pagination approach to fetch token PnL...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔎 Starting pagination approach to find losers...")
     token_data, timeframe_used = fetch_cielo_pnl_stream_losers(address)
     
     # Add window info to the response
@@ -651,12 +710,22 @@ def fetch_cielo_pnl_smart(address: str, mode: str = 'full') -> Tuple[Dict[str, A
             'pages_fetched': token_data['data'].get('pages_fetched', 1)
         }
         
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 📋 Final window info:")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Timeframe: {timeframe_used} ({window_description})")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Pages fetched: {token_data['data'].get('pages_fetched', 1)}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}]   - Losers found: {len(losers)}")
+        
         # Add warning if we still couldn't find losers
         if len(losers) == 0:
-            token_data['data']['warning'] = f"No realized losses found in {window_description}. This wallet may genuinely have no losing trades in this period."
+            warning = f"No realized losses found in {window_description}. This wallet may genuinely have no losing trades in this period."
+            token_data['data']['warning'] = warning
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  WARNING: {warning}")
         elif len(losers) < 5 and timeframe_used != "max":
-            token_data['data']['warning'] = f"Showing {window_description} data. Historical losers outside this period are not displayed."
+            warning = f"Showing {window_description} data. Historical losers outside this period are not displayed."
+            token_data['data']['warning'] = warning
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  WARNING: {warning}")
     
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ SMART FETCH COMPLETE")
     return trading_stats, aggregated_pnl, token_data
 
 def fetch_cielo_pnl_limited(address: str, max_items: int = 200, max_pages: int = 2, sort: str = 'desc') -> Dict[str, Any]:
