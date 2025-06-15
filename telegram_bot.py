@@ -196,39 +196,63 @@ class TradeBroBot:
                 response += f"🎯 *Your biggest issue: No Risk Management*\n"
                 response += f"Your average loss is ${abs(stats['avg_pnl']):,.0f}.\n"
                 response += f"You're letting losses run too far."
+            elif stats['total_pnl'] > 0:
+                # Profitable wallet - still find issues
+                response += f"💰 *Good, but not great*\n\n"
+                
+                if stats['win_rate'] < 70:
+                    response += f"• {stats['win_rate']:.1f}% win rate leaves room for improvement\n"
+                
+                if top_trades['losers']:
+                    worst = top_trades['losers'][0]
+                    response += f"• Your {worst['symbol']} disaster: -${abs(worst['realizedPnl']):,.0f}\n"
+                    response += f"• Even winners shouldn't blow up like this\n\n"
+                
+                if top_trades['winners']:
+                    best = top_trades['winners'][0]
+                    response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}"
                 
             await loading_msg.edit_text(response, parse_mode='Markdown')
             
-            # If we have losses, offer to dig deeper
-            if top_trades['losers'] and stats['total_pnl'] < 0:
+            # Offer deeper analysis for ALL wallets
+            if (top_trades['losers'] and stats['total_pnl'] < 0) or (stats['total_pnl'] > 0 and top_trades['losers']):
                 # Wait a moment for better UX
                 import asyncio
                 await asyncio.sleep(1.5)
                 
-                # Create simple buttons for the worst loss
-                worst_loss = top_trades['losers'][0]
+                # Create buttons based on wallet status
+                worst_loss = top_trades['losers'][0] if top_trades['losers'] else None
                 
-                buttons = [
-                    [InlineKeyboardButton(
-                        f"Why did I buy {worst_loss['symbol']}?",
+                buttons = []
+                if worst_loss:
+                    buttons.append([InlineKeyboardButton(
+                        f"Why did I lose ${abs(worst_loss['realizedPnl']):,.0f} on {worst_loss['symbol']}?",
                         callback_data=f"explain_{worst_loss['symbol']}_{worst_loss['realizedPnl']}"
-                    )],
+                    )])
+                
+                buttons.extend([
                     [InlineKeyboardButton(
-                        "Show all my mistakes",
+                        "Show detailed breakdown",
                         callback_data=f"show_mistakes_{user_id}"
                     )],
                     [InlineKeyboardButton(
-                        "Skip to advice",
+                        "Get personalized rules",
                         callback_data=f"skip_to_advice_{user_id}"
                     )]
-                ]
+                ])
                 
                 reply_markup = InlineKeyboardMarkup(buttons)
                 
-                followup_msg = (
-                    "Want to understand what's going wrong?\n\n"
-                    "I can show you exactly why you're losing money."
-                )
+                if stats['total_pnl'] > 0:
+                    followup_msg = (
+                        "You're profitable, but are you maximizing?\n\n"
+                        "Let me show you what's holding you back."
+                    )
+                else:
+                    followup_msg = (
+                        "Want to understand what's going wrong?\n\n"
+                        "I can show you exactly why you're losing money."
+                    )
                 
                 await update.message.reply_text(
                     followup_msg,
@@ -239,7 +263,8 @@ class TradeBroBot:
             context.user_data['current_wallet'] = wallet_address
             context.user_data['total_pnl'] = stats['total_pnl']
             context.user_data['win_rate'] = stats['win_rate']
-            context.user_data['worst_trades'] = top_trades['losers'][:5]
+            context.user_data['worst_trades'] = top_trades['losers'][:5] if top_trades['losers'] else []
+            context.user_data['best_trades'] = top_trades['winners'][:5] if top_trades['winners'] else []
             context.user_data['temp_db_path'] = temp_db_path
             
             db.close()
@@ -389,32 +414,47 @@ class TradeBroBot:
             )
             
     async def show_all_mistakes(self, message, user_id, context):
-        """Show comprehensive list of trading mistakes"""
+        """Show comprehensive breakdown of trading performance"""
         try:
             worst_trades = context.user_data.get('worst_trades', [])
+            best_trades = context.user_data.get('best_trades', [])
             total_pnl = context.user_data.get('total_pnl', 0)
             win_rate = context.user_data.get('win_rate', 0)
             
-            response = "*Your Trading Problems*\n\n"
+            response = "*Your Trading Breakdown*\n\n"
             
-            # Main issues based on stats
-            if win_rate < 30:
-                response += f"📍 *Poor Entry Timing*\n"
-                response += f"   You win only {win_rate:.0f}% of trades\n"
-                response += f"   Cost: Most of your ${abs(total_pnl):,.0f} loss\n\n"
+            # Show strengths for profitable traders
+            if total_pnl > 0:
+                response += f"💰 *Net Result: +${total_pnl:,.0f}*\n"
+                response += f"📊 Win Rate: {win_rate:.1f}%\n\n"
                 
-            if worst_trades and len(worst_trades) >= 3:
-                big_losses = sum(abs(t['realizedPnl']) for t in worst_trades[:3])
-                response += f"📍 *No Risk Management*\n"
-                response += f"   Your top 3 losses: ${big_losses:,.0f}\n"
-                response += f"   That's {big_losses/abs(total_pnl)*100:.0f}% of total losses\n\n"
+                if best_trades:
+                    response += "*Top Winners:*\n"
+                    for i, trade in enumerate(best_trades[:3], 1):
+                        response += f"{i}. {trade['symbol']}: +${trade['realizedPnl']:,.0f}\n"
+                    response += "\n"
                 
-            # Specific worst trades
-            response += "*Biggest Disasters:*\n"
-            for i, trade in enumerate(worst_trades[:5], 1):
-                response += f"{i}. {trade['symbol']}: -${abs(trade['realizedPnl']):,.0f}\n"
+                response += "*But here's what's costing you:*\n"
+            else:
+                response += f"💸 *Net Result: -${abs(total_pnl):,.0f}*\n"
+                response += f"📊 Win Rate: {win_rate:.1f}%\n\n"
+            
+            # Show problems for everyone
+            if win_rate < 70:
+                loss_rate = 100 - win_rate
+                response += f"• You lose {loss_rate:.0f}% of your trades\n"
                 
-            response += f"\n*Total damage: ${abs(total_pnl):,.0f}*"
+            if worst_trades:
+                response += f"\n*Worst Disasters:*\n"
+                for i, trade in enumerate(worst_trades[:3], 1):
+                    response += f"{i}. {trade['symbol']}: -${abs(trade['realizedPnl']):,.0f}\n"
+                    
+                if total_pnl > 0:
+                    # For winners, show impact
+                    total_losses = sum(abs(t['realizedPnl']) for t in worst_trades)
+                    response += f"\n💡 Fix these and add ${total_losses:,.0f} to your profits"
+                else:
+                    response += f"\n*These mistakes define your results*"
             
             # Add buttons for next steps
             buttons = [
@@ -448,12 +488,19 @@ class TradeBroBot:
             biggest_loss = abs(worst_trades[0]['realizedPnl']) if worst_trades else 0
             loss_tokens = [t['symbol'] for t in worst_trades[:3]] if worst_trades else []
             
-            response = f"*Your Personal Trading Fix*\n\n"
-            response += f"Based on your ${abs(total_pnl):,.0f} loss:\n\n"
+            response = f"*Your Personal Trading Rules*\n\n"
+            if total_pnl > 0:
+                response += f"You're up ${total_pnl:,.0f} but here's how to keep it:\n\n"
+            else:
+                response += f"Based on your ${abs(total_pnl):,.0f} loss:\n\n"
             
-            # Rule 1 - Position sizing based on their actual losses
-            response += "*Rule 1: Position Size (Your Biggest Problem)*\n"
-            if biggest_loss > 10000:
+            # Rule 1 - Position sizing
+            response += "*Rule 1: Position Size*\n"
+            if total_pnl > 0 and biggest_loss > 5000:
+                response += f"• Your {worst_trades[0]['symbol']} loss: -${biggest_loss:,.0f}\n"
+                response += f"• Don't let winners make you reckless\n"
+                response += f"• Keep max position under ${int(total_pnl * 0.1):,.0f} (10% of profits)\n"
+            elif biggest_loss > 10000:
                 response += f"• Your {worst_trades[0]['symbol']} disaster: -${biggest_loss:,.0f}\n"
                 response += f"• New max position: $300 (not negotiable)\n"
                 response += f"• You've proven you can't handle larger sizes\n"
