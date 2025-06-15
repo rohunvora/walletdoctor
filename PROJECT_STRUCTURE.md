@@ -1,87 +1,129 @@
 # WalletDoctor Project Structure
 
 ## Overview
-This repository contains the WalletDoctor trading analysis tool, organized with a clean structure separating source code, tests, examples, and data.
+WalletDoctor is a web-based Solana trading analyzer that provides harsh, direct insights about trading behavior. Built with Flask and deployed on Railway.
 
 ## Directory Structure
 
 ```
 walletdoctor/
-├── src/                      # Source code
-│   └── walletdoctor/        # Main package
-│       ├── insights/        # Insight generation modules
-│       ├── features/        # Feature extraction and patterns
-│       ├── llm/            # LLM integration
-│       ├── web/            # Web application
-│       │   └── templates/  # HTML templates
-│       └── cli/            # Command-line interface
+├── web_app_v2.py          # Main Flask web application
+├── wsgi_v2.py            # WSGI entry point for Gunicorn
+├── startup.py            # Startup script for Railway deployment
+├── railway.json          # Railway deployment configuration
+├── requirements.txt      # Python dependencies
+├── runtime.txt          # Python version specification
+├── .env.example         # Environment variables template
+├── .gitignore          # Git ignore rules
 │
-├── tests/                   # Test suite
-│   ├── unit/               # Unit tests
-│   └── integration/        # Integration tests
+├── scripts/            # Core functionality
+│   ├── __init__.py
+│   ├── coach.py       # Main CLI commands
+│   ├── data.py        # Helius/Cielo API integration
+│   ├── transforms.py  # Data normalization
+│   ├── analytics.py   # Statistical analysis
+│   ├── llm.py        # OpenAI integration
+│   ├── harsh_insights.py    # Brutal truth generation
+│   ├── instant_stats.py     # Quick baseline stats
+│   ├── blind_spots.py       # Behavioral pattern detection
+│   ├── db_migrations.py     # Database schema management
+│   ├── trade_comparison.py  # Trade comparison logic
+│   ├── check_db_status.py  # Database debugging utility
+│   ├── multi_wallet_simple.py  # Multi-wallet analysis
+│   └── multi_wallet_loader.py  # Multi-wallet data loading
 │
-├── scripts/                 # Utility and analysis scripts
-│   ├── coach.py            # Main coaching interface
-│   ├── harsh_insights.py   # Harsh trading insights
-│   ├── blind_spots.py      # Trading blind spot analysis
-│   └── ...                 # Other utility scripts
+├── src/walletdoctor/   # Deep analysis engine
+│   ├── __init__.py
+│   ├── features/      # Pattern detection
+│   │   ├── __init__.py
+│   │   ├── behaviour.py
+│   │   ├── patterns.py
+│   │   ├── pattern_validator.py
+│   │   └── realistic_patterns.py
+│   ├── insights/      # Insight generation
+│   │   ├── __init__.py
+│   │   ├── generator.py
+│   │   ├── rules.yaml
+│   │   ├── deep_generator.py
+│   │   ├── deep_rules.yaml
+│   │   └── constrained_synthesizer.py
+│   └── llm/          # LLM integration
+│       ├── __init__.py
+│       └── prompt.py
 │
-├── examples/               # Example usage scripts
-│   ├── example.py          # Basic usage example
-│   ├── example_full_narrative.py
-│   └── ...                 # Other examples
+├── templates_v2/      # Web interface templates
+│   └── index_v2.html
 │
-├── data/                   # Data files (git-ignored)
-│   ├── *.db               # Database files
-│   ├── *.csv              # CSV data
-│   └── *.parquet          # Parquet files
+├── tests/            # Test suite
+│   ├── unit/
+│   └── integration/
 │
-├── web_app.py             # Flask web application
-├── setup.py               # Package installation
-├── requirements.txt       # Python dependencies
-├── README.md              # Project documentation
-└── .gitignore            # Git ignore rules
+├── examples/         # Example scripts
+│   ├── example.py
+│   ├── deep_analysis_example.py
+│   ├── deep_behavioral_analysis.py
+│   ├── final_deep_insights_demo.py
+│   ├── show_deep_vs_shallow.py
+│   └── example_full_narrative.py
+│
+├── data/            # Data directory (gitignored)
+│   └── .gitkeep
+│
+└── docs/           # Documentation
+    ├── README.md
+    ├── DEPLOY_TO_RAILWAY.md
+    ├── QUICK_START_MVP.md
+    ├── MVP_ROADMAP.md
+    ├── WALLETDOCTOR_TECHNICAL_DESIGN.md
+    ├── SCRATCHPAD.md
+    └── BOOTSTRAP_ALGORITHM_EXAMPLE.py
 ```
 
 ## Key Components
 
-### Source Code (`src/walletdoctor/`)
-- **insights/**: Generates trading insights and analysis
-- **features/**: Extracts patterns and behavioral features from trading data
-- **llm/**: Handles LLM integration for natural language analysis
-- **web/**: Web interface components
+### Web Interface (`web_app_v2.py`)
+- Flask application serving the web UI
+- Handles wallet analysis requests
+- Manages subprocess calls to coach.py
+- Session management for user state
 
-### Scripts (`scripts/`)
-Standalone scripts for various analysis tasks:
-- `coach.py`: Main coaching interface for wallet analysis
-- `harsh_insights.py`: Provides direct, unfiltered trading feedback
-- `blind_spots.py`: Identifies trading blind spots and weaknesses
+### CLI Engine (`scripts/coach.py`)
+- Core analysis commands
+- Database operations
+- Pattern detection orchestration
+- Integration point for all analysis features
 
-### Tests (`tests/`)
-- **unit/**: Individual component tests
-- **integration/**: End-to-end testing
+### API Integration (`scripts/data.py`)
+- Helius API for transaction data
+- Cielo API for P&L data
+- Data caching in DuckDB
 
-### Examples (`examples/`)
-Demonstration scripts showing how to use the library
+### Analysis Engine
+- `harsh_insights.py`: Generates brutal, actionable insights
+- `instant_stats.py`: Quick baseline statistics
+- `blind_spots.py`: Behavioral pattern detection
+- `analytics.py`: Statistical calculations
 
-### Data (`data/`)
-Local data storage (not tracked in git):
-- Database files for caching analysis
-- CSV exports and imports
-- Temporary data files
+### Deep Analysis (`src/walletdoctor/`)
+- Advanced pattern detection with statistical validation
+- Psychological mapping of trading behaviors
+- Confidence scoring system
 
-## Development Guidelines
+## Database Schema
 
-1. Keep all source code in `src/walletdoctor/`
-2. Place new tests in appropriate subdirectory under `tests/`
-3. Add example scripts to `examples/` for new features
-4. Store data files in `data/` (automatically git-ignored)
-5. Utility scripts go in `scripts/`
+### DuckDB Tables
+- `tx`: Transaction data from Helius
+- `pnl`: Profit/loss data from Cielo
+- `trade_annotations`: User notes on trades
+- `trade_snapshots`: Historical snapshots
 
-## Clean Repository Practices
+## Environment Variables
 
-- Virtual environments (`venv/`) are git-ignored
-- OS files (`.DS_Store`) are git-ignored
-- Log files (`*.log`) are git-ignored
-- Database and data files stay in `data/`
-- Temporary files are automatically excluded 
+Required for deployment:
+- `HELIUS_KEY`: Helius API key for transaction data
+- `CIELO_KEY`: Cielo API key for P&L data
+- `OPENAI_API_KEY`: OpenAI key for AI insights (optional)
+
+## Deployment
+
+Deployed on Railway with automatic builds from GitHub pushes. See `DEPLOY_TO_RAILWAY.md` for details. 
