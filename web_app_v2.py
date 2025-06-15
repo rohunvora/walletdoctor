@@ -14,7 +14,7 @@ import duckdb
 from scripts.instant_stats import InstantStatsGenerator
 from scripts.db_migrations import run_migrations, add_annotation, get_similar_annotations
 from scripts.trade_comparison import TradeComparator
-from scripts.harsh_insights import HarshTruthGenerator
+from scripts.wisdom_generator import WisdomGenerator, WISDOM_SYSTEM_PROMPT
 from scripts.llm import TradingCoach
 from scripts.analytics import calculate_accurate_stats, calculate_portfolio_metrics, identify_leak_trades
 
@@ -146,193 +146,99 @@ def instant_load():
             # Get instant stats
             instant_gen = InstantStatsGenerator(db)
             stats = instant_gen.get_baseline_stats()
-            top_trades = instant_gen.get_top_trades()
+            top_trades = instant_gen.get_top_trades(limit=10)  # Get more trades
+            rich_patterns = instant_gen.get_rich_patterns_for_ai()  # Get deep patterns
             
             # Add a warning if we hit the limit
             is_partial = token_count >= 1000
             hit_token_limit = token_count >= 999  # Might be exactly 1000 or slightly less
             
-            # Generate AI-powered insights if OpenAI is available
+            # Initialize wisdom generator
+            wisdom_gen = WisdomGenerator(db)
+            journey = wisdom_gen.extract_trading_journey()
+            
+            # Generate AI-powered insights
             ai_patterns = []
             ai_message = ""
             
-            if openai_key and token_count > 0:
+            if openai_key and journey.get('has_data'):
                 try:
-                    print(f"[{datetime.now()}] Generating AI insights...")
+                    print(f"[{datetime.now()}] Generating wisdom insights...")
                     
-                    # Get full data for analysis
-                    pnl_df = db.execute("SELECT * FROM pnl").df()
-                    tx_df = db.execute("SELECT * FROM tx").df()
-                    
-                    # Add more detailed trade analysis
-                    if not pnl_df.empty:
-                        # Sort by P&L to get best and worst
-                        pnl_df['entry_size_usd'] = pnl_df['totalBought'] * pnl_df['avgBuyPrice']
-                        pnl_df['exit_size_usd'] = pnl_df['totalSold'] * pnl_df['avgSellPrice']
-                        
-                        # Get worst 10 trades for pattern analysis
-                        worst_trades = pnl_df.nsmallest(10, 'realizedPnl')
-                        
-                        # Look for patterns in losers
-                        meme_tokens = worst_trades[worst_trades['symbol'].str.contains('INU|DOGE|PEPE|SHIB|BONK|WIF|MYRO|BOME', case=False, na=False)]
-                        if len(meme_tokens) > 0:
-                            meme_loss = meme_tokens['realizedPnl'].sum()
-                            meme_tokens_list = meme_tokens['symbol'].tolist()
-                    
-                    # Initialize harsh truth generator for structured insights
-                    truth_gen = HarshTruthGenerator(db)
-                    harsh_insights = truth_gen.generate_all_insights()
-                    
-                    # Calculate comprehensive metrics
-                    accurate_stats = calculate_accurate_stats(pnl_df)
-                    portfolio_metrics = calculate_portfolio_metrics(pnl_df, tx_df)
-                    leak_trades = identify_leak_trades(pnl_df)
-                    
-                    # Initialize trading coach
+                    # Initialize trading coach with wisdom prompt
                     coach = TradingCoach()
                     
-                    # Format specific trade data for AI
-                    specific_trades = []
+                    # Create the wisdom prompt
+                    wisdom_prompt = wisdom_gen.create_wisdom_prompt(journey)
                     
-                    # Add top losers with details
-                    if top_trades['losers']:
-                        for trade in top_trades['losers'][:5]:
-                            specific_trades.append(f"{trade['symbol']}: Lost ${abs(trade['realizedPnl']):,.0f} (held {trade['holdTimeSeconds']/3600:.1f} hours, position size ${trade.get('entry_size_usd', 0):,.0f})")
+                    # Get AI to generate wisdom
+                    wisdom_response = coach.client.chat.completions.create(
+                        model="o3",
+                        messages=[
+                            {"role": "system", "content": WISDOM_SYSTEM_PROMPT},
+                            {"role": "user", "content": wisdom_prompt}
+                        ],
+                        temperature=0.8,  # Higher for more creative wisdom
+                        max_tokens=800
+                    )
                     
-                    # Add top winners with details  
-                    if top_trades['winners']:
-                        for trade in top_trades['winners'][:3]:
-                            specific_trades.append(f"{trade['symbol']}: Won ${trade['realizedPnl']:,.0f} (held {trade['holdTimeSeconds']/3600:.1f} hours, position size ${trade.get('entry_size_usd', 0):,.0f})")
+                    wisdom_text = wisdom_response.choices[0].message.content
                     
-                    # Extract key insights from harsh_insights
-                    key_facts = []
-                    if harsh_insights:
-                        for insight in harsh_insights[:3]:
-                            if 'facts' in insight:
-                                key_facts.extend([fact for fact in insight['facts'] if '$' in fact or '%' in fact][:2])
+                    # Parse the wisdom into patterns and message
+                    wisdom_lines = wisdom_text.split('\n')
                     
-                    # Build a clear, specific prompt with actual data
-                    pattern_prompt = f"""Analyze this specific wallet data and generate 4-5 ultra-specific insights:
-
-WALLET STATS:
-- Total P&L: ${accurate_stats['total_realized_pnl']:,.0f} across {accurate_stats['total_tokens_traded']} tokens
-- Win Rate: {accurate_stats['win_rate_pct']:.0f}% ({accurate_stats['winning_tokens']} wins / {accurate_stats['losing_tokens']} losses)
-- Average Position: ${stats.get('avg_position_size', 0):,.0f}
-
-SPECIFIC TRADES:
-{chr(10).join(specific_trades)}
-
-{'MEME TOKEN LOSSES:' + chr(10) + f'Lost ${abs(meme_loss):,.0f} on: {", ".join(meme_tokens_list)}' if 'meme_loss' in locals() and meme_loss < 0 else ''}
-
-KEY PATTERNS FOUND:
-{chr(10).join(key_facts) if key_facts else 'No clear patterns yet'}
-
-Generate 4-5 insights that:
-1. Reference specific token names and exact dollar amounts from the trades above
-2. Identify patterns (e.g., "Lost $X on 3 dog-themed tokens: BONK, SHIB, FLOKI")
-3. Be brutally specific - no generic advice
-4. Format as short, punchy statements
-
-DO NOT say generic things like "improve timing" or "diversify holdings". Reference the actual tokens and amounts."""
-                    
-                    pattern_response = coach.analyze_wallet(pattern_prompt, {})
-                    
-                    # Parse AI response into individual patterns - better parsing
-                    raw_patterns = pattern_response.split('\n')
-                    ai_patterns = []
-                    for line in raw_patterns:
+                    # Extract individual insights
+                    current_insight = []
+                    for line in wisdom_lines:
                         line = line.strip()
-                        # Skip empty lines, numbered items, and generic intros
-                        if (line and 
-                            not line.startswith(('Based on', 'Here are', 'Analysis', 'Looking at')) and
-                            not line[0].isdigit() and
-                            not line.startswith(('-', '*', '•')) and
-                            len(line) > 20):  # Ensure it's substantial
-                            # Clean up the line
-                            clean_line = line.lstrip('- ').lstrip('* ').lstrip('• ').strip()
-                            if '$' in clean_line or '%' in clean_line:  # Prioritize lines with specific data
-                                ai_patterns.append(clean_line)
+                        if line and not line.startswith(('---', '===', '***')):
+                            if line.startswith(('•', '-', '*', '1.', '2.', '3.', '4.', '5.')):
+                                if current_insight:
+                                    ai_patterns.append(' '.join(current_insight))
+                                    current_insight = []
+                                # Clean up bullet points
+                                clean_line = line.lstrip('•-*123456789. ')
+                                current_insight = [clean_line]
+                            elif current_insight:
+                                current_insight.append(line)
                     
-                    # Ensure we get at least 3-5 patterns
+                    # Add the last insight
+                    if current_insight:
+                        ai_patterns.append(' '.join(current_insight))
+                    
+                    # Limit to 5 best insights
                     ai_patterns = ai_patterns[:5]
                     
-                    # Generate personal message with specific data
-                    biggest_loser_symbol = top_trades['losers'][0]['symbol'] if top_trades['losers'] else 'None'
-                    biggest_loss_amount = abs(top_trades['losers'][0]['realizedPnl']) if top_trades['losers'] else 0
+                    # Create a powerful personal message
+                    if journey['total_pnl'] < -1000:
+                        worst_trade = journey['worst_trades'][0].split(':')[0] if journey['worst_trades'] else 'your worst trade'
+                        ai_message = f"Here's the truth: You've burned ${abs(journey['total_pnl']):,.0f} learning expensive lessons. {worst_trade} wasn't a trade, it was hope dressed up as analysis."
+                    else:
+                        ai_message = wisdom_lines[0] if wisdom_lines else "Your trading tells a story only you can rewrite."
                     
-                    message_prompt = f"""Write a brutally honest 2-3 sentence message about this trader's performance.
-
-THEIR ACTUAL DATA:
-- Lost ${abs(accurate_stats['total_realized_pnl']):,.0f} total with {accurate_stats['win_rate_pct']:.0f}% win rate
-- Biggest disaster: {biggest_loser_symbol} lost ${biggest_loss_amount:,.0f}
-- Pattern: {key_facts[0] if key_facts else 'Multiple small losses adding up'}
-
-Start with "Here's the truth:" and reference specific tokens and amounts. Be harsh but actionable. 
-Example: "Here's the truth: Your BONK trade cost you $8,400 because you bought after a 47% pump. You've done this on 8 different meme coins, losing $43,000 total."
-
-DO NOT be generic. Use their actual tokens and numbers."""
-                    
-                    ai_message = coach.analyze_wallet(message_prompt, {})
-                    
-                    print(f"[{datetime.now()}] AI insights generated successfully")
+                    print(f"[{datetime.now()}] Wisdom insights generated successfully")
                     
                 except Exception as e:
-                    print(f"[{datetime.now()}] Error generating AI insights: {str(e)}")
-                    # Fall back to harsh insights if AI fails
-                    if harsh_insights:
-                        for insight in harsh_insights[:3]:
-                            if 'facts' in insight:
-                                ai_patterns.extend(insight['facts'][:2])
-                        ai_message = "Analysis based on your trading data. Add annotations to trades for personalized AI coaching."
+                    print(f"[{datetime.now()}] Error generating wisdom: {str(e)}")
+                    # Fallback to journey facts
+                    if journey.get('has_data'):
+                        ai_patterns = [
+                            f"You've taken {journey['total_trades']} swings at the market",
+                            f"Your longest held position: {max([t.split('held ')[1].split('h')[0] for t in journey.get('long_holds', ['0h'])], key=float)}h of hope",
+                            f"You keep coming back to {list(journey.get('most_traded', {}).keys())[0]}" if journey.get('most_traded') else "The same patterns",
+                            f"Win rate: {journey['win_rate']:.0f}% - but that's not the real story"
+                        ]
+                        ai_message = f"Here's the truth: Your P&L says ${journey['total_pnl']:,.0f}, but the real cost is what you haven't learned yet."
             else:
-                # No OpenAI key - use harsh insights to provide personalized data
-                print(f"[{datetime.now()}] No OpenAI key, using harsh insights for personalization")
-                try:
-                    # Generate harsh insights for structured data
-                    truth_gen = HarshTruthGenerator(db)
-                    harsh_insights = truth_gen.generate_all_insights()
-                    
-                    if harsh_insights:
-                        # Extract the most impactful patterns
-                        for insight in harsh_insights[:4]:
-                            if 'facts' in insight:
-                                # Take the most specific facts
-                                for fact in insight['facts'][:2]:
-                                    if '$' in fact or '%' in fact:  # Prioritize facts with numbers
-                                        ai_patterns.append(fact)
-                        
-                        # Create a data-driven message from the insights
-                        if harsh_insights and len(harsh_insights) > 0:
-                            main_insight = harsh_insights[0]
-                            if 'cost' in main_insight and 'fix' in main_insight:
-                                ai_message = f"Here's the truth: {main_insight.get('cost', '')} {main_insight.get('fix', '')}"
-                            else:
-                                ai_message = "Your trading data shows clear patterns. The numbers tell the story - check the insights above."
-                    
-                    # Ensure we always have some patterns
-                    if not ai_patterns:
-                        pnl_df = db.execute("SELECT * FROM pnl").df()
-                        if not pnl_df.empty:
-                            total_pnl = pnl_df['realizedPnl'].sum()
-                            win_rate = (len(pnl_df[pnl_df['realizedPnl'] > 0]) / len(pnl_df) * 100)
-                            avg_loss = pnl_df[pnl_df['realizedPnl'] < 0]['realizedPnl'].mean()
-                            
-                            ai_patterns = [
-                                f"Total P&L across {len(pnl_df)} trades: ${total_pnl:,.0f}",
-                                f"Win rate: {win_rate:.0f}% - winning {int(win_rate * len(pnl_df) / 100)} out of {len(pnl_df)} trades",
-                                f"Average loss when wrong: ${avg_loss:,.0f}"
-                            ]
-                            
-                            # Add specific trade examples
-                            worst_trade = pnl_df.nsmallest(1, 'realizedPnl').iloc[0]
-                            ai_patterns.append(f"Biggest loss: {worst_trade['symbol']} cost you ${abs(worst_trade['realizedPnl']):,.0f}")
-                            
-                            ai_message = f"Here's the truth: Your trades are showing a {win_rate:.0f}% win rate with ${total_pnl:,.0f} total P&L. Focus on the patterns above to improve."
-                
-                except Exception as e:
-                    print(f"[{datetime.now()}] Error generating fallback insights: {str(e)}")
-                    ai_patterns = ["Loading complete trading analysis..."]
-                    ai_message = "Full analysis requires OpenAI API key for personalized coaching."
+                # No OpenAI key - provide journey-based insights
+                if journey.get('has_data'):
+                    ai_patterns = [
+                        f"Total journey: {journey['total_trades']} trades, ${journey['total_pnl']:,.0f} P&L",
+                        f"Your disasters tell the story: {journey['worst_trades'][0]}" if journey.get('worst_trades') else "Every loss has a lesson",
+                        f"You can't quit {list(journey.get('most_traded', {}).keys())[0]}" if journey.get('most_traded') else "Your favorite tokens",
+                        f"Quick flips: {len(journey.get('quick_trades', []))} trades under 10 minutes"
+                    ]
+                    ai_message = "Add OpenAI API key for personalized wisdom about your trading journey."
             
         finally:
             db.close()
