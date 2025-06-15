@@ -45,7 +45,7 @@ def main():
         "4ja8NtZL5FuMkk2P4N5gj5UvXDWiqFDrBQxhPPSPa1B1"
     ]
     
-    console.print("\n[bold cyan]🩺 WalletDoctor Multi-Wallet Analysis[/]\n")
+    console.print("\n[bold cyan]🩺 Tradebro Multi-Wallet Analysis[/]\n")
     console.print(f"Loading PnL data for {len(wallets)} wallets...")
     
     # Collect all PnL data

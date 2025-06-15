@@ -1,4 +1,4 @@
-"""Example integration of the new insight engine with existing WalletDoctor code."""
+"""Example integration of the new insight engine with existing Tradebro code."""
 import pandas as pd
 import polars as pl
 from typing import Dict, Any
@@ -9,9 +9,9 @@ sys.path.append('..')  # Add parent to path
 from llm import TradingCoach  # Your existing OpenAI wrapper
 
 # Import new insight engine
-from walletdoctor.features import behaviour
-from walletdoctor.insights import generate_full_report, calculate_extras
-from walletdoctor.llm import make_messages, format_for_cli
+from tradebro.features import behaviour
+from tradebro.insights import generate_full_report, calculate_extras
+from tradebro.llm import make_messages, format_for_cli
 
 
 def convert_to_polars_format(pnl_df: pd.DataFrame, tx_df: pd.DataFrame) -> pl.DataFrame:

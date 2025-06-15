@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🏥 WalletDoctor Bot Setup"
+echo "🏥 Tradebro Bot Setup"
 echo "========================"
 echo ""
 

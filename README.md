@@ -1,4 +1,4 @@
-# WalletDoctor 🏥
+# Tradebro 🏥
 
 Analyze your Solana wallet trading patterns and get harsh, direct insights backed by data. No fluff, no generic advice - just brutal truths about your trading behavior.
 
@@ -30,7 +30,7 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
 
 ## 🎯 What It Does
 
-WalletDoctor provides brutal, actionable insights about your trading:
+Tradebro provides brutal, actionable insights about your trading:
 
 **Before**: "Consider improving your risk management strategy"  
 **After**: "You hold losers 3.2x longer than winners. This cost you $127,453."
@@ -74,8 +74,8 @@ WalletDoctor provides brutal, actionable insights about your trading:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/walletdoctor.git
-cd walletdoctor
+git clone https://github.com/yourusername/tradebro.git
+cd tradebro
 ```
 
 2. Create a virtual environment:

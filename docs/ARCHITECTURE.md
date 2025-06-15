@@ -1,4 +1,4 @@
-# WalletDoctor Insight Engine 2.0
+# Tradebro Insight Engine 2.0
 
 A refactored insight generation system that delivers "soul-piercing clarity" through deterministic analysis and focused narrative.
 
@@ -36,9 +36,9 @@ Minimal LLM usage - only for narrative weaving, not analysis.
 ## Integration Example
 
 ```python
-from walletdoctor.features import behaviour
-from walletdoctor.insights import generate_full_report
-from walletdoctor.llm import make_messages
+from tradebro.features import behaviour
+from tradebro.insights import generate_full_report
+from tradebro.llm import make_messages
 
 # 1. Convert your data to Polars
 trades_df = convert_to_polars(your_pandas_df)
@@ -96,14 +96,14 @@ fee_burn:
 ## Migration Path
 
 1. Install dependencies: `pip install polars pyyaml`
-2. Copy `src/walletdoctor/` to your project
+2. Copy `src/tradebro/` to your project
 3. See `example_integration.py` for drop-in replacement
 4. Gradually migrate from old system
 
 ## Output Example
 
 ```
-┌─ Wallet Doctor — 12 Jun 2025 ─┐
+┌─ Tradebro — 12 Jun 2025 ─┐
 | Net P&L: +342 SOL  (+18.4%)   |
 | Win rate: 39% | Trades: 271    |
 └───────────────────────────────┘

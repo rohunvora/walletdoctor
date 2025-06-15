@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-WalletDoctor Telegram Bot - Learn from your mistakes, avoid repeating them
+Tradebro Telegram Bot - Learn from your mistakes, avoid repeating them
 """
 
 import os
@@ -28,7 +28,7 @@ WAITING_FOR_WALLET = "waiting_for_wallet"
 WAITING_FOR_ANNOTATION = "waiting_for_annotation"
 MONITORING_ACTIVE = "monitoring_active"
 
-class WalletDoctorBot:
+class TradeBroBot:
     def __init__(self, token: str, db_path: str = "coach.db"):
         self.token = token
         self.db_path = db_path
@@ -79,7 +79,7 @@ class WalletDoctorBot:
         user_id = update.effective_user.id
         
         welcome_message = (
-            "🏥 *Welcome to WalletDoctor!*\n\n"
+            "🏥 *Welcome to Tradebro!*\n\n"
             "I help you learn from your trading mistakes.\n\n"
             "Send `/analyze <wallet_address>` to analyze any Solana wallet!\n\n"
             "_Example:_\n"
@@ -679,7 +679,7 @@ class WalletDoctorBot:
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show help"""
         help_text = (
-            "*🏥 WalletDoctor - Learn from your mistakes*\n\n"
+            "*🏥 Tradebro - Learn from your mistakes*\n\n"
             "Commands:\n"
             "• `/analyze <wallet_address>` - Analyze any Solana wallet\n"
             "• /patterns - See your documented patterns\n"
@@ -749,6 +749,6 @@ if __name__ == "__main__":
         exit(1)
         
     # Create and run bot
-    bot = WalletDoctorBot(TOKEN)
-    print("🤖 WalletDoctor Bot starting...")
+    bot = TradeBroBot(TOKEN)
+    print("🤖 Tradebro Bot starting...")
     bot.run() 

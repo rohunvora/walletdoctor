@@ -1,12 +1,12 @@
-# WalletDoctor Project Structure
+# Tradebro Project Structure
 
 ## Overview
-WalletDoctor is a web-based Solana trading analyzer that provides harsh, direct insights about trading behavior. Built with Flask and deployed on Railway.
+Tradebro is a web-based Solana trading analyzer that provides harsh, direct insights about trading behavior. Built with Flask and deployed on Railway.
 
 ## Directory Structure
 
 ```
-walletdoctor/
+tradebro/
 ├── web_app_v2.py          # Main Flask web application
 ├── wsgi_v2.py            # WSGI entry point for Gunicorn
 ├── startup.py            # Startup script for Railway deployment
@@ -36,7 +36,7 @@ walletdoctor/
 │   ├── multi_wallet_loader.py  # Multi-wallet data loading
 │   └── wisdom_generator.py  # Trading wisdom generation
 │
-├── src/walletdoctor/   # Deep analysis engine
+├── src/tradebro/   # Deep analysis engine
 │   ├── __init__.py
 │   ├── example_integration.py  # Integration examples
 │   ├── features/      # Pattern detection
@@ -118,7 +118,7 @@ walletdoctor/
 - `analytics.py`: Statistical calculations
 - `wisdom_generator.py`: Personalized trading insights
 
-### Deep Analysis (`src/walletdoctor/`)
+### Deep Analysis (`src/tradebro/`)
 - Advanced pattern detection with statistical validation
 - Psychological mapping of trading behaviors
 - Confidence scoring system

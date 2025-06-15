@@ -7,7 +7,7 @@ non-conflicting wisdom that tells a coherent story about the trader's behavior.
 
 from typing import List, Dict, Tuple
 from dataclasses import dataclass
-from src.walletdoctor.features.realistic_patterns import TradingPattern
+from src.tradebro.features.realistic_patterns import TradingPattern
 
 
 @dataclass

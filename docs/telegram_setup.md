@@ -1,11 +1,11 @@
-# WalletDoctor Telegram Bot Setup
+# Tradebro Telegram Bot Setup
 
 ## 1. Create a Telegram Bot
 
 1. Open Telegram and search for `@BotFather`
 2. Send `/newbot` 
-3. Choose a name (e.g., "WalletDoctor")
-4. Choose a username (must end in "bot", e.g., `walletdoctor_bot`)
+3. Choose a name (e.g., "Tradebro")
+4. Choose a username (must end in "bot", e.g., `tradebro_bot`)
 5. Save the token BotFather gives you
 
 ## 2. Set Environment Variable

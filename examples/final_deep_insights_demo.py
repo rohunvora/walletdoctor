@@ -5,7 +5,7 @@ sys.path.append('src')
 
 print("""
 ================================================================================
-                    WALLETDOCTOR DEEP INSIGHT SYSTEM
+                    TRADEBRO DEEP INSIGHT SYSTEM
                     With Statistical Validation & Psychology
 ================================================================================
 
@@ -166,7 +166,7 @@ print("""
 TO RUN THIS ON YOUR OWN DATA:
 ================================================================================
 
-from walletdoctor.insights.deep_generator import DeepInsightGenerator
+from tradebro.insights.deep_generator import DeepInsightGenerator
 
 # Load your trading data into Polars DataFrame
 generator = DeepInsightGenerator(min_confidence=0.75)

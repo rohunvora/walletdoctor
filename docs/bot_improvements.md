@@ -1,4 +1,4 @@
-# WalletDoctor Bot - Next Steps Roadmap
+# Tradebro Bot - Next Steps Roadmap
 
 ## 🎯 Immediate Improvements (1-2 days)
 
