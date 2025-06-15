@@ -648,6 +648,34 @@ class WalletDoctorBot:
             logger.error(f"Error showing patterns: {e}")
             await message.reply_text("No trading data available yet.")
             
+    async def reset_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Reset user state and clear data"""
+        user_id = update.effective_user.id
+        
+        # Clear user state
+        if user_id in self.user_states:
+            del self.user_states[user_id]
+            
+        # Clear any temp database associated with this user
+        temp_db_path = context.user_data.get('temp_db_path')
+        if temp_db_path and os.path.exists(temp_db_path):
+            try:
+                os.remove(temp_db_path)
+            except:
+                pass
+                
+        # Clear context data
+        context.user_data.clear()
+        
+        response = (
+            "✅ *Reset complete!*\n\n"
+            "Your session has been cleared.\n"
+            "You can now start fresh.\n\n"
+            "Send `/analyze <wallet_address>` to analyze a wallet."
+        )
+        
+        await update.message.reply_text(response, parse_mode='Markdown')
+            
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show help"""
         help_text = (
@@ -655,6 +683,7 @@ class WalletDoctorBot:
             "Commands:\n"
             "• `/analyze <wallet_address>` - Analyze any Solana wallet\n"
             "• /patterns - See your documented patterns\n"
+            "• /reset - Clear your session and start fresh\n"
             "• /help - Show this message\n\n"
             "_Example:_\n"
             "`/analyze 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`\n\n"
@@ -688,6 +717,7 @@ class WalletDoctorBot:
         application.add_handler(CommandHandler("analyze", self.analyze_command))
         application.add_handler(CommandHandler("patterns", self.patterns_command))
         application.add_handler(CommandHandler("help", self.help_command))
+        application.add_handler(CommandHandler("reset", self.reset_command))
         
         # Message handler
         application.add_handler(MessageHandler(
