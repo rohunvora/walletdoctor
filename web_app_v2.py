@@ -80,12 +80,16 @@ def instant_load():
         cielo_key = os.getenv('CIELO_KEY')
         openai_key = os.getenv('OPENAI_API_KEY')
         
-        print(f"[{datetime.now()}] Instant load request for wallet: {wallet}")
-        print(f"[{datetime.now()}] HELIUS_KEY set: {bool(helius_key)} (length: {len(helius_key) if helius_key else 0})")
-        print(f"[{datetime.now()}] CIELO_KEY set: {bool(cielo_key)} (length: {len(cielo_key) if cielo_key else 0})")
-        print(f"[{datetime.now()}] OPENAI_API_KEY set: {bool(openai_key)}")
+        print(f"\n{'='*80}")
+        print(f"[{datetime.now()}] 🌐 WEB APP: Instant load request")
+        print(f"[{datetime.now()}]   Wallet: {wallet}")
+        print(f"[{datetime.now()}]   HELIUS_KEY: {'✅ Set' if helius_key else '❌ Missing'} (length: {len(helius_key) if helius_key else 0})")
+        print(f"[{datetime.now()}]   CIELO_KEY: {'✅ Set' if cielo_key else '❌ Missing'} (length: {len(cielo_key) if cielo_key else 0})")
+        print(f"[{datetime.now()}]   OPENAI_API_KEY: {'✅ Set' if openai_key else '❌ Missing'}")
+        print(f"{'='*80}\n")
         
         if not helius_key or not cielo_key:
+            print(f"[{datetime.now()}] ❌ API keys missing!")
             return jsonify({
                 'error': 'API keys not configured. Please set HELIUS_KEY and CIELO_KEY in Railway environment variables.',
                 'helius_set': bool(helius_key),
@@ -105,16 +109,15 @@ def instant_load():
         if openai_key:
             env['OPENAI_API_KEY'] = openai_key
         
-        print(f"[{datetime.now()}] Starting subprocess with command: {' '.join(cmd)}")
-        print(f"[{datetime.now()}] Environment CIELO_KEY: {cielo_key[:8]}... (length: {len(cielo_key)})")
+        print(f"[{datetime.now()}] 🚀 Starting subprocess: {' '.join(cmd)}")
         
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)
         
-        print(f"[{datetime.now()}] Subprocess completed with return code: {result.returncode}")
+        print(f"[{datetime.now()}] 📋 Subprocess completed with return code: {result.returncode}")
         if result.stdout:
-            print(f"[{datetime.now()}] STDOUT:\n{result.stdout}")
+            print(f"[{datetime.now()}] 📝 STDOUT:\n{result.stdout}")
         if result.stderr:
-            print(f"[{datetime.now()}] STDERR:\n{result.stderr}")
+            print(f"[{datetime.now()}] ⚠️  STDERR:\n{result.stderr}")
         
         if result.returncode != 0:
             print(f"[{datetime.now()}] Load failed with return code {result.returncode}")
