@@ -35,11 +35,28 @@ def index():
 @app.route('/test_env', methods=['GET'])
 def test_env():
     """Test endpoint to check environment and API keys."""
+    # Test Cielo API directly
+    cielo_test_result = None
+    if os.getenv('CIELO_KEY'):
+        try:
+            import requests
+            test_wallet = '34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya'
+            url = f'https://feed-api.cielo.finance/api/v1/{test_wallet}/pnl/tokens'
+            headers = {'x-api-key': os.getenv('CIELO_KEY')}
+            response = requests.get(url, headers=headers, timeout=5)
+            cielo_test_result = {
+                'status_code': response.status_code,
+                'has_data': 'data' in response.json() if response.status_code == 200 else False
+            }
+        except Exception as e:
+            cielo_test_result = {'error': str(e)}
+    
     return jsonify({
         'helius_key_set': bool(os.getenv('HELIUS_KEY')),
         'cielo_key_set': bool(os.getenv('CIELO_KEY')),
         'helius_key_length': len(os.getenv('HELIUS_KEY', '')) if os.getenv('HELIUS_KEY') else 0,
         'cielo_key_length': len(os.getenv('CIELO_KEY', '')) if os.getenv('CIELO_KEY') else 0,
+        'cielo_api_test': cielo_test_result,
         'database_exists': os.path.exists('coach.db'),
         'python_path': os.getenv('PYTHONPATH', 'Not set'),
         'working_dir': os.getcwd()

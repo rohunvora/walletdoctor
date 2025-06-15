@@ -54,6 +54,10 @@ def fetch_cielo_pnl(address: str, max_items: int = 1000) -> Dict[str, Any]:
     if not CIELO_KEY:
         print(f"❌ CIELO_KEY is empty!")
         return {'status': 'error', 'data': {'items': []}}
+    
+    # Debug logging for API key
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] CIELO_KEY length: {len(CIELO_KEY)}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] CIELO_KEY first 8 chars: {CIELO_KEY[:8]}...")
         
     # Special logging for problematic wallet
     if address == "DNfuF1L62WWyW3pNakVkyGGFzVVhj4Yr52jSmdTyeBHm":
