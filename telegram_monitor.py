@@ -143,7 +143,7 @@ if __name__ == "__main__":
         
         # Example: Monitor a wallet
         test_wallets = {
-            123456789: "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+            123456789: "rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK"
         }
         
         asyncio.run(monitor.run_monitoring_loop(test_wallets))

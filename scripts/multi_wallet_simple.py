@@ -36,7 +36,7 @@ def main():
     
     wallets = [
         "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
-        "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+        "rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK",
         "GbVsVFh1rr9xKY2AWhHyDVV6Q36QBEaX5qPk2CQMVEXF",
         "GomBJCQXmQErreHqVcypujPFbZb9MiVeuGoEJFTZhRjR",
         "C7muvNN25ubGSnVxjav7UauSsKFZd5Qqh1d7sG1DFVsZ",

@@ -40,7 +40,7 @@ To ensure personalized AI insights work properly, configure these in your Railwa
 
 1. Check Railway logs for deployment status
 2. Visit your app URL
-3. Enter wallet: `34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`
+3. Enter wallet: `rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK`
 4. Verify you see specific insights mentioning actual tokens and amounts
 
 ## 💡 Example of What You Should See

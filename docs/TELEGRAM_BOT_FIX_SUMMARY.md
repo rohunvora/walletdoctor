@@ -43,7 +43,7 @@ Fixed column mapping issues in `InstantStatsGenerator`:
 ## Example Usage
 
 ```
-/analyze 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+/analyze rp8ntGS7P2k3faTvsRSWxQLa3B68DetNbwe1GHLiTUK
 ```
 
 This will now show real data:
