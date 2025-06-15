@@ -38,8 +38,8 @@ from llm import TradingCoach, get_quick_insight, ANALYSIS_PROMPTS
 # Import blind spots detector
 from blind_spots import BlindSpotDetector
 
-# Import wisdom generator
-from wisdom_generator import WisdomGenerator, WISDOM_SYSTEM_PROMPT
+# Import dialogue generator
+from dialogue_generator import DialogueGenerator
 
 # Import new modules for the pivot
 from instant_stats import InstantStatsGenerator
@@ -455,7 +455,7 @@ def quick_analyze(address: str):
     console.print("\n[bold cyan]🧠 WISDOM FROM YOUR TRADING JOURNEY[/]\n")
     
     # Initialize wisdom generator
-    wisdom_gen = WisdomGenerator(db)
+    wisdom_gen = DialogueGenerator(db)
     journey = wisdom_gen.extract_trading_journey()
     
     if journey.get('has_data'):
