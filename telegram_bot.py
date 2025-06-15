@@ -190,9 +190,41 @@ class TradeBroBot:
             token_count = db.execute("SELECT COUNT(*) FROM pnl").fetchone()[0]
             hit_limit = token_count >= 100  # Changed from 1000 to 100 to match actual API limit
             
-            # Check if 30-day filtering was applied
+            # Check if 30-day filtering was applied during data loading
             is_30_day_filtered = False
-            original_token_count = token_count
+            filter_metadata = None
+            try:
+                # Check if we have filter metadata
+                filter_result = db.execute("""
+                    SELECT * FROM filter_metadata 
+                    WHERE filter_type = '30_day' 
+                    LIMIT 1
+                """).fetchone()
+                
+                if filter_result:
+                    is_30_day_filtered = True
+                    filter_metadata = {
+                        'original_count': filter_result[1],
+                        'filtered_count': filter_result[2],
+                        'pnl_30d': filter_result[3],
+                        'wins_30d': filter_result[4],
+                        'losses_30d': filter_result[5],
+                        'win_rate_30d': filter_result[6]
+                    }
+                    original_token_count = filter_result[1]
+                    token_count = filter_result[2]
+                    
+                    # Override stats with 30-day values
+                    stats['total_pnl'] = filter_metadata['pnl_30d']
+                    stats['win_rate'] = filter_metadata['win_rate_30d']
+                    stats['winning_trades'] = filter_metadata['wins_30d']
+                    stats['losing_trades'] = filter_metadata['losses_30d']
+                    stats['total_trades'] = filter_metadata['wins_30d'] + filter_metadata['losses_30d']
+                    
+                    logger.info(f"Using 30-day filtered data - PnL: ${filter_metadata['pnl_30d']:,.0f}, Win Rate: {filter_metadata['win_rate_30d']:.1f}%")
+            except:
+                # Table might not exist, continue with regular logic
+                pass
             
             # Check if we have aggregated stats (the TRUE stats from API)
             use_aggregated_stats = False
@@ -214,13 +246,11 @@ class TradeBroBot:
                     original_token_count = agg_result[2]  # Use real token count
                     use_aggregated_stats = True
                     
-                    # Check if this is a large wallet that needs 30-day filtering
-                    if original_token_count > 1000:
-                        is_30_day_filtered = True
-                    
-                    # Override the stats with real values
-                    stats['total_pnl'] = aggregated_pnl
-                    stats['win_rate'] = aggregated_win_rate
+                    # Only use aggregated stats if we haven't already applied 30-day filtering
+                    if not is_30_day_filtered:
+                        # Override the stats with real values
+                        stats['total_pnl'] = aggregated_pnl
+                        stats['win_rate'] = aggregated_win_rate
                     
                     logger.info(f"Using aggregated stats - PnL: ${aggregated_pnl:,.0f}, Win Rate: {aggregated_win_rate:.1f}%")
                 else:
@@ -239,53 +269,15 @@ class TradeBroBot:
                     os.remove(temp_db_path)
                 return
             
-            # Token count is already set above, no need to duplicate
-            
-            # Get top losses for analysis with timeout protection
-            top_trades = {'winners': [], 'losers': []}
-            try:
-                # Set a reasonable timeout for getting top trades
-                import asyncio
-                top_trades = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(
-                        None, 
-                        instant_gen.get_top_trades, 
-                        5
-                    ),
-                    timeout=3.0  # 3 second timeout
-                )
-            except asyncio.TimeoutError:
-                logger.warning("Timeout getting top trades for large wallet")
-                # For large wallets, try to get at least something from the data we have
-                try:
-                    # Quick query to get at least one winner and loser
-                    winner = db.execute("""
-                        SELECT symbol, totalPnl as realizedPnl 
-                        FROM pnl 
-                        WHERE totalPnl > 0 
-                        ORDER BY totalPnl DESC 
-                        LIMIT 1
-                    """).fetchone()
-                    
-                    loser = db.execute("""
-                        SELECT symbol, totalPnl as realizedPnl 
-                        FROM pnl 
-                        WHERE totalPnl < 0 
-                        ORDER BY totalPnl ASC 
-                        LIMIT 1
-                    """).fetchone()
-                    
-                    if winner:
-                        top_trades['winners'] = [{'symbol': winner[0], 'realizedPnl': winner[1]}]
-                    if loser:
-                        top_trades['losers'] = [{'symbol': loser[0], 'realizedPnl': loser[1]}]
-                except:
-                    pass
-            except Exception as e:
-                logger.error(f"Error getting top trades: {e}")
-            
-            # Debug log
-            logger.info(f"Top trades data: winners={len(top_trades.get('winners', []))}, losers={len(top_trades.get('losers', []))}")
+            # Use aggregated stats if available, otherwise fall back to subset
+            if use_aggregated_stats:
+                # Override the stats with real values
+                stats['total_pnl'] = aggregated_pnl
+                stats['win_rate'] = aggregated_win_rate
+                
+                logger.info(f"Using aggregated stats - PnL: ${aggregated_pnl:,.0f}, Win Rate: {aggregated_win_rate:.1f}%, Tokens: {original_token_count}")
+            else:
+                logger.warning("No aggregated stats found - using subset data")
             
             # For large wallets, ensure we have some data even if limited
             if not top_trades.get('winners') and not top_trades.get('losers'):
