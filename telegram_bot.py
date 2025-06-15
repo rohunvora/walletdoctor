@@ -169,8 +169,11 @@ class TradeBroBot:
             # Get top losses for analysis
             top_trades = instant_gen.get_top_trades(limit=5)
             
+            # Debug log
+            logger.info(f"Top trades data: winners={len(top_trades.get('winners', []))}, losers={len(top_trades.get('losers', []))}")
+            
             # Analyze for revenge trading pattern
-            revenge_pattern = self.detect_revenge_trading(db, top_trades['losers'])
+            revenge_pattern = self.detect_revenge_trading(db, top_trades.get('losers', []))
             
             # Format initial response with immediate insight
             response = f"📊 Found {stats['total_trades']} trades\n\n"
@@ -184,7 +187,7 @@ class TradeBroBot:
             if revenge_pattern and stats['total_pnl'] < 0:
                 response += f"🎯 *Your biggest issue: Revenge Trading*\n"
                 response += f"After losses, you make bigger, riskier trades.\n"
-                if top_trades['losers']:
+                if top_trades.get('losers'):
                     worst = top_trades['losers'][0]
                     response += f"Your {worst['symbol']} trade lost ${abs(worst['realizedPnl']):,.0f}.\n\n"
                 response += "This behavior has cost you thousands."
@@ -203,25 +206,26 @@ class TradeBroBot:
                 if stats['win_rate'] < 70:
                     response += f"• {stats['win_rate']:.1f}% win rate leaves room for improvement\n"
                 
-                if top_trades['losers']:
+                if top_trades.get('losers'):
                     worst = top_trades['losers'][0]
                     response += f"• Your {worst['symbol']} disaster: -${abs(worst['realizedPnl']):,.0f}\n"
                     response += f"• Even winners shouldn't blow up like this\n\n"
                 
-                if top_trades['winners']:
+                if top_trades.get('winners'):
                     best = top_trades['winners'][0]
                     response += f"Best play: {best['symbol']} +${best['realizedPnl']:,.0f}"
                 
             await loading_msg.edit_text(response, parse_mode='Markdown')
             
             # Offer deeper analysis for ALL wallets
-            if (top_trades['losers'] and stats['total_pnl'] < 0) or (stats['total_pnl'] > 0 and top_trades['losers']):
+            # Always show for profitable wallets, or for losing wallets with losses
+            if stats['total_pnl'] > 0 or (stats['total_pnl'] < 0 and top_trades.get('losers')):
                 # Wait a moment for better UX
                 import asyncio
                 await asyncio.sleep(1.5)
                 
                 # Create buttons based on wallet status
-                worst_loss = top_trades['losers'][0] if top_trades['losers'] else None
+                worst_loss = top_trades.get('losers', [None])[0] if top_trades.get('losers') else None
                 
                 buttons = []
                 if worst_loss:
@@ -263,8 +267,8 @@ class TradeBroBot:
             context.user_data['current_wallet'] = wallet_address
             context.user_data['total_pnl'] = stats['total_pnl']
             context.user_data['win_rate'] = stats['win_rate']
-            context.user_data['worst_trades'] = top_trades['losers'][:5] if top_trades['losers'] else []
-            context.user_data['best_trades'] = top_trades['winners'][:5] if top_trades['winners'] else []
+            context.user_data['worst_trades'] = top_trades.get('losers', [])[:5]
+            context.user_data['best_trades'] = top_trades.get('winners', [])[:5]
             context.user_data['temp_db_path'] = temp_db_path
             
             db.close()
