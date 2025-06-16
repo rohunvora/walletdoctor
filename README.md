@@ -99,7 +99,7 @@ cp env.example .env
 **For real-time coaching:**
 ```bash
 python telegram_bot_coach.py
-# Or use: ./start_bot.sh
+# Or use: ./management/start_bot.sh
 ```
 
 **For wallet analysis:**

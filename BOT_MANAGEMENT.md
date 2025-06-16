@@ -7,7 +7,7 @@ The Pocket Trading Coach bot now includes instance lock protection to prevent mu
 
 ### Starting the Bot
 ```bash
-./start_bot.sh
+./management/start_bot.sh
 ```
 - Checks for existing instances before starting
 - Loads environment variables from `.env` file
@@ -15,7 +15,7 @@ The Pocket Trading Coach bot now includes instance lock protection to prevent mu
 
 ### Stopping the Bot
 ```bash
-./stop_bot.sh
+./management/stop_bot.sh
 ```
 - Gracefully stops the bot using the PID file
 - Waits up to 10 seconds for clean shutdown
@@ -24,7 +24,7 @@ The Pocket Trading Coach bot now includes instance lock protection to prevent mu
 
 ### Checking Status
 ```bash
-./status_bot.sh
+./management/status_bot.sh
 ```
 - Shows if bot is running
 - Displays process details (PID, CPU, memory usage)
@@ -46,11 +46,11 @@ The bot uses a PID file (`telegram_bot_coach.pid`) to ensure only one instance r
 ### Bot won't start - "already running" error
 ```bash
 # Check if bot is actually running
-./status_bot.sh
+./management/status_bot.sh
 
 # If not running but PID file exists (stale):
-./stop_bot.sh  # This will clean up
-./start_bot.sh  # Now start fresh
+./management/stop_bot.sh  # This will clean up
+./management/start_bot.sh  # Now start fresh
 ```
 
 ### Manual cleanup if scripts fail
@@ -76,14 +76,14 @@ OPENAI_API_KEY=your_openai_key_here  # For GPT-4o-mini tagging
 
 1. Always use the provided scripts instead of running `python telegram_bot_coach.py` directly
 2. Check status before starting to avoid conflicts
-3. Use `./stop_bot.sh` for clean shutdown instead of kill -9
+3. Use `./management/stop_bot.sh` for clean shutdown instead of kill -9
 4. Monitor logs when debugging issues
 
 ## Logs
 
 The bot outputs logs to console. To save logs:
 ```bash
-./start_bot.sh > bot.log 2>&1 &
+./management/start_bot.sh > bot.log 2>&1 &
 ```
 
 To view logs in real-time:

@@ -1,150 +1,168 @@
 # Project Structure
 
+## Overview
+This repository contains two distinct Telegram bots and a web interface for Solana trading analysis:
+
+1. **Pocket Trading Coach** (`telegram_bot_coach.py`) - Real-time trade monitoring and coaching
+2. **Tradebro Analyzer** (`telegram_bot_simple.py`) - Harsh wallet analysis
+3. **Web Interface** (`web/`) - Browser-based wallet analysis
+
+## Directory Structure
+
 ```
 walletdoctor/
+├── telegram_bot_coach.py      # Real-time trading coach bot
+├── telegram_bot_simple.py     # Wallet analyzer bot
+├── state_manager.py          # Coach bot state management
+├── pattern_service.py        # Trading pattern detection
+├── nudge_engine.py          # Question generation for coach
+├── conversation_manager.py   # User interaction handling
+├── metrics_collector.py      # Performance metrics
+├── pocket_coach.db          # Production database
+├── bot.log                  # Current log file
 │
-├── README.md                    # Main documentation
-├── QUICKSTART.md               # Quick setup guide
-├── TESTING_GUIDE.md            # Testing documentation
-├── RAILWAY_DEPLOYMENT.md       # Deployment guide
-├── PROJECT_STRUCTURE.md        # This file
-├── LICENSE                     # MIT License
+├── scripts/                 # Shared utilities
+│   ├── pnl_service.py      # P&L data integration
+│   ├── price_service.py    # Price data and caching
+│   ├── token_metadata.py   # Token information
+│   ├── personal_history.py # User trading history
+│   ├── notification_engine.py
+│   ├── monitoring_manager.py
+│   ├── transaction_parser.py
+│   ├── link_generator.py
+│   ├── data.py            # Data loading utilities
+│   ├── analytics.py       # Analysis functions
+│   ├── instant_stats.py   # Quick statistics
+│   ├── grading_engine.py  # Trading grades
+│   ├── creative_trade_labels.py
+│   ├── wisdom_generator.py
+│   ├── coach.py           # CLI coach interface
+│   ├── llm.py            # LLM integration
+│   └── transforms.py      # Data transformations
 │
-├── requirements.txt            # Python dependencies
-├── env.example                 # Example environment variables
-├── .gitignore                  # Git ignore rules
-├── Procfile                    # Railway deployment config
-├── runtime.txt                 # Python version for Railway
-├── railway.json                # Railway configuration
+├── web/                    # Web interface
+│   ├── web_app_v2.py      # Flask application
+│   ├── wsgi_v2.py         # WSGI entry point
+│   └── templates_v2/      # HTML templates
 │
-├── scripts/                    # Core business logic
-│   ├── __init__.py
-│   ├── data.py                 # Data fetching with smart pagination
-│   ├── transforms.py           # Data transformation utilities
-│   ├── analytics.py            # Trading analysis functions
-│   ├── instant_stats.py        # Quick stats generation
-│   ├── coach.py                # CLI interface
-│   ├── llm.py                  # OpenAI integration
-│   ├── wisdom_generator.py     # Trading wisdom generation
-│   ├── trade_comparison.py     # Trade pattern comparison
-│   └── multi_wallet_simple.py  # Multi-wallet analysis
+├── management/            # Bot management scripts
+│   ├── start_bot.sh      # Start the coach bot
+│   ├── stop_bot.sh       # Stop the coach bot
+│   ├── status_bot.sh     # Check bot status
+│   └── restart_bot.sh    # Restart the bot
 │
-├── src/tradebro/               # Advanced pattern detection
-│   ├── features/               # Feature extraction modules
-│   ├── insights/               # Insight generation
-│   └── llm/                    # LLM integration
+├── docs/                  # Documentation
+│   ├── ARCHITECTURE.md    # System architecture
+│   ├── CONTEXT_AWARE_AI_PLAN.md  # AI implementation plan
+│   ├── REPOSITORY_CLEANUP_PLAN.md # Cleanup strategy
+│   ├── telegram_setup.md  # Bot setup guide
+│   └── archive/          # Historical documentation
 │
-├── templates_v2/               # Web app templates
-│   └── index.html              # Main web interface
+├── tests/                # Test suite
+│   ├── unit/            # Unit tests
+│   └── integration/     # Integration tests
 │
-├── examples/                   # Example wallets
-│   └── wallets.txt             # List of example addresses
+├── .cursor/             # Cursor workspace
+│   └── scratchpad.md   # Internal documentation
 │
-├── data/                       # Data storage
-│   └── .gitkeep                # Placeholder
-│
-├── tests/                      # Test files
-│   └── .gitkeep                # Placeholder
-│
-├── docs/                       # Additional documentation
-│   └── ARCHITECTURE.md         # System architecture
-│
-├── venv/                       # Virtual environment (gitignored)
-│
-├── coach.db                    # SQLite database (gitignored)
-│
-├── web_app_v2.py              # Flask web application
-├── wsgi_v2.py                 # WSGI configuration
-├── telegram_bot_simple.py     # Telegram bot implementation
-├── test_telegram_bot.py       # Telegram bot test script
-└── test_pagination_comprehensive.py  # Pagination test script
+├── requirements.txt     # Python dependencies
+├── env.example         # Environment variables template
+├── .gitignore         # Git ignore rules
+├── LICENSE            # MIT license
+├── README.md          # Main documentation
+├── BOT_MANAGEMENT.md  # Bot operation guide
+├── TESTING_GUIDE.md   # Testing instructions
+├── Procfile          # Railway deployment
+└── railway.json      # Railway configuration
 ```
 
 ## Key Components
 
-### Web Application (`web_app_v2.py`)
-- Flask-based web interface
-- Real-time wallet analysis
-- Interactive visualizations
-- Smart pagination for large wallets
+### Pocket Trading Coach
+The real-time monitoring bot that watches user trades and provides conversational coaching:
+- **Entry Point**: `telegram_bot_coach.py`
+- **State Management**: `state_manager.py` - Maintains conversation state per token
+- **Pattern Detection**: `pattern_service.py` - Identifies trading patterns
+- **Response Generation**: `nudge_engine.py` - Creates contextual questions
+- **Database**: `pocket_coach.db` - Stores user data and conversations
 
-### Telegram Bot (`telegram_bot_simple.py`)
-- Interactive trading journal
-- Simplified one-insight-at-a-time approach
-- Pattern tracking and monitoring
+### Tradebro Analyzer
+The harsh wallet analysis bot that provides brutal insights:
+- **Entry Point**: `telegram_bot_simple.py`
+- **Database**: Uses temporary databases for each analysis
+- **Analysis**: Leverages scripts in `scripts/` directory
 
-### Data Layer (`scripts/data.py`)
-- Helius transaction fetching
-- Cielo P&L data with smart pagination
-- Automatic timeframe fallback (max → 30d → 7d → 1d)
-- Early stopping when losers found
+### Shared Utilities
+The `scripts/` directory contains utilities used by both bots:
+- **Data Loading**: `data.py` - Fetches wallet data from APIs
+- **Analysis**: `analytics.py`, `instant_stats.py` - Trading analysis
+- **P&L Tracking**: `pnl_service.py` - Profit/loss calculations
+- **Metadata**: `token_metadata.py`, `price_service.py` - Token info
 
-### Analytics (`scripts/analytics.py`)
-- Position size analysis
-- Hold time patterns
-- Win rate calculations
-- Behavioral pattern detection
+### Web Interface
+Browser-based wallet analysis tool:
+- **Application**: `web/web_app_v2.py` - Flask app
+- **Templates**: `web/templates_v2/` - HTML/CSS
+- **Deployment**: Configured for Railway via Procfile
 
-### Instant Stats (`scripts/instant_stats.py`)
-- Quick wallet analysis
-- Key metrics generation
-- Pattern identification
+## Data Flow
 
-## Smart Pagination System
-
-The system now includes intelligent pagination to surface losing trades:
-
-1. **Multi-Page Fetching**: Automatically fetches multiple pages of results
-2. **Timeframe Fallback**: If no losers found in all-time data, falls back to shorter periods
-3. **Early Stopping**: Stops loading once 5 losers are found
-4. **Transparent Loading**: UI shows what timeframe is being displayed
-
-## Database Schema
-
-Uses DuckDB for analytics with tables:
-- `transactions`: Raw transaction data
-- `pnl`: Position P&L data
-- `aggregated_stats`: Overall wallet statistics
-- `trading_stats`: Historical performance
-- `data_window_info`: Pagination metadata
-
-## Environment Variables
-
-Required:
-- `CIELO_KEY`: Cielo API key for P&L data
-- `HELIUS_KEY`: Helius API key for transactions
-- `OPENAI_API_KEY`: OpenAI key for AI insights (optional)
-- `TELEGRAM_BOT_TOKEN`: Telegram bot token (for bot only)
-
-## Testing
-
-Run comprehensive tests:
-```bash
-python test_pagination_comprehensive.py
+### Coach Bot Flow
+```
+User Trade → Blockchain → Monitor → Pattern Detection → State Check → Response
+                                           ↓                ↓
+                                    Database Storage   Conversation Memory
 ```
 
-Test the Telegram bot:
-```bash
-python test_telegram_bot.py
+### Analyzer Bot Flow
+```
+User Command → Load Wallet Data → Analyze Patterns → Generate Insight → Send Response
+                      ↓
+                 Temporary DB
 ```
 
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for detailed testing instructions.
+## Configuration
 
-## Core Components
+### Environment Variables
+Required in `.env`:
+- `TELEGRAM_BOT_TOKEN` - Bot token from BotFather
+- `HELIUS_KEY` - Helius API for transaction data
+- `CIELO_KEY` - Cielo API for P&L tracking
+- `OPENAI_API_KEY` - OpenAI for AI features (optional)
 
-### 1. `telegram_bot_coach.py`
-The main bot application that handles:
-- User commands (`/connect`, `/stats`, `/note`)
-- Real-time wallet monitoring
-- Trade detection and processing
-- Message handling and responses
+### Database Schema
+The coach bot uses DuckDB with tables for:
+- User wallets and monitoring status
+- Transaction history
+- Conversation state
+- Trading patterns
+- User annotations
 
-### 2. `state_manager.py`
-Manages conversation state and memory:
-- Token notebooks tracking per-token conversation state
-- Open questions queue to prevent duplicates
-- Risk context calculation (exposure %, P&L)
-- Persistent storage with critical event saves
-- User isolation and thread safety
+## Development
 
-### 3. `nudge_engine.py` 
+### Running Locally
+```bash
+# Coach bot
+python telegram_bot_coach.py
+
+# Analyzer bot
+python telegram_bot_simple.py
+
+# Web interface
+python web/web_app_v2.py
+```
+
+### Testing
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run specific test
+python -m pytest tests/unit/test_state_manager.py
+```
+
+### Adding Features
+1. For coach bot features, modify the appropriate component
+2. For shared functionality, add to `scripts/`
+3. Update tests and documentation
+4. Test with both bots if applicable

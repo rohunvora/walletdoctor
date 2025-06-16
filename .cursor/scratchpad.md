@@ -87,7 +87,7 @@ Build a context-aware AI layer that:
 - `scripts/price_service.py` - Price data and caching
 
 ### Web Interface (Separate Product):
-- `web_app_v2.py` - Web-based wallet analysis
+- `web/web_app_v2.py` - Web-based wallet analysis
 - `telegram_bot_simple.py` - Original simple bot (deprecated?)
 
 ### Documentation:
@@ -99,10 +99,10 @@ Build a context-aware AI layer that:
 
 ### Immediate Priority:
 Before adding AI complexity, we need to:
-1. **Clean up the repository** - Remove deprecated files
-2. **Consolidate documentation** - Single source of truth
+1. **Clean up the repository** - Remove deprecated files ✅
+2. **Consolidate documentation** - Single source of truth ✅
 3. **Fix known bugs** - P&L accuracy, classification issues
-4. **Establish clear architecture** - What each component does
+4. **Establish clear architecture** - What each component does ✅
 
 ### Then Build Context Layer:
 1. **Start Small** - Just improve stop loss vs profit taking classification
@@ -125,15 +125,62 @@ Before adding AI complexity, we need to:
 - Web dashboards (until bot is perfect)
 
 ## 📝 Technical Debt to Address
-1. Multiple database files (consolidate to one)
-2. Two telegram bots (deprecate simple version?)
-3. Scattered documentation (consolidate to README + this file)
+1. Multiple database files (consolidate to one) ✅
+2. Two telegram bots (deprecate simple version?) ❌ (Both serve different purposes)
+3. Scattered documentation (consolidate to README + this file) ✅
 4. Test coverage (many tests but unclear what's tested)
 5. Error handling (some edge cases not covered)
 
 ## 🔄 Next Actions
-1. Clean up repository structure
-2. Update README with accurate current state
-3. Document the context-aware AI approach
-4. Create implementation plan for AI layer
-5. Begin with thin slice: intent classification 
+1. Clean up repository structure ✅
+2. Update README with accurate current state ✅
+3. Document the context-aware AI approach ✅
+4. Create implementation plan for AI layer ✅
+5. Begin with thin slice: intent classification
+
+---
+
+## 📋 Executor's Update: Repository Cleanup Complete
+
+### ✅ Completed Actions:
+
+1. **Repository Structure Reorganized**
+   - Created `web/` directory for web interface files
+   - Created `management/` directory for bot scripts
+   - Created `docs/archive/` for historical documentation
+   - Moved all files to appropriate locations
+
+2. **Database Cleanup**
+   - Kept `pocket_coach.db` as production database
+   - Backed up and removed `coach.db` and `wallet_coach.db`
+   - Confirmed `telegram_bot_simple.py` uses temporary databases
+
+3. **Documentation Updated**
+   - README now clearly distinguishes two products
+   - PROJECT_STRUCTURE.md reflects new organization
+   - BOT_MANAGEMENT.md updated with new script paths
+   - Created CONTEXT_AWARE_AI_PLAN.md for next phase
+   - Created REPOSITORY_CLEANUP_PLAN.md for reference
+
+4. **Path References Fixed**
+   - Updated Procfile for web deployment
+   - Fixed all script paths in documentation
+   - Ensured all imports will work correctly
+
+### 📊 Current Clean Structure:
+```
+Root: Bot files + core components
+├── scripts/: Shared utilities
+├── web/: Web interface
+├── management/: Bot scripts
+├── docs/: Active documentation
+│   └── archive/: Historical docs
+└── tests/: Test suite
+```
+
+### 🎯 Ready for Next Phase:
+The repository is now clean and organized. We can proceed with:
+1. Fixing known bugs (P&L accuracy, classification)
+2. Implementing the context-aware AI layer
+
+The ground truth is established and the path forward is clear. 
