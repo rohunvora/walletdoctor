@@ -69,6 +69,30 @@ Tradebro provides brutal, actionable insights about your trading:
 - Multi-wallet comparison
 - Database management
 
+## Features
+
+- **Real-time Trade Monitoring**: Detects swaps within 5 seconds
+- **Pattern Recognition**: Identifies repeat tokens, position sizing, hold times
+- **Conversational Nudges**: Asks thoughtful questions, not generic alerts
+- **P&L Integration**: Shows realized and unrealized profit/loss
+- **Trade Notes**: Annotate trades to help the bot learn your style
+- **Personal Stats**: Track your win rate, average hold times, and patterns
+
+## State-Based Memory System
+
+The bot uses a sophisticated state management system to ensure conversations feel natural and never repetitive:
+
+- **Token Notebooks**: Maintains conversation state for each token you trade
+- **No Duplicate Questions**: Won't ask the same question twice until you answer
+- **Risk Context**: Automatically adds portfolio exposure or P&L context when relevant
+- **Persistent Memory**: Survives bot restarts and remembers all conversations
+- **User Isolation**: Each user has completely separate conversation state
+
+Example:
+- First BONK trade: "BONK again? What's different this time?"
+- Second BONK trade: [No question - waiting for your answer]
+- High exposure trade: "You're at 22% of bankroll in VIBE—same whale thesis?"
+
 ## 📋 Prerequisites
 
 - Python 3.8-3.12

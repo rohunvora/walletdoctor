@@ -164,3 +164,41 @@ After pushing changes:
    - Compare with Cielo website
    - Check that losers match expected values
    - Ensure no duplicate tokens 
+
+## Testing Conversational Features
+
+### Test the State-Based Memory System
+
+1. **Test Duplicate Prevention**:
+   ```
+   - Make a trade in token A
+   - Bot asks a question
+   - Make another trade in token A
+   - Bot should NOT ask again (waiting for answer)
+   ```
+
+2. **Test Risk Context**:
+   ```
+   - Make a large trade (>20% of portfolio)
+   - Bot should include exposure % in question
+   - Make a trade with large P&L (>10 SOL)
+   - Bot should mention P&L in question
+   ```
+
+3. **Test Answer Tracking**:
+   ```
+   - Make a trade and get a question
+   - Reply with your reason
+   - Make another trade in same token
+   - Bot should ask a new question (not repeat)
+   ```
+
+4. **Test Persistence**:
+   ```
+   - Make a trade and get a question
+   - Restart the bot
+   - Make another trade in same token
+   - Bot should still remember unanswered question
+   ```
+
+### Test Text-First Mode 

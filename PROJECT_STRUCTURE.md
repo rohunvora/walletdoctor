@@ -128,4 +128,23 @@ Test the Telegram bot:
 python test_telegram_bot.py
 ```
 
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for detailed testing instructions. 
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) for detailed testing instructions.
+
+## Core Components
+
+### 1. `telegram_bot_coach.py`
+The main bot application that handles:
+- User commands (`/connect`, `/stats`, `/note`)
+- Real-time wallet monitoring
+- Trade detection and processing
+- Message handling and responses
+
+### 2. `state_manager.py`
+Manages conversation state and memory:
+- Token notebooks tracking per-token conversation state
+- Open questions queue to prevent duplicates
+- Risk context calculation (exposure %, P&L)
+- Persistent storage with critical event saves
+- User isolation and thread safety
+
+### 3. `nudge_engine.py` 
