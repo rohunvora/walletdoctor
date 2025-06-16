@@ -188,67 +188,129 @@ class PatternService:
         return None
     
     async def check_repeat_token(self, context: Dict) -> Optional[Dict]:
-        """Check if user has traded this token before"""
+        """Check if user has traded this token before and track position status"""
         try:
             wallet_address = context["wallet_address"]
             token_address = context["token_address"]
             token_symbol = context["token_symbol"]
             action = context["action"]
+            user_id = context.get("user_id")
+            
+            # Get position history from conversation manager if available
+            position_info = None
+            if hasattr(self, 'conversation_manager') and self.conversation_manager and user_id:
+                try:
+                    position_info = await self.conversation_manager.get_token_position_history(
+                        user_id, token_address
+                    )
+                except:
+                    pass
             
             # Try P&L service first if available
             if self.pnl_service:
                 try:
                     pnl_data = await self.pnl_service.get_token_pnl_data(wallet_address, token_address)
                     
-                    if pnl_data and pnl_data.get('total_trades', 0) > 0:
+                    if pnl_data and pnl_data.get('total_trades', 0) > 1:
+                        pattern_data = {
+                            "times_traded": pnl_data['total_trades'],
+                            "total_pnl": pnl_data['realized_pnl_usd'],
+                            "win_rate": pnl_data['win_rate'],
+                            "token_symbol": pnl_data['token_symbol'],
+                            "has_open_position": pnl_data.get('has_open_position', False),
+                            "unrealized_pnl_usd": pnl_data.get('unrealized_pnl_usd', 0),
+                            "action": action
+                        }
+                        
+                        # Add position info if available
+                        if position_info:
+                            pattern_data.update({
+                                "buy_count": position_info.get('buy_count', 0),
+                                "sell_count": position_info.get('sell_count', 0),
+                                "remaining_tokens": position_info.get('remaining_tokens', 0),
+                                "is_final_exit": position_info.get('is_closed', False) and action == 'SELL'
+                            })
+                        
                         return {
                             "type": "repeat_token",
                             "confidence": 0.9,
-                            "data": {
-                                "times_traded": pnl_data['total_trades'],
-                                "total_pnl": pnl_data['realized_pnl_usd'],
-                                "win_rate": pnl_data['win_rate'],
-                                "token_symbol": pnl_data['token_symbol'],
-                                "has_open_position": pnl_data.get('has_open_position', False),
-                                "unrealized_pnl_usd": pnl_data.get('unrealized_pnl_usd', 0),
-                                "action": action
-                            }
+                            "data": pattern_data
                         }
                 except Exception as e:
                     logger.warning(f"P&L service failed, using local database fallback: {e}")
             
             # Always try local database fallback
             db = self._get_db()
-            result = db.execute("""
+            
+            # Get complete trade history for this token
+            trades = db.execute("""
                 SELECT 
-                    COUNT(*) as times_traded,
-                    COALESCE(SUM(pnl_usd), 0) as total_pnl,
-                    SUM(CASE WHEN pnl_usd > 0 THEN 1 ELSE 0 END) as wins,
-                    MIN(token_symbol) as symbol
+                    action,
+                    sol_amount,
+                    token_amount,
+                    pnl_usd,
+                    timestamp
                 FROM user_trades
                 WHERE wallet_address = ?
                 AND token_address = ?
-                AND timestamp < CURRENT_TIMESTAMP
-            """, [wallet_address, token_address]).fetchone()
+                ORDER BY timestamp ASC
+            """, [wallet_address, token_address]).fetchall()
+            
+            # Calculate position
+            total_bought = 0
+            total_sold = 0
+            buy_count = 0
+            sell_count = 0
+            total_pnl = 0
+            wins = 0
+            
+            for trade_action, sol_amt, token_amt, pnl, ts in trades:
+                if trade_action == 'BUY':
+                    total_bought += token_amt
+                    buy_count += 1
+                else:  # SELL
+                    total_sold += token_amt
+                    sell_count += 1
+                    if pnl and pnl > 0:
+                        wins += 1
+                    if pnl:
+                        total_pnl += pnl
+            
+            remaining_tokens = total_bought - total_sold
+            times_traded = buy_count + sell_count
+            win_rate = wins / sell_count if sell_count > 0 else 0
             
             # Close if we created a new connection
             if not self.db:
                 db.close()
             
-            if result and result[0] >= 1:
-                times_traded, total_pnl, wins, symbol = result
-                win_rate = wins / times_traded if times_traded > 0 else 0
+            if times_traded >= 2:
+                pattern_data = {
+                    "times_traded": times_traded,
+                    "total_pnl": total_pnl,
+                    "win_rate": win_rate,
+                    "token_symbol": token_symbol,
+                    "action": action,
+                    "buy_count": buy_count,
+                    "sell_count": sell_count,
+                    "remaining_tokens": remaining_tokens,
+                    "has_open_position": remaining_tokens > 0
+                }
+                
+                # Check if this is a final exit
+                if action == 'SELL' and remaining_tokens > 0:
+                    # This could be the final exit if selling all remaining
+                    # We'd need the current trade amount to be sure
+                    pattern_data["is_partial_exit"] = True
+                    pattern_data["is_final_exit"] = False
+                elif action == 'SELL' and remaining_tokens <= 0:
+                    pattern_data["is_partial_exit"] = False
+                    pattern_data["is_final_exit"] = True
                 
                 return {
                     "type": "repeat_token",
                     "confidence": 0.8,
-                    "data": {
-                        "times_traded": times_traded,
-                        "total_pnl": total_pnl or 0,
-                        "win_rate": win_rate,
-                        "token_symbol": symbol or token_symbol,
-                        "action": action
-                    }
+                    "data": pattern_data
                 }
         
         except Exception as e:
