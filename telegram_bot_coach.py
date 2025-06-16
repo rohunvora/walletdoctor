@@ -827,6 +827,12 @@ _Based on your actual trading history._
                 if 'token_address' not in context['pattern_data']:
                     context['pattern_data']['token_address'] = token_address
                 
+                # Add P&L data from notebook for loss/profit awareness
+                if 'live_pnl_sol' in notebook:
+                    context['pattern_data']['live_pnl_sol'] = notebook['live_pnl_sol']
+                    # Convert SOL P&L to USD (approximate)
+                    context['pattern_data']['pnl_usd'] = notebook['live_pnl_sol'] * 150  # Rough SOL price
+                
                 logger.info(f"Generating nudge with context: {context}")
                 question, keyboard = self.nudge_engine.get_nudge(context)
                 logger.info(f"Generated question: '{question}' with keyboard: {keyboard is not None}")
