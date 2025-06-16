@@ -1,214 +1,160 @@
-# Tradebro 🏥
+# WalletDoctor 🏥
 
-Analyze your Solana wallet trading patterns and get harsh, direct insights backed by data. No fluff, no generic advice - just brutal truths about your trading behavior.
+Two powerful Telegram bots for Solana traders:
 
-## 🚀 Quick Start
+## 🤖 Pocket Trading Coach
+Real-time trade monitoring that helps you recognize patterns through conversational coaching. Watches your trades as they happen and asks thoughtful questions.
 
-### Web Interface
+## 📊 Tradebro Analyzer  
+Harsh wallet analysis that shows exactly why you're losing money. No sugar-coating - just brutal truths backed by data.
+
+---
+
+## Pocket Trading Coach - Real-Time Monitoring
+
+### What It Does
+Watches your trades and asks thoughtful questions to build self-awareness:
+
+**You**: *buys BONK for the 7th time*  
+**Bot**: "BONK again? Last 6 times cost you -$4,732. What's different now?"
+
+**You**: *enters 3x normal position size*  
+**Bot**: "Big jump in size (3.2×). Conviction play or revenge trade?"
+
+**You**: *sells at -49% loss*  
+**Bot**: "Cutting MAG losses? What changed your thesis?"
+
+### Key Features
+- **Real-Time Monitoring**: Detects trades within 5 seconds
+- **Smart Conversations**: State-based memory, never repeats questions
+- **P&L Awareness**: Different responses for profits vs losses
+- **Pattern Recognition**: Learns your habits over time
+
+### Running the Coach Bot
 ```bash
-# Set your API keys
-export CIELO_KEY="your_cielo_api_key"
-export HELIUS_KEY="your_helius_api_key"
-export OPENAI_API_KEY="your_openai_key"  # Optional, for AI insights
-
-# Run the web interface
-python web_app_v2.py
+python telegram_bot_coach.py
 ```
 
-Visit: http://localhost:5002
+Commands:
+- `/start` - Welcome and setup
+- `/connect <wallet>` - Link wallet for monitoring
+- `/disconnect` - Stop monitoring
+- `/stats` - View trading statistics
+- `/note <text>` - Add context to trades
 
-### Telegram Bot
+---
+
+## Tradebro Analyzer - Brutal Wallet Analysis
+
+### What It Does
+Analyzes your wallet and delivers one perfect insight about why you're losing:
+
+**Input**: Your wallet address  
+**Output**: The ONE behavior that's costing you the most money
+
+Examples:
+- "You lost $4,732 on BONK. Down 67%. Classic pump chase."
+- "23 trades on one token. Each one making it worse."
+- "Still holding. Still hoping. Hope isn't a strategy."
+
+### Running the Analyzer Bot
 ```bash
-# Set up your bot token
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-
-# Run the bot
 python telegram_bot_simple.py
 ```
 
-See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
+Commands:
+- `/analyze <wallet>` - Get brutal truth about your trading
+- `/grade <wallet>` - Trading report card with creative labels
 
-## 🎯 What It Does
+## 🚀 Quick Start
 
-Tradebro provides brutal, actionable insights about your trading:
-
-**Before**: "Consider improving your risk management strategy"  
-**After**: "You hold losers 3.2x longer than winners. This cost you $127,453."
-
-### Core Insights
-- **Position Size Analysis**: Which entry sizes actually make money
-- **Hold Time Patterns**: Your profitable vs unprofitable time windows
-- **Bag Holding Detection**: Exactly how much holding losers costs you
-- **Overtrading Alerts**: When you're gambling, not trading
-- **Win Rate Reality**: No sugar coating, just facts
-
-## 🛠️ Features
-
-### Web Application
-- Instant wallet analysis with visual insights
-- Interactive charts and statistics
-- Smart pagination to surface losing trades (even for wallets with 100+ winners)
-- Export capabilities for further analysis
-- Responsive design for mobile and desktop
-
-### Telegram Bot
-- Interactive trading journal
-- Pattern annotation and tracking
-- Real-time monitoring and alerts
-- Personalized trading rules based on your patterns
-
-### Smart Data Loading
-- **Pagination Support**: Automatically fetches multiple pages to find losers
-- **Adaptive Timeframes**: Falls back to shorter periods (30d, 7d, 1d) when needed
-- **Early Stopping**: Stops loading once sufficient losers are found
-- **Transparent Loading**: Shows exactly what data period is being displayed
-
-### CLI Tools
-- Batch wallet analysis
-- Deep behavioral pattern detection
-- Multi-wallet comparison
-- Database management
-
-## Features
-
-- **Real-time Trade Monitoring**: Detects swaps within 5 seconds
-- **Pattern Recognition**: Identifies repeat tokens, position sizing, hold times
-- **Conversational Nudges**: Asks thoughtful questions, not generic alerts
-- **P&L Integration**: Shows realized and unrealized profit/loss
-- **Trade Notes**: Annotate trades to help the bot learn your style
-- **Personal Stats**: Track your win rate, average hold times, and patterns
-
-## State-Based Memory System
-
-The bot uses a sophisticated state management system to ensure conversations feel natural and never repetitive:
-
-- **Token Notebooks**: Maintains conversation state for each token you trade
-- **No Duplicate Questions**: Won't ask the same question twice until you answer
-- **Risk Context**: Automatically adds portfolio exposure or P&L context when relevant
-- **Persistent Memory**: Survives bot restarts and remembers all conversations
-- **User Isolation**: Each user has completely separate conversation state
-
-Example:
-- First BONK trade: "BONK again? What's different this time?"
-- Second BONK trade: [No question - waiting for your answer]
-- High exposure trade: "You're at 22% of bankroll in VIBE—same whale thesis?"
-
-## 📋 Prerequisites
-
+### Prerequisites
 - Python 3.8-3.12
-- API keys:
+- Telegram Bot Token (get from [@BotFather](https://t.me/botfather))
+- API Keys:
   - [Helius](https://dev.helius.xyz/) - Transaction data
-  - [Cielo](https://cielo.finance/) - P&L analysis
-  - [OpenAI](https://platform.openai.com/) - AI insights (optional)
-  - [Telegram Bot Token](https://core.telegram.org/bots#how-do-i-create-a-bot) - For bot features
+  - [Cielo](https://cielo.finance/) - P&L tracking
 
-## 🔧 Installation
+### Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/tradebro.git
-cd tradebro
-```
+# Clone repository
+git clone https://github.com/yourusername/walletdoctor.git
+cd walletdoctor
 
-2. Create a virtual environment:
-```bash
+# Create virtual environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-3. Install dependencies:
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-4. Set up API keys:
-```bash
-# Copy the example environment file
+# Set up environment
 cp env.example .env
-
-# Edit .env and add your API keys
+# Edit .env with your API keys
 ```
 
-## 💻 CLI Usage (Advanced)
+### Choose Your Bot
 
-### Load wallet data:
+**For real-time coaching:**
 ```bash
-python scripts/coach.py load <wallet-address>
+python telegram_bot_coach.py
+# Or use: ./start_bot.sh
 ```
 
-### View statistics:
+**For wallet analysis:**
 ```bash
-python scripts/coach.py stats
+python telegram_bot_simple.py
 ```
 
-### Get instant analysis:
-```bash
-python scripts/coach.py instant <wallet-address>
+## 🏗️ Architecture
+
+### Pocket Trading Coach
+```
+Your Wallet → Monitor → Pattern Detection → State Manager → Nudge Engine → Telegram
+                ↓                              ↓
+          Trade History                 Conversation Memory
 ```
 
-### Interactive AI chat:
-```bash
-python scripts/coach.py chat
+Core files: `telegram_bot_coach.py`, `state_manager.py`, `pattern_service.py`, `nudge_engine.py`
+
+### Tradebro Analyzer
+```
+Wallet Address → Load Historical Data → Analyze Patterns → Generate Insight → Telegram
 ```
 
-## 📊 Example Output
+Core file: `telegram_bot_simple.py`
 
-```
-💰 YOUR POSITION SIZE SWEET SPOT
-Best size range: $1K-5K (Total P&L: $127,453)
-Worst size range: >$50K (Total P&L: -$84,291)
-$1K-5K win rate: 47%
->$50K win rate: 18%
-THE FIX: Stick to $1K-5K positions. Your >$50K trades are ego, not edge.
+## 🔒 Privacy & Security
 
-⏰ YOUR PROFITABLE TIME WINDOW
-<10min: 18% win rate, -$67k total
-2-6hr: 52% win rate, +$89k total ← YOUR ZONE
->24hr: 22% win rate, -$94k total
-THE FIX: Set alerts at 2hr and 6hr. That's your zone.
-```
-
-## 🚀 Deployment
-
-The app is designed to run on [Railway](https://railway.app):
-
-1. Fork this repository
-2. Connect Railway to your GitHub
-3. Set environment variables in Railway
-4. Deploy!
-
-See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for detailed instructions.
-
-## 🧠 Deep Behavioral Analysis
-
-The system detects patterns like:
-- **Loss Aversion**: Holding losers longer than winners
-- **Revenge Trading**: Increasing size after losses
-- **FOMO Spirals**: Quick trades with poor outcomes
-- **Overtrading**: Too many positions, too little thought
-- **Position Sizing Issues**: When bigger isn't better
-
-Each pattern is:
-- Validated with statistical significance (p-values)
-- Backed by multiple data points
-- Given a confidence score
-- Paired with a specific, actionable fix
-
-## 📚 Documentation
-
-- [Project Structure](PROJECT_STRUCTURE.md) - Detailed code organization
-- [Architecture](docs/ARCHITECTURE.md) - System design and components
-- [Quick Start Guide](QUICKSTART.md) - Get started in 5 minutes
-- [Railway Deployment](RAILWAY_DEPLOYMENT.md) - Deploy to production
+- Each user's data is completely isolated
+- No sharing between users
+- API keys stored securely in environment variables
+- Trade data stored locally in DuckDB
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We welcome contributions! Key areas:
+- Improving pattern detection
+- Adding new conversation templates
+- Enhancing P&L accuracy
+- Building the context-aware AI layer
 
-## ⚠️ Security Note
+## 📚 Documentation
 
-**Never commit API keys to version control!** Always use environment variables or a `.env` file (which should be in `.gitignore`).
+- [Bot Management Guide](BOT_MANAGEMENT.md) - Start/stop/monitor the bot
+- [Testing Guide](TESTING_GUIDE.md) - How to test changes
+- [Architecture Details](.cursor/scratchpad.md) - Internal documentation
+
+## ⚠️ Current Limitations
+
+The bot uses rule-based logic which can sometimes:
+- Misclassify user intent ("cut position" while in profit)
+- Show incorrect P&L data (API limitations)
+- Feel repetitive despite state management
+
+We're building a context-aware AI layer to address these issues.
 
 ## 📝 License
 
-MIT License - see LICENSE file for details.
+MIT License - see LICENSE file for details
