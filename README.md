@@ -23,7 +23,7 @@ Visit: http://localhost:5002
 export TELEGRAM_BOT_TOKEN="your_bot_token"
 
 # Run the bot
-python run_telegram_bot.py
+python telegram_bot_simple.py
 ```
 
 See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
@@ -47,13 +47,21 @@ Tradebro provides brutal, actionable insights about your trading:
 ### Web Application
 - Instant wallet analysis with visual insights
 - Interactive charts and statistics
+- Smart pagination to surface losing trades (even for wallets with 100+ winners)
 - Export capabilities for further analysis
+- Responsive design for mobile and desktop
 
 ### Telegram Bot
 - Interactive trading journal
 - Pattern annotation and tracking
 - Real-time monitoring and alerts
 - Personalized trading rules based on your patterns
+
+### Smart Data Loading
+- **Pagination Support**: Automatically fetches multiple pages to find losers
+- **Adaptive Timeframes**: Falls back to shorter periods (30d, 7d, 1d) when needed
+- **Early Stopping**: Stops loading once sufficient losers are found
+- **Transparent Loading**: Shows exactly what data period is being displayed
 
 ### CLI Tools
 - Batch wallet analysis

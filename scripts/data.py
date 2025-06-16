@@ -3,10 +3,11 @@ import os
 import requests
 import duckdb
 import pandas as pd
+import traceback
 from typing import Optional, Dict, List, Any, Tuple
 from datetime import datetime, timedelta
 
-# Try to load from .env file if it exists (for local development)
+# Try to load environment variables
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -271,10 +272,7 @@ def load_wallet(
         if tx_data:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(tx_data)} transactions")
             # Normalize and store transaction data
-            try:
-                from scripts.transforms import normalize_helius_transactions
-            except ModuleNotFoundError:
-                from transforms import normalize_helius_transactions
+            from scripts.transforms import normalize_helius_transactions
             tx_df = normalize_helius_transactions(tx_data)
             # Clear existing data for this wallet
             try:
@@ -429,10 +427,7 @@ def load_wallet(
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] This wallet likely has more trading data than we can process in instant mode")
             
             # Normalize and store PnL data
-            try:
-                from scripts.transforms import normalize_cielo_pnl
-            except ModuleNotFoundError:
-                from transforms import normalize_cielo_pnl
+            from scripts.transforms import normalize_cielo_pnl
             pnl_df = normalize_cielo_pnl({'tokens': tokens})
             # Clear existing PnL data
             try:
@@ -454,7 +449,6 @@ def load_wallet(
             
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Error loading wallet: {str(e)}")
-        import traceback
         traceback.print_exc()
         return False
 
