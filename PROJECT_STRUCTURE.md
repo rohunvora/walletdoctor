@@ -1,11 +1,10 @@
 # Project Structure
 
 ## Overview
-This repository contains two distinct Telegram bots and a web interface for Solana trading analysis:
+This repository contains two Telegram bots for Solana trading analysis:
 
 1. **Pocket Trading Coach** (`telegram_bot_coach.py`) - Real-time trade monitoring and coaching
 2. **Tradebro Analyzer** (`telegram_bot_simple.py`) - Harsh wallet analysis
-3. **Web Interface** (`web/`) - Browser-based wallet analysis
 
 ## Directory Structure
 
@@ -40,11 +39,6 @@ walletdoctor/
 │   ├── llm.py            # LLM integration
 │   └── transforms.py      # Data transformations
 │
-├── web/                    # Web interface
-│   ├── web_app_v2.py      # Flask application
-│   ├── wsgi_v2.py         # WSGI entry point
-│   └── templates_v2/      # HTML templates
-│
 ├── management/            # Bot management scripts
 │   ├── start_bot.sh      # Start the coach bot
 │   ├── stop_bot.sh       # Stop the coach bot
@@ -62,6 +56,13 @@ walletdoctor/
 │   ├── unit/            # Unit tests
 │   └── integration/     # Integration tests
 │
+├── archive/             # Archived/deprecated components
+│   ├── web/            # ARCHIVED: Web interface (no longer maintained)
+│   ├── db_migrations.py # ARCHIVED: Web app dependency
+│   ├── Procfile        # ARCHIVED: Railway deployment
+│   ├── railway.json    # ARCHIVED: Railway config
+│   └── RAILWAY_DEPLOYMENT.md # ARCHIVED: Deployment docs
+│
 ├── .cursor/             # Cursor workspace
 │   └── scratchpad.md   # Internal documentation
 │
@@ -71,9 +72,7 @@ walletdoctor/
 ├── LICENSE            # MIT license
 ├── README.md          # Main documentation
 ├── BOT_MANAGEMENT.md  # Bot operation guide
-├── TESTING_GUIDE.md   # Testing instructions
-├── Procfile          # Railway deployment
-└── railway.json      # Railway configuration
+└── TESTING_GUIDE.md   # Testing instructions
 ```
 
 ## Key Components
@@ -98,12 +97,6 @@ The `scripts/` directory contains utilities used by both bots:
 - **Analysis**: `analytics.py`, `instant_stats.py` - Trading analysis
 - **P&L Tracking**: `pnl_service.py` - Profit/loss calculations
 - **Metadata**: `token_metadata.py`, `price_service.py` - Token info
-
-### Web Interface
-Browser-based wallet analysis tool:
-- **Application**: `web/web_app_v2.py` - Flask app
-- **Templates**: `web/templates_v2/` - HTML/CSS
-- **Deployment**: Configured for Railway via Procfile
 
 ## Data Flow
 
@@ -147,9 +140,6 @@ python telegram_bot_coach.py
 
 # Analyzer bot
 python telegram_bot_simple.py
-
-# Web interface
-python web/web_app_v2.py
 ```
 
 ### Testing
@@ -166,3 +156,9 @@ python -m pytest tests/unit/test_state_manager.py
 2. For shared functionality, add to `scripts/`
 3. Update tests and documentation
 4. Test with both bots if applicable
+
+## Archived Components
+
+The `archive/` directory contains deprecated components that are no longer actively maintained:
+- **Web Interface**: Flask-based web app for wallet analysis (use Telegram bots instead)
+- **Railway Deployment**: Deployment configuration for the web app
