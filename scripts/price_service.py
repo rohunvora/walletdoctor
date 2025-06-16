@@ -20,6 +20,7 @@ class PriceService:
         self.helius_key = os.getenv('HELIUS_KEY')
         self.cache: Dict[str, Dict] = {}  # Simple in-memory cache
         self.sol_mint = "So11111111111111111111111111111111111111112"
+        self.default_sol_price = 175.0  # Updated fallback price (June 2024)
         
     async def get_sol_price_at_time(self, timestamp: int) -> Optional[float]:
         """Get SOL/USD price at a specific timestamp"""
@@ -31,7 +32,7 @@ class PriceService:
             
         except Exception as e:
             logger.error(f"Error getting SOL price at time: {e}")
-            return None
+            return self.default_sol_price
     
     async def get_current_sol_price(self) -> Optional[float]:
         """Get current SOL/USD price from Jupiter"""
@@ -43,7 +44,9 @@ class PriceService:
                 if time.time() - cached['timestamp'] < 60:
                     return cached['price']
             
-            async with aiohttp.ClientSession() as session:
+            # Create session with timeout
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 url = f"{self.jupiter_api}/price?ids=SOL"
                 async with session.get(url) as response:
                     if response.status == 200:
@@ -59,11 +62,15 @@ class PriceService:
                         return float(sol_price)
                     else:
                         logger.error(f"Failed to get SOL price: {response.status}")
-                        return None
+                        return self.default_sol_price
                         
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout getting SOL price, using default: ${self.default_sol_price}")
+            return self.default_sol_price
         except Exception as e:
             logger.error(f"Error fetching SOL price: {e}")
-            return None
+            logger.warning(f"Using default SOL price: ${self.default_sol_price}")
+            return self.default_sol_price
     
     async def get_token_price(self, token_mint: str) -> Optional[float]:
         """Get current token price in USD"""
@@ -75,7 +82,9 @@ class PriceService:
                 if time.time() - cached['timestamp'] < 300:  # 5 minute cache
                     return cached['price']
             
-            async with aiohttp.ClientSession() as session:
+            # Create session with timeout
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 url = f"{self.jupiter_api}/price?ids={token_mint}"
                 async with session.get(url) as response:
                     if response.status == 200:
@@ -104,8 +113,8 @@ class PriceService:
             # Get SOL price at transaction time
             sol_price = await self.get_sol_price_at_time(timestamp)
             if not sol_price:
-                logger.warning("Could not get SOL price")
-                return {'sol_usd': None, 'token_usd': None, 'price_per_token': None}
+                logger.warning("Could not get SOL price, using default")
+                sol_price = self.default_sol_price
             
             # Calculate SOL USD value
             sol_usd = sol_amount * sol_price if sol_amount > 0 else None

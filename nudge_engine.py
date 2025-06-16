@@ -42,23 +42,24 @@ class NudgeEngine:
         if openai_api_key:
             self.openai_client = AsyncOpenAI(api_key=openai_api_key)
         
-        # Regex patterns for fallback tagging
+        # Regex patterns for tag extraction with context awareness
         self.tag_patterns = {
-            # Emotional/psychological patterns
-            r'\b(fomo|fear|missing out|late to)\b': 'fomo',
-            r'\b(revenge|angry|mad|recover|get back)\b': 'revenge_trade',
-            r'\b(panic|scared|dump|crash)\b': 'panic_sell',
-            r'\b(gut|feel|vibe|feeling|instinct)\b': 'intuition',
+            # FOMO/Momentum
+            r'\b(fomo|fear of missing)\b': 'fomo',
+            r'\b(pump|moon|rocket|flying)\b': 'chasing_pump',
+            r'\b(hype|hyped|trending)\b': 'hype_follow',
             
             # Following others
-            r'\b(whale|follow|copy|wallet|smart money|insider)\b': 'whale_follow',
+            r'\b(whale|whales)\b': 'whale_follow',
             r'\b(everyone|they|people|crowd|hype)\b': 'crowd_follow',
             
             # Price action
             r'\b(dip|discount|cheap|low|bottom)\b': 'buying_dip',
             r'\b(pump|moon|rocket|flying|rip)\b': 'chasing_pump',
             r'\b(profit|gains|cash out|green|up)\b': 'taking_profits',
-            r'\b(stop|loss|cut|red|down)\b': 'stop_loss',
+            # More specific stop loss pattern - requires "loss" or "stop" context
+            r'\b(stop loss|stopping loss|cut losses|cutting losses)\b': 'stop_loss',
+            r'\b(red|down|losing|underwater)\b': 'potential_loss',
             
             # Strategy
             r'\b(test|try|experiment|small|toe)\b': 'testing',
@@ -68,7 +69,7 @@ class NudgeEngine:
             # Uncertainty  
             r'\b(idk|dunno|maybe|perhaps|guess|hope)\b': 'uncertain',
             r'\b(no idea|no clue|not sure|don\'t know)\b': 'uncertain_exit',
-            r'\b(target|goal|exit|plan)\b.*\b(no|none|idk|dunno)\b': 'no_target'
+            r'\b(target|goal|exit|plan).*\b(no|none|idk|dunno)\b': 'no_target'
         }
     
     def get_nudge(self, context: Dict) -> Tuple[str, Optional[InlineKeyboardMarkup]]:
@@ -224,8 +225,10 @@ class NudgeEngine:
                             prev_dt = datetime.fromisoformat(str(prev_timestamp)) if isinstance(prev_timestamp, str) else prev_timestamp
                             hours_ago = (datetime.now() - prev_dt).total_seconds() / 3600
                             
-                            if hours_ago < 1:
-                                mins_ago = int(hours_ago * 60)
+                            if hours_ago < 0.0167:  # Less than 1 minute
+                                time_diff = "just now"
+                            elif hours_ago < 1:
+                                mins_ago = max(1, int(hours_ago * 60))  # Always at least 1 min
                                 time_diff = f"{mins_ago}min ago"
                             elif hours_ago < 24:
                                 time_diff = f"{int(hours_ago)}h ago"
@@ -279,8 +282,10 @@ class NudgeEngine:
                 prev_dt = datetime.fromisoformat(prev_timestamp) if isinstance(prev_timestamp, str) else prev_timestamp
                 hours_ago = (datetime.now() - prev_dt).total_seconds() / 3600
                 
-                if hours_ago < 1:
-                    mins_ago = int(hours_ago * 60)
+                if hours_ago < 0.0167:  # Less than 1 minute
+                    time_diff = "just now"
+                elif hours_ago < 1:
+                    mins_ago = max(1, int(hours_ago * 60))  # Always at least 1 min
                     time_diff = f"{mins_ago}min ago"
                 elif hours_ago < 24:
                     time_diff = f"{int(hours_ago)}h ago"
@@ -311,8 +316,15 @@ class NudgeEngine:
         
         # Time-based callbacks
         elif time_diff:
-            if "min" in time_diff:
-                return f"\n\n💭 Just {time_diff}: \"{prev_text}\" — still true?"
+            if time_diff == "just now":
+                # Skip callback for very recent messages
+                return ""
+            elif "min" in time_diff and int(time_diff.split('min')[0]) < 5:
+                # Only show callback for very recent if it's meaningful
+                if pattern_type == 'repeat_token' and prev_tag in ['fomo', 'whale_follow']:
+                    return f"\n\n💭 {time_diff}: \"{prev_text}\" — how's that going?"
+                else:
+                    return ""  # Skip trivial recent callbacks
             elif "h" in time_diff and int(time_diff.split('h')[0]) < 6:
                 return f"\n\n🕐 {time_diff}: \"{prev_text}\" — quick change?"
             else:
