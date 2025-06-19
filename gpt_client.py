@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 class GPTClient:
     """Client for generating conversational responses using OpenAI's GPT models"""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "o3-mini", 
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini", 
                  timeout: float = 2.0, temperature: float = 0.7):
         """
         Initialize GPT client
         
         Args:
             api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
-            model: Model to use (default: o3-mini for reasoning capability)
+            model: Model to use (default: gpt-4o-mini for cost efficiency)
             timeout: Timeout for API calls (default: 2.0 seconds)
             temperature: Temperature for generating responses (default: 0.7)
         """
@@ -395,7 +395,7 @@ Never:
 
 
 # Factory function
-def create_gpt_client(api_key: str = None, model: str = "o3-mini",
+def create_gpt_client(api_key: str = None, model: str = "gpt-4o-mini",
                      timeout: float = 2.0) -> GPTClient:
     """Create GPT client instance"""
     return GPTClient(api_key=api_key, model=model, timeout=timeout)
