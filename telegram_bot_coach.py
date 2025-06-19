@@ -62,10 +62,10 @@ class PocketCoachBot:
         # Initialize database
         self.init_db()
         
-        # Initialize GPT client
+        # Initialize GPT client with o3-mini thinking model
         self.gpt_client = create_gpt_client(
             api_key=os.getenv("OPENAI_API_KEY"),
-            model="gpt-4o-mini",
+            model="o3-mini",
             timeout=10.0
         )
         
