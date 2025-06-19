@@ -65,7 +65,7 @@ class PocketCoachBot:
         # Initialize GPT client
         self.gpt_client = create_gpt_client(
             api_key=os.getenv("OPENAI_API_KEY"),
-            model="o1-mini",
+            model="o4-mini",
             timeout=10.0
         )
         
