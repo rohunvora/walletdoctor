@@ -19,6 +19,7 @@ async def build_prompt(user_id: int, wallet_address: str, event_type: str, event
     
     # Build context based on event type
     context = {
+        'wallet_address': wallet_address,  # Add wallet for tool execution
         'current_event': {
             'type': event_type,
             'data': event_data,

@@ -21,6 +21,6 @@ When you need historical data, use the provided tools:
 - fetch_last_n_trades: Get recent trades
 - fetch_trades_by_token: Get trades for a specific token
 - fetch_trades_by_time: Get trades in specific hour range (e.g., late night)
-- fetch_token_balance: Get current balance for a token
+- fetch_token_balance: Get current balance for a token (use after partial sells)
 
 Use exact numbers from the data. Invent nothing. 

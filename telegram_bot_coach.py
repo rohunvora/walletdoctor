@@ -563,11 +563,11 @@ _Based on your actual trading history._
             token_metadata = await self.token_metadata_service.get_token_metadata(token_address)
             token_symbol = token_metadata.symbol if token_metadata else 'Unknown'
             
-            # 3. Calculate bankroll after and trade percentage
-            if swap.action == 'BUY':
-                bankroll_after_sol = bankroll_before_sol - sol_amount
-            else:  # SELL
-                bankroll_after_sol = bankroll_before_sol + sol_amount
+            # 3. Get actual bankroll after trade (don't infer from math)
+            # Wait a moment for chain state to update
+            await asyncio.sleep(0.5)
+            bankroll_after_sol = await self._get_sol_balance(wallet_address)
+            logger.info(f"Bankroll after: {bankroll_after_sol:.4f} SOL")
             
             # Calculate exact percentage (no rounding as per requirement)
             trade_pct_bankroll = (sol_amount / bankroll_before_sol) * 100 if bankroll_before_sol > 0 else 0
@@ -623,7 +623,8 @@ _Based on your actual trading history._
                 response = await self.gpt_client.chat_with_tools(
                     system_prompt=coach_prompt,
                     user_message=json.dumps(prompt_data),
-                    tools=self._get_gpt_tools()
+                    tools=self._get_gpt_tools(),
+                    wallet_address=wallet_address  # Pass wallet for tool execution
                 )
                 
                 if response:

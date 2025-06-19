@@ -292,7 +292,7 @@ Never:
                             "messages": messages,
                             "tools": tools,
                             "temperature": self.temperature,
-                            "max_tokens": 150
+                            "max_tokens": 80  # Reduced from 150 to enforce brevity
                         }
                     ),
                     timeout=self.timeout
@@ -370,7 +370,7 @@ Never:
                                 "model": self.model,
                                 "messages": messages,
                                 "temperature": self.temperature,
-                                "max_tokens": 150
+                                "max_tokens": 80  # Reduced from 150 to enforce brevity
                             }
                         ),
                         timeout=self.timeout
