@@ -99,10 +99,11 @@ async def fetch_token_balance(wallet: str, token: str) -> float:
         
         balance = 0.0
         for action, amount in results:
-            if action == 'BUY':
-                balance += amount
-            else:  # SELL
-                balance -= amount
+            if amount is not None:  # Handle None values
+                if action == 'BUY':
+                    balance += amount
+                else:  # SELL
+                    balance -= amount
                 
         return balance
     finally:

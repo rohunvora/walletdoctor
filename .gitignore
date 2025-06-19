@@ -62,3 +62,6 @@ Thumbs.db
 # Data directory
 data/*
 !data/.gitkeep .env
+
+# PID files
+telegram_bot_coach.pid
