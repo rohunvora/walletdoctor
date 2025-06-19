@@ -242,6 +242,58 @@ Never:
     def is_available(self) -> bool:
         """Check if GPT client is available"""
         return bool(self.api_key)
+    
+    async def _simple_chat(self, system_prompt: str, user_message: str) -> Optional[str]:
+        """
+        Simple chat completion without tools (for reasoning models)
+        """
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ]
+            
+            async with httpx.AsyncClient() as client:
+                # For reasoning models, we don't use temperature or max_tokens
+                payload = {
+                    "model": self.model,
+                    "messages": messages
+                }
+                
+                # Only add temperature/max_tokens for non-reasoning models
+                if not any(self.model.startswith(prefix) for prefix in ['o1', 'o4']):
+                    payload["temperature"] = self.temperature
+                    payload["max_tokens"] = 80
+                
+                # Use longer timeout for reasoning models
+                timeout = 30.0 if any(self.model.startswith(prefix) for prefix in ['o1', 'o4']) else self.timeout
+                
+                response = await asyncio.wait_for(
+                    client.post(
+                        self.base_url,
+                        headers={
+                            "Authorization": f"Bearer {self.api_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json=payload
+                    ),
+                    timeout=timeout
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    return data["choices"][0]["message"]["content"].strip()
+                else:
+                    logger.error(f"OpenAI API error in simple chat: {response.status_code} - {response.text}")
+                    return None
+                    
+        except asyncio.TimeoutError:
+            timeout = 30.0 if any(self.model.startswith(prefix) for prefix in ['o1', 'o4']) else self.timeout
+            logger.warning(f"Simple chat request timed out after {timeout}s")
+            return None
+        except Exception as e:
+            logger.error(f"Error in simple chat: {e}")
+            return None
 
     async def chat_with_tools(self, system_prompt: str, user_message: str, tools: list, 
                              wallet_address: str = None, max_calls: int = 3) -> Optional[str]:
@@ -260,6 +312,14 @@ Never:
         """
         if not self.api_key:
             return None
+        
+        # Check if this is a reasoning model (o1, o4 series) - they don't support tools
+        is_reasoning_model = any(self.model.startswith(prefix) for prefix in ['o1', 'o4'])
+        
+        if is_reasoning_model:
+            # Fall back to simple chat completion without tools for reasoning models
+            logger.info(f"Using reasoning model {self.model} - falling back to simple chat without tools")
+            return await self._simple_chat(system_prompt, user_message)
         
         # Import tool functions
         from diary_api import (

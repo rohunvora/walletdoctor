@@ -62,11 +62,11 @@ class PocketCoachBot:
         # Initialize database
         self.init_db()
         
-        # Initialize GPT client
+        # Initialize GPT client with longer timeout for reasoning models
         self.gpt_client = create_gpt_client(
             api_key=os.getenv("OPENAI_API_KEY"),
             model="o4-mini",
-            timeout=10.0
+            timeout=35.0  # Longer timeout for o4-mini reasoning
         )
         
         # Log initialization status
