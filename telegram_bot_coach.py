@@ -24,12 +24,12 @@ from scripts.price_service import PriceService
 from scripts.notification_engine import NotificationEngine
 from scripts.pnl_service import FastPnLService
 
-# Import new conversational components
-from nudge_engine import create_nudge_engine
-from pattern_service import create_pattern_service
-from conversation_manager import create_conversation_manager
-from metrics_collector import create_metrics_collector
-from state_manager import StateManager
+# Import GPT client
+from gpt_client import create_gpt_client
+
+# Import prompt builder and diary API
+from prompt_builder import write_to_diary, build_prompt
+from diary_api import invalidate_cache
 
 # Configure logging
 logging.basicConfig(
@@ -59,22 +59,24 @@ class PocketCoachBot:
         # Initialize notification engine with P&L service
         self.notification_engine = NotificationEngine(pnl_service=self.pnl_service)
         
-        # Initialize state manager for memory
-        self.state_manager = StateManager(self.db_path)
-        
         # Initialize database
         self.init_db()
         
-        # Initialize conversational components with DB path for fresh connections
-        nudge_config = {
-            "text_first_mode": True,
-            "openai_api_key": os.getenv("OPENAI_API_KEY")  # Use environment variable
-        }
-        self.nudge_engine = create_nudge_engine("rules", config=nudge_config)
-        self.pattern_service = create_pattern_service(db_path=self.db_path, pnl_service=self.pnl_service)
-        self.conversation_manager = create_conversation_manager(db_path=self.db_path)
-        self.metrics_collector = create_metrics_collector(None)
+        # Initialize GPT client
+        self.gpt_client = create_gpt_client(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            model="gpt-4o-mini",
+            timeout=10.0
+        )
         
+        # Log initialization status
+        if self.gpt_client.is_available():
+            logger.info("GPT client initialized successfully")
+        else:
+            logger.warning("GPT client not available - check OPENAI_API_KEY environment variable")
+        
+        logger.info("Pocket Trading Coach initialized with lean pipeline")
+    
     def init_db(self):
         """Initialize database schema"""
         db = duckdb.connect(self.db_path)
@@ -342,17 +344,6 @@ _Based on your actual trading history._
                 parse_mode='Markdown'
             )
             
-            # Clear pending context
-            self.conversation_manager.clear_pending_response(user_id)
-            
-            # Track skip
-            self.metrics_collector.record_response(
-                user_id,
-                'unknown',
-                'skip',
-                0
-            )
-            
         elif query.data.startswith('note:'):
             # Legacy button handling (kept for compatibility)
             response_type = query.data.split(':', 1)[1]
@@ -364,218 +355,69 @@ _Based on your actual trading history._
                     parse_mode='Markdown'
                 )
             else:
-                # Store button response (shouldn't happen in text-first mode)
-                metadata = {
-                    'response_type': 'button',
-                    'pattern_type': 'unknown',
-                    'token_symbol': 'unknown',
-                    'timestamp': datetime.now().isoformat()
-                }
-                
-                success = await self.conversation_manager.store_response(
-                    user_id, 
-                    f"temp_{int(datetime.now().timestamp())}",
-                    response_type.replace('_', ' '),
-                    metadata
+                # Legacy response handling
+                await query.edit_message_text(
+                    text=query.message.text + f"\n\n✅ Got it: '{response_type.replace('_', ' ')}' 📝",
+                    parse_mode='Markdown'
                 )
-                
-                if success:
-                    await query.edit_message_text(
-                        text=query.message.text + f"\n\n✅ Got it: '{response_type.replace('_', ' ')}' 📝",
-                        parse_mode='Markdown'
-                    )
-                else:
-                    await query.edit_message_text(
-                        text=query.message.text + "\n\n❌ Error saving response. Try again.",
-                        parse_mode='Markdown'
-                    )
     
     async def handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle text responses in text-first mode with clarifier support"""
+        """Handle text messages with lean pipeline and GPT tools"""
         user_id = update.effective_user.id
         message_text = update.message.text
         
         logger.info(f"Received text message from user {user_id}: '{message_text}'")
         
-        # Check if user has pending response
-        pending_context = self.conversation_manager.get_pending_response(user_id)
+        # Import prompt builder
+        from prompt_builder import write_to_diary, build_prompt
+        import json
         
-        # If no pending context, check if this is a response to a recent nudge
-        if not pending_context:
-            logger.info(f"No pending context for user {user_id}, checking recent trades")
-            # Get the most recent trade context for this user (within last 2 minutes)
+        try:
+            # Get wallet address for user
             db = duckdb.connect(self.db_path)
-            try:
-                result = db.execute("""
-                    SELECT tx_signature, token_address, token_symbol, action
-                    FROM user_trades
-                    WHERE user_id = ?
-                    AND timestamp > CURRENT_TIMESTAMP - INTERVAL '2 minutes'
-                    ORDER BY timestamp DESC
-                    LIMIT 1
-                """, [user_id]).fetchone()
-                
-                if result:
-                    logger.info(f"Found recent trade for user {user_id}: {result[0][:8]}...")
-                    # Create context from recent trade
-                    pending_context = {
-                        'trade_id': result[0],
-                        'token_address': result[1],
-                        'token_symbol': result[2],
-                        'pattern_data': {'action': result[3], 'token_symbol': result[2]}
-                    }
-                else:
-                    logger.info(f"No recent trades found for user {user_id}")
-            except Exception as e:
-                logger.error(f"Error querying recent trades: {e}")
-            finally:
-                db.close()
-        
-        if pending_context:
-            logger.info(f"Processing response for trade {pending_context.get('trade_id', 'unknown')[:8]}...")
+            result = db.execute("""
+                SELECT wallet_address FROM user_wallets 
+                WHERE user_id = ? AND is_active = TRUE
+            """, [user_id]).fetchone()
+            db.close()
             
-            # Get thread_id - use existing one if this is a follow-up
-            thread_id = pending_context.get('thread_id', pending_context.get('trade_id'))
-            pattern_type = pending_context.get('pattern_type', 'unknown')
+            wallet_address = result[0] if result else None
+            
+            # Write message to diary
+            await write_to_diary('message', user_id, wallet_address, {'text': message_text})
             
             # Show typing indicator
             await context.bot.send_chat_action(chat_id=user_id, action="typing")
             
-            # Check if we should clarify BEFORE tagging
-            should_clarify = await self.nudge_engine.should_clarify(message_text, pattern_type)
+            # Build minimal prompt
+            prompt_data = await build_prompt(user_id, wallet_address, 'message', {'text': message_text})
             
-            if should_clarify and not pending_context.get('is_clarifier', False):
-                # Generate clarifier question
-                clarifier = self.nudge_engine.generate_clarifier(
-                    message_text, 
-                    pattern_type,
-                    pending_context
-                )
-                
-                if clarifier:
-                    # Simple acknowledgment without tagging
-                    await update.message.reply_text("Got it...")
-                    await asyncio.sleep(0.5)  # Brief pause
-                    await update.message.reply_text(clarifier)
-                    
-                    # Update pending context for the clarifier response
-                    clarifier_context = pending_context.copy()
-                    clarifier_context['is_clarifier'] = True
-                    clarifier_context['thread_id'] = thread_id
-                    clarifier_context['original_response'] = message_text
-                    self.conversation_manager.set_pending_response(user_id, clarifier_context)
-                    
-                    logger.info(f"Sent clarifier question: '{clarifier}'")
-                    
-                    # Track clarifier sent
-                    self.metrics_collector.record_event(
-                        user_id,
-                        'clarifier_sent',
-                        {
-                            'pattern_type': pattern_type,
-                            'original_response': message_text,
-                            'clarifier': clarifier
-                        }
-                    )
-                    
-                    # Store the original vague response too
-                    metadata = {
-                        'response_type': 'text',
-                        'pattern_type': pattern_type,
-                        'token_symbol': pending_context.get('token_symbol', 'unknown'),
-                        'token_address': pending_context.get('token_address'),
-                        'timestamp': datetime.now().isoformat(),
-                        'needs_clarification': True,
-                        'vague_response': True
-                    }
-                    
-                    await self.conversation_manager.store_response(
-                        user_id,
-                        pending_context['trade_id'],
-                        message_text,
-                        metadata,
-                        thread_id=thread_id
-                    )
-                    
-                    return  # Exit early, don't tag yet
+            # Load Coach L prompt
+            with open('coach_prompt_v1.md', 'r') as f:
+                coach_prompt = f.read()
             
-            # Only extract tag if no clarification needed OR this is a clarifier response
-            tag_info = await self.nudge_engine.extract_tag_from_text(
-                message_text,
-                pending_context
+            # Get GPT response with tools
+            response = await self.gpt_client.chat_with_tools(
+                system_prompt=coach_prompt,
+                user_message=json.dumps(prompt_data),
+                tools=self._get_gpt_tools(),
+                wallet_address=wallet_address  # For tool execution
             )
             
-            # Store the response with thread support
-            metadata = {
-                'response_type': 'text',
-                'pattern_type': pattern_type,
-                'token_symbol': pending_context.get('token_symbol', 'unknown'),
-                'token_address': pending_context.get('token_address'),
-                'timestamp': datetime.now().isoformat(),
-                'tag': tag_info['tag'],
-                'tag_confidence': tag_info['confidence'],
-                'tag_method': tag_info['method'],
-                'tag_latency': tag_info['latency'],
-                'is_clarifier_response': pending_context.get('is_clarifier', False)
-            }
-            
-            success = await self.conversation_manager.store_response(
-                user_id,
-                pending_context['trade_id'],
-                message_text,
-                metadata,
-                thread_id=thread_id
-            )
-            
-            if success:
-                # Format and send the tag response
-                tag_info['original_text'] = message_text  # Add original text for richer responses
-                response_text = self.nudge_engine.format_tag_response(tag_info)
-                await update.message.reply_text(response_text, parse_mode='Markdown')
+            if response:
+                # Write response to diary
+                await write_to_diary('response', user_id, wallet_address, {'text': response})
                 
-                # Mark question as answered in state manager
-                if pending_context.get('question_uuid'):
-                    await self.state_manager.mark_question_answered(
-                        user_id,
-                        pending_context['question_uuid'],
-                        message_text
-                    )
-                    logger.info(f"Marked question {pending_context['question_uuid']} as answered")
-                
-                # Clear context after successful response
-                self.conversation_manager.clear_pending_response(user_id)
-                
-                if pending_context.get('is_clarifier', False):
-                    # Track clarifier response
-                    self.metrics_collector.record_event(
-                        user_id,
-                        'clarifier_response',
-                        {
-                            'pattern_type': pattern_type,
-                            'response': message_text
-                        }
-                    )
-                
-                # Log metrics
-                logger.info(f"Tagged response: '{tag_info['tag']}' via {tag_info['method']} in {tag_info['latency']:.2f}s")
-                
-                # Track metrics
-                self.metrics_collector.record_response(
-                    user_id,
-                    pattern_type,
-                    'text',
-                    tag_info['latency']
-                )
+                # Send response
+                await update.message.reply_text(response)
+                logger.info(f"Sent GPT response: '{response[:50]}...'")
             else:
-                logger.error(f"Failed to store response for user {user_id}")
-                await update.message.reply_text("❌ Error saving response. Try again.")
+                # Fallback if no response
+                await update.message.reply_text("Sorry, I'm having trouble processing that. Try again in a moment.")
                 
-                # Clear pending context on error
-                self.conversation_manager.clear_pending_response(user_id)
-        else:
-            # No context - might be a command typo or general message
-            logger.info(f"Ignoring non-nudge message from user {user_id}")
-            pass  # Ignore non-nudge responses
+        except Exception as e:
+            logger.error(f"Error processing message from user {user_id}: {e}")
+            await update.message.reply_text("Sorry, I'm having trouble processing that. Try again in a moment.")
     
     async def _start_monitoring_for_user(self, user_id: int, wallet_address: str):
         """Start monitoring a user's wallet"""
@@ -610,6 +452,36 @@ _Based on your actual trading history._
         except Exception as e:
             logger.error(f"Error fetching recent transactions: {e}")
             return []
+    
+    async def _get_sol_balance(self, wallet_address: str) -> float:
+        """Get SOL balance via RPC"""
+        try:
+            import aiohttp
+            # Use Helius RPC for balance query
+            helius_key = os.getenv('HELIUS_KEY')
+            rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+            
+            payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "getBalance",
+                "params": [wallet_address]
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(rpc_url, json=payload) as response:
+                    result = await response.json()
+                    if 'result' in result:
+                        # Convert lamports to SOL
+                        lamports = result['result']['value']
+                        return lamports / 1_000_000_000
+                    else:
+                        logger.error(f"Error getting balance: {result}")
+                        return 0.0
+                        
+        except Exception as e:
+            logger.error(f"Error fetching SOL balance: {e}")
+            return 0.0
     
     async def _monitor_wallet(self, user_id: int, wallet_address: str):
         """Monitor a wallet for new transactions"""
@@ -664,259 +536,177 @@ _Based on your actual trading history._
                 await asyncio.sleep(30)  # Wait longer on error
     
     async def _process_swap(self, user_id: int, wallet_address: str, swap: SwapTransaction, app):
-        """Process a swap transaction and generate nudges"""
+        """Process a swap transaction with bankroll tracking and diary writing"""
         logger.info(f"Processing {swap.action} swap: {swap.signature[:8]}...")
         
-        # Store transaction
-        db = duckdb.connect(self.db_path)
+        # Import prompt builder
+        from prompt_builder import write_to_diary, build_prompt
+        from diary_api import invalidate_cache
+        import json
+        
         try:
-            # Store in wallet_transactions
-            db.execute("""
-                INSERT INTO wallet_transactions 
-                (tx_signature, wallet_address, timestamp, action, token_in, token_out, 
-                 amount_in, amount_out, dex, program_id, slot)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT (tx_signature) DO NOTHING
-            """, [
-                swap.signature,
-                wallet_address,
-                swap.timestamp,
-                swap.action,
-                swap.token_in,
-                swap.token_out,
-                swap.amount_in,
-                swap.amount_out,
-                swap.dex,
-                swap.program_id,
-                swap.slot
-            ])
+            # 1. Get bankroll BEFORE trade
+            bankroll_before_sol = await self._get_sol_balance(wallet_address)
+            logger.info(f"Bankroll before: {bankroll_before_sol:.4f} SOL")
             
-            # Determine token info based on action
+            # 2. Determine token info based on action
             if swap.action == 'BUY':
                 token_address = swap.token_out
-                sol_amount = swap.amount_in  # Already in SOL units
+                sol_amount = swap.amount_in  # SOL spent
+                token_amount = swap.amount_out
             else:  # SELL
                 token_address = swap.token_in
-                sol_amount = swap.amount_out  # Already in SOL units
+                sol_amount = swap.amount_out  # SOL received
+                token_amount = swap.amount_in
             
             # Get token metadata
             token_metadata = await self.token_metadata_service.get_token_metadata(token_address)
             token_symbol = token_metadata.symbol if token_metadata else 'Unknown'
             
-            # Store in user_trades (simplified for now)
-            try:
-                db.execute("""
-                    INSERT INTO user_trades
-                    (user_id, wallet_address, tx_signature, timestamp, action, 
-                     token_address, token_symbol, sol_amount, token_amount)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, [
-                    user_id,
-                    wallet_address,
-                    swap.signature,
-                    datetime.fromtimestamp(swap.timestamp),
-                    swap.action,
-                    token_address,
-                    token_symbol,
-                    sol_amount,
-                    swap.amount_out if swap.action == 'BUY' else swap.amount_in
-                ])
-                logger.info(f"Stored trade: {swap.action} {token_symbol} - {sol_amount:.4f} SOL")
-            except Exception as e:
-                logger.error(f"Error storing trade: {e}")
+            # 3. Calculate bankroll after and trade percentage
+            if swap.action == 'BUY':
+                bankroll_after_sol = bankroll_before_sol - sol_amount
+            else:  # SELL
+                bankroll_after_sol = bankroll_before_sol + sol_amount
             
-            db.commit()
+            # Calculate exact percentage (no rounding as per requirement)
+            trade_pct_bankroll = (sol_amount / bankroll_before_sol) * 100 if bankroll_before_sol > 0 else 0
             
-            # Generate conversational nudges using new architecture
-            logger.info(f"Starting pattern detection for {swap.action} {token_symbol}")
-            trade_context = {
-                "user_id": user_id,
-                "wallet_address": wallet_address,
-                "token_address": token_address,
-                "token_symbol": token_symbol,
-                "sol_amount": sol_amount,
-                "action": swap.action,
-                "timestamp": datetime.fromtimestamp(swap.timestamp)
+            # 4. Prepare complete trade data for diary
+            trade_data = {
+                'signature': swap.signature,
+                'action': swap.action,
+                'token_symbol': token_symbol,
+                'token_address': token_address,
+                'sol_amount': sol_amount,
+                'token_amount': token_amount,
+                'bankroll_before_sol': bankroll_before_sol,
+                'bankroll_after_sol': bankroll_after_sol,
+                'trade_pct_bankroll': trade_pct_bankroll,
+                'dex': swap.dex,
+                'timestamp': datetime.fromtimestamp(swap.timestamp).isoformat()
             }
             
-            # Get notebook for this token
-            notebook = await self.state_manager.get_notebook(user_id, token_symbol)
-            logger.info(f"Got notebook for {token_symbol}: unanswered={notebook.get('unanswered_question')}")
+            # 5. Write to diary (single source of truth)
+            await write_to_diary('trade', user_id, wallet_address, trade_data)
+            logger.info(f"Wrote trade to diary: {swap.action} {token_symbol} - {trade_pct_bankroll:.2f}% of bankroll")
             
-            # Calculate exposure percentage
-            try:
-                portfolio_value = await self.state_manager.get_portfolio_value(user_id)
-                exposure_pct = (sol_amount / portfolio_value) * 100 if portfolio_value > 0 else 0
-                
-                # Get live P&L if available
-                pnl_data = await self.pnl_service.get_token_pnl_data(wallet_address, token_address)
-                live_pnl_sol = pnl_data.get('total_pnl_sol', 0) if pnl_data else 0
-                
-                # Update notebook with trade info
-                await self.state_manager.update_notebook(user_id, token_symbol, {
-                    "last_side": swap.action.lower(),
-                    "last_size_multiple": sol_amount / 1.5,  # Assuming 1.5 SOL is average
-                    "exposure_pct": exposure_pct,
-                    "live_pnl_sol": live_pnl_sol
-                })
-                logger.info(f"Updated notebook: exposure={exposure_pct:.1f}%, pnl={live_pnl_sol:.2f}")
-                
-            except Exception as e:
-                logger.error(f"Error calculating exposure: {e}")
-                exposure_pct = 0
-                live_pnl_sol = 0
-            
-            # Check if we should send a nudge using state manager decision logic
-            decision = self.state_manager.get_nudge_decision(notebook, trade_context)
-            logger.info(f"Nudge decision: {decision}")
-            
-            # Skip if there's an unanswered question
-            if decision == "skip":
-                logger.info(f"Skipping nudge - unanswered question for {token_symbol}")
-                # Still send the trade notification
-                if app:
-                    try:
-                        trade_msg = await self.notification_engine.format_enriched_notification(
-                            swap,
-                            wallet_name=f"{wallet_address[:4]}...{wallet_address[-4:]}"
-                        )
-                        await app.bot.send_message(
-                            chat_id=user_id,
-                            text=trade_msg,
-                            parse_mode='HTML',
-                            disable_web_page_preview=True
-                        )
-                    except Exception as e:
-                        logger.error(f"Error sending trade notification: {e}")
-                return  # Exit early
-            
-            # Detect patterns using new service
-            logger.info(f"Calling pattern service with context: {trade_context}")
-            patterns = await self.pattern_service.detect(trade_context)
-            logger.info(f"Pattern detection returned {len(patterns)} patterns: {[p['type'] for p in patterns]}")
-            
-            # Generate questions for each pattern
-            questions = []
-            for pattern in patterns[:1]:  # Limit to most important pattern
-                logger.info(f"Processing pattern: {pattern['type']} with confidence {pattern['confidence']}")
-                # Get memory for this pattern/token
-                # Determine if this pattern should be token-specific or cross-token
-                # Token-specific: patterns where the token context matters (same token, size relative to token)
-                # Cross-token: behavioral patterns that apply regardless of token (revenge, late night, etc)
-                token_specific_patterns = ['repeat_token', 'position_size']
-                use_token_filter = pattern['type'] in token_specific_patterns
-                
-                previous_response = await self.conversation_manager.get_last_response(
-                    user_id, 
-                    token_address if use_token_filter else None,
-                    pattern['type']
-                )
-                logger.info(f"Retrieved previous response: {previous_response}")
-                
-                # Generate question with memory
-                context = {
-                    "pattern_type": pattern['type'],
-                    "pattern_data": pattern['data'],
-                    "user_history": {},
-                    "previous_response": previous_response,
-                    "conversation_manager": self.conversation_manager,  # Pass for trade history
-                    "user_id": user_id,  # Pass user_id for trade lookups
-                }
-                
-                # Add token_address to pattern_data if not already there
-                if 'token_address' not in context['pattern_data']:
-                    context['pattern_data']['token_address'] = token_address
-                
-                # Add P&L data from notebook for loss/profit awareness
-                if 'live_pnl_sol' in notebook:
-                    context['pattern_data']['live_pnl_sol'] = notebook['live_pnl_sol']
-                    # Convert SOL P&L to USD (approximate)
-                    context['pattern_data']['pnl_usd'] = notebook['live_pnl_sol'] * 150  # Rough SOL price
-                
-                logger.info(f"Generating nudge with context: {context}")
-                question, keyboard = self.nudge_engine.get_nudge(context)
-                logger.info(f"Generated question: '{question}' with keyboard: {keyboard is not None}")
-                if question:  # Only check if question exists, keyboard is optional in text-first mode
-                    questions.append((question, keyboard, pattern))
-            
-            # Send trade notification first using rich format
+            # 6. Send trade notification first
             if app:
                 try:
-                    logger.info(f"Generating trade notification for {swap.action} {token_symbol}")
                     # Format using the NotificationEngine
                     trade_msg = await self.notification_engine.format_enriched_notification(
                         swap,
                         wallet_name=f"{wallet_address[:4]}...{wallet_address[-4:]}"
                     )
                     
-                    logger.info(f"Sending trade notification: {len(trade_msg)} chars")
-                    # Send trade notification  
                     await app.bot.send_message(
                         chat_id=user_id,
                         text=trade_msg,
-                        parse_mode='HTML',  # NotificationEngine uses HTML format
+                        parse_mode='HTML',
                         disable_web_page_preview=True
                     )
-                    logger.info("Trade notification sent successfully")
+                    logger.info("Trade notification sent")
                 except Exception as e:
                     logger.error(f"Error sending trade notification: {e}")
             
-            # Send conversational questions after a short delay
-            logger.info(f"Generated {len(questions)} questions total")
-            if questions and app:
-                await asyncio.sleep(1)  # Brief pause between messages
-                for question, keyboard, pattern in questions[:1]:  # Send only the most relevant question
-                    try:
-                        # Add risk context if needed
-                        if decision == "ask_with_risk" and notebook.get('exposure_pct', 0) > 20:
-                            question = f"You're at {notebook['exposure_pct']:.0f}% of bankroll in {token_symbol}—{question}"
-                        elif decision == "ask_with_risk" and abs(notebook.get('live_pnl_sol', 0)) > 10:
-                            pnl_sign = "+" if notebook['live_pnl_sol'] > 0 else ""
-                            question = f"You're {pnl_sign}{notebook['live_pnl_sol']:.1f} SOL on {token_symbol}—{question}"
-                        
-                        logger.info(f"Sending conversational question: '{question}'")
-                        
-                        # Send question with inline keyboard
-                        msg_result = await app.bot.send_message(
-                            chat_id=user_id,
-                            text=question,
-                            reply_markup=keyboard,
-                            parse_mode='Markdown'
-                        )
-                        
-                        # Track open question in state manager
-                        q_uuid = await self.state_manager.add_open_question(
-                            user_id,
-                            str(msg_result.message_id),
-                            token_symbol,
-                            question
-                        )
-                        logger.info(f"Added open question {q_uuid} for {token_symbol}")
-                        
-                        # Store the context for this question
-                        question_context = {
-                            'trade_id': swap.signature,
-                            'pattern_type': pattern['type'],
-                            'token_address': token_address,
-                            'token_symbol': token_symbol,
-                            'pattern_data': pattern['data'],
-                            'question_uuid': q_uuid  # Add UUID for tracking
-                        }
-                        
-                        # Store as pending response for text-first mode
-                        self.conversation_manager.set_pending_response(user_id, question_context)
-                        
-                        logger.info(f"Sent conversational question for {pattern['type']} pattern")
-                        
-                    except Exception as e:
-                        logger.error(f"Error sending question: {e}")
-            else:
-                logger.info(f"No questions to send. questions={len(questions)}, app={app is not None}")
+            # 7. Get GPT response with new lean system
+            try:
+                # Build minimal prompt
+                prompt_data = await build_prompt(user_id, wallet_address, 'trade', trade_data)
+                
+                # Load Coach L prompt
+                with open('coach_prompt_v1.md', 'r') as f:
+                    coach_prompt = f.read()
+                
+                # Get GPT response with tools
+                response = await self.gpt_client.chat_with_tools(
+                    system_prompt=coach_prompt,
+                    user_message=json.dumps(prompt_data),
+                    tools=self._get_gpt_tools()
+                )
+                
+                if response:
+                    # Write response to diary
+                    await write_to_diary('response', user_id, wallet_address, {'text': response})
+                    
+                    # Send GPT response
+                    await asyncio.sleep(1)  # Brief pause after trade notification
+                    await app.bot.send_message(
+                        chat_id=user_id,
+                        text=response
+                    )
+                    logger.info(f"Sent GPT response: '{response[:50]}...'")
+                    
+            except Exception as e:
+                logger.error(f"Error generating GPT response: {e}")
             
         except Exception as e:
-            logger.error(f"Error processing transaction: {e}")
-        finally:
-            db.close()
+            logger.error(f"Error processing swap: {e}")
+    
+    def _get_gpt_tools(self):
+        """Get tool definitions for GPT"""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_last_n_trades",
+                    "description": "Get user's recent trades",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "n": {"type": "integer", "description": "Number of trades to fetch"}
+                        },
+                        "required": ["n"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_trades_by_token",
+                    "description": "Get trades for specific token",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "token": {"type": "string", "description": "Token symbol"},
+                            "n": {"type": "integer", "description": "Number of trades"}
+                        },
+                        "required": ["token"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_trades_by_time",
+                    "description": "Get trades within hour range (e.g., 2-6 for late night)",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "start_hour": {"type": "integer", "description": "Start hour (0-23)"},
+                            "end_hour": {"type": "integer", "description": "End hour (0-23)"},
+                            "n": {"type": "integer", "description": "Number of trades"}
+                        },
+                        "required": ["start_hour", "end_hour"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_token_balance",
+                    "description": "Get current balance for a token",
+                    "parameters": {
+                        "type": "object", 
+                        "properties": {
+                            "token": {"type": "string", "description": "Token symbol"}
+                        },
+                        "required": ["token"]
+                    }
+                }
+            }
+        ]
     
     async def _init_monitoring_on_startup(self):
         """Restart monitoring for all active users on bot startup"""
@@ -1003,14 +793,6 @@ def main():
     def cleanup_and_exit(signum, frame):
         """Clean up PID file and exit gracefully"""
         logger.info("Shutting down bot...")
-        
-        # Save state manager data if bot exists
-        if 'bot' in locals() and hasattr(bot, 'state_manager'):
-            try:
-                asyncio.run(bot.state_manager.shutdown())
-                logger.info("State manager data saved")
-            except Exception as e:
-                logger.error(f"Error saving state manager data: {e}")
         
         if os.path.exists(PID_FILE):
             os.remove(PID_FILE)
