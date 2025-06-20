@@ -266,7 +266,11 @@ Never:
             fetch_last_n_trades, 
             fetch_trades_by_token, 
             fetch_trades_by_time,
-            fetch_token_balance
+            fetch_token_balance,
+            fetch_wallet_stats,
+            fetch_token_pnl,
+            fetch_market_cap_context,
+            fetch_price_context
         )
         
         try:
@@ -340,6 +344,25 @@ Never:
                                 )
                             elif function_name == "fetch_token_balance":
                                 result = await fetch_token_balance(wallet_address, arguments["token"])
+                            elif function_name == "fetch_wallet_stats":
+                                result = await fetch_wallet_stats(wallet_address)
+                            elif function_name == "fetch_token_pnl":
+                                result = await fetch_token_pnl(wallet_address, arguments["token"])
+                            elif function_name == "fetch_market_cap_context":
+                                result = await fetch_market_cap_context(wallet_address, arguments["token"])
+                            elif function_name == "fetch_price_context":
+                                # Need to get token address first
+                                token_symbol = arguments["token"]
+                                # Get trades to find token address
+                                trades = await fetch_trades_by_token(wallet_address, token_symbol, 1)
+                                if trades and len(trades) > 0:
+                                    token_address = trades[0].get('token_address')
+                                    if token_address:
+                                        result = await fetch_price_context(wallet_address, token_address, token_symbol)
+                                    else:
+                                        result = {"error": f"Token address not found for {token_symbol}"}
+                                else:
+                                    result = {"error": f"No trades found for {token_symbol}"}
                             else:
                                 result = {"error": f"Unknown function: {function_name}"}
                             

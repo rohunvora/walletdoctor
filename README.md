@@ -6,19 +6,25 @@ A real-time Solana trading coach that monitors your trades and provides contextu
 
 - **Real-time Trade Monitoring**: Detects trades within 5 seconds
 - **Bankroll Awareness**: Tracks SOL balance and position sizing (% of bankroll)
+- **Market Cap Intelligence**: All trades tracked with entry/exit market caps and multipliers
+- **Price History Tracking**: Continuous monitoring with 1-minute snapshots
+- **Peak Alerts**: Automatic notifications at 3x, 5x, 10x gains
 - **Self-Directed Intelligence**: GPT-4 powered responses with data access tools
 - **Conversation Memory**: Learns from your trading patterns and conversations
-- **Risk Analysis**: Flags oversized positions and risky patterns
+- **Risk Analysis**: Flags oversized positions, FOMO entries, and risky patterns
 
 ## 🏗️ Architecture
 
 ### Lean Pipeline Design
 ```
 Wallet → Listener → Diary → Prompt Builder → GPT (with tools) → Telegram
+                       ↓                         ↑
+                Price History ←←←←←←←←←←←←←←← (Real-time context)
 ```
 
 - **Single Data Flow**: No complex abstraction layers
 - **Diary Table**: Append-only source of truth for all events
+- **Price Monitoring**: Automatic 1-minute snapshots for all traded tokens
 - **GPT Tools**: Self-directed data access for intelligent responses
 - **Sub-5ms Performance**: Fast cold start to first response
 
@@ -97,6 +103,10 @@ All data is stored in a single `diary` table:
 2. `fetch_trades_by_token` - Get trades for specific token
 3. `fetch_trades_by_time` - Get trades in hour range (e.g., late night)
 4. `fetch_token_balance` - Calculate current token balance
+5. `fetch_wallet_stats` - Get overall win rate and P&L statistics
+6. `fetch_token_pnl` - Get detailed P&L for a specific token
+7. `fetch_market_cap_context` - Get market cap analysis and risk assessment
+8. `fetch_price_context` - Get real-time price data (1h/24h changes, peaks, token age)
 
 ### Performance
 
@@ -111,6 +121,21 @@ All data is stored in a single `diary` table:
 Bot: 15.2% of your bankroll on BONK? That's 3x your usual size. Conviction play or just tilted?
 ```
 
+**FOMO detection:**
+```
+Bot: Buying after a 50% pump in the last hour? That's FOMO territory.
+```
+
+**Peak alerts:**
+```
+Bot: 🚀 PEPE hit 5x from your entry! Consider taking some profits to lock in gains.
+```
+
+**Market cap awareness:**
+```
+Bot: Getting in at $5M? The easy money was at $500K. What's your exit - $20M for a 4x?
+```
+
 **Asking about history:**
 ```
 You: How were my last 5 trades?
@@ -120,6 +145,11 @@ Bot: [Fetches data] 0 for 5, down $847. Your late night sessions aren't working 
 **Pattern recognition:**
 ```
 Bot: Third time buying PEPE after a dump. The last two cost you $312. Different this time?
+```
+
+**Price context:**
+```
+Bot: This token is only 2 hours old and already down 40% from peak. Might be a rug.
 ```
 
 ## 🔧 Development

@@ -33,6 +33,49 @@ async def build_prompt(user_id: int, wallet_address: str, event_type: str, event
         context['bankroll_before_sol'] = event_data.get('bankroll_before_sol')
         context['bankroll_after_sol'] = event_data.get('bankroll_after_sol')
         context['trade_pct_bankroll'] = event_data.get('trade_pct_bankroll')
+        
+        # Add USD context if available
+        if 'sol_price_usd' in event_data:
+            context['sol_price_usd'] = event_data.get('sol_price_usd')
+            context['trade_size_usd'] = event_data.get('trade_size_usd')
+        
+        # Add timing context
+        if 'minutes_since_last_trade' in event_data:
+            context['minutes_since_last_trade'] = event_data.get('minutes_since_last_trade')
+            
+        # Add session stats
+        if 'trades_last_24h' in event_data:
+            context['trades_last_24h'] = event_data.get('trades_last_24h')
+            context['session_pnl_usd'] = event_data.get('session_pnl_usd')
+        
+        # Add price context for the traded token
+        token_address = event_data.get('token_address')
+        token_symbol = event_data.get('token_symbol')
+        
+        if token_address and token_symbol:
+            from diary_api import fetch_price_context
+            price_context = await fetch_price_context(wallet_address, token_address, token_symbol)
+            
+            if price_context and 'error' not in price_context:
+                # Add key price metrics to context
+                context['price_context'] = {
+                    'price_change_1h': price_context.get('price_change_1h'),
+                    'price_change_24h': price_context.get('price_change_24h'),
+                    'token_age_hours': price_context.get('token_age_hours'),
+                    'current_multiplier': price_context.get('current_multiplier'),
+                    'peak_multiplier': price_context.get('peak_multiplier'),
+                    'down_from_peak': price_context.get('down_from_peak')
+                }
+                
+                # Add special alerts for significant events
+                if price_context.get('down_from_peak', 0) > 50:
+                    context['price_alert'] = 'down_50_percent_from_peak'
+                elif price_context.get('current_multiplier', 0) >= 10:
+                    context['price_alert'] = '10x_from_entry'
+                elif price_context.get('price_change_1h', 0) > 50:
+                    context['price_alert'] = 'pumping_hard_1h'
+                elif price_context.get('price_change_1h', 0) < -30:
+                    context['price_alert'] = 'dumping_hard_1h'
     
     return context
 

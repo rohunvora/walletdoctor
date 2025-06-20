@@ -31,6 +31,9 @@ from gpt_client import create_gpt_client
 from prompt_builder import write_to_diary, build_prompt
 from diary_api import invalidate_cache
 
+# Import price history service
+from price_history_service import PriceHistoryService, PriceSnapshot
+
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -47,6 +50,7 @@ class PocketCoachBot:
         self.token = token
         self.db_path = db_path
         self.monitoring_tasks = {}  # user_id -> asyncio.Task
+        self.price_monitoring_tasks = {}  # token_address -> asyncio.Task
         self.token_metadata_service = TokenMetadataService()
         self.price_service = PriceService()
         
@@ -58,6 +62,12 @@ class PocketCoachBot:
         
         # Initialize notification engine with P&L service
         self.notification_engine = NotificationEngine(pnl_service=self.pnl_service)
+        
+        # Initialize price history service
+        self.price_history_service = PriceHistoryService(
+            birdeye_api_key="4e5e878a6137491bbc280c10587a0cce",
+            db_path=db_path
+        )
         
         # Initialize database
         self.init_db()
@@ -75,7 +85,7 @@ class PocketCoachBot:
         else:
             logger.warning("GPT client not available - check OPENAI_API_KEY environment variable")
         
-        logger.info("Pocket Trading Coach initialized with lean pipeline")
+        logger.info("Pocket Trading Coach initialized with lean pipeline and price history")
     
     def init_db(self):
         """Initialize database schema"""
@@ -142,6 +152,67 @@ class PocketCoachBot:
                 note TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        """)
+        
+        # Price snapshots for historical tracking
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS price_snapshots (
+                token_address TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                price_sol REAL,
+                price_usd REAL,
+                market_cap REAL,
+                volume_24h REAL,
+                liquidity_usd REAL,
+                PRIMARY KEY (token_address, timestamp)
+            )
+        """)
+        
+        # Create index for efficient time-range queries
+        db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_price_snapshots_token_time 
+            ON price_snapshots(token_address, timestamp DESC)
+        """)
+        
+        # User positions table for tracking holdings and peaks
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS user_positions (
+                user_id BIGINT NOT NULL,
+                wallet_address TEXT NOT NULL,
+                token_address TEXT NOT NULL,
+                token_symbol TEXT NOT NULL,
+                -- Position details
+                token_balance REAL DEFAULT 0,
+                avg_entry_price_sol REAL,
+                avg_entry_price_usd REAL,
+                avg_entry_market_cap REAL,
+                total_invested_sol REAL DEFAULT 0,
+                total_invested_usd REAL DEFAULT 0,
+                -- Peak tracking
+                peak_price_sol REAL,
+                peak_price_usd REAL,
+                peak_market_cap REAL,
+                peak_timestamp TIMESTAMP,
+                peak_multiplier_from_entry REAL,
+                -- Position metadata
+                first_buy_timestamp TIMESTAMP,
+                last_buy_timestamp TIMESTAMP,
+                last_update_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE,
+                -- Primary key
+                PRIMARY KEY (user_id, token_address)
+            )
+        """)
+        
+        # Create indexes for efficient queries
+        db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_positions_wallet 
+            ON user_positions(wallet_address, is_active)
+        """)
+        
+        db.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_positions_token 
+            ON user_positions(token_address, is_active)
         """)
         
         db.close()
@@ -483,6 +554,112 @@ _Based on your actual trading history._
             logger.error(f"Error fetching SOL balance: {e}")
             return 0.0
     
+    async def _get_transaction_balances(self, signature: str, wallet_address: str) -> Optional[Dict[str, float]]:
+        """Get pre and post SOL balances from a transaction"""
+        try:
+            import aiohttp
+            helius_key = os.getenv('HELIUS_KEY')
+            rpc_url = f"https://mainnet.helius-rpc.com/?api-key={helius_key}"
+            
+            payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "getTransaction",
+                "params": [
+                    signature,
+                    {
+                        "encoding": "json",
+                        "commitment": "confirmed",
+                        "maxSupportedTransactionVersion": 0
+                    }
+                ]
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(rpc_url, json=payload) as response:
+                    result = await response.json()
+                    
+                    if 'result' not in result or not result['result']:
+                        logger.error(f"No transaction data found for {signature}")
+                        return None
+                    
+                    tx_data = result['result']
+                    meta = tx_data.get('meta', {})
+                    
+                    # Get account keys
+                    account_keys = tx_data.get('transaction', {}).get('message', {}).get('accountKeys', [])
+                    
+                    # Find wallet index
+                    wallet_index = None
+                    for i, key in enumerate(account_keys):
+                        if key == wallet_address:
+                            wallet_index = i
+                            break
+                    
+                    if wallet_index is None:
+                        logger.error(f"Wallet {wallet_address} not found in transaction")
+                        return None
+                    
+                    # Get pre and post balances in lamports
+                    pre_balances = meta.get('preBalances', [])
+                    post_balances = meta.get('postBalances', [])
+                    
+                    if wallet_index >= len(pre_balances) or wallet_index >= len(post_balances):
+                        logger.error(f"Balance index out of range")
+                        return None
+                    
+                    # Convert lamports to SOL
+                    pre_sol = pre_balances[wallet_index] / 1_000_000_000
+                    post_sol = post_balances[wallet_index] / 1_000_000_000
+                    
+                    return {
+                        'pre_sol_balance': pre_sol,
+                        'post_sol_balance': post_sol
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error fetching transaction balances: {e}")
+            return None
+    
+    async def _get_last_buy_trade(self, wallet_address: str, token_symbol: str) -> Optional[Dict]:
+        """Get the most recent BUY trade for a token to find entry market cap"""
+        db = duckdb.connect(self.db_path)
+        try:
+            result = db.execute("""
+                SELECT data 
+                FROM diary 
+                WHERE wallet_address = ? 
+                AND entry_type = 'trade'
+                AND json_extract_string(data, '$.action') = 'BUY'
+                AND json_extract_string(data, '$.token_symbol') = ?
+                ORDER BY timestamp DESC 
+                LIMIT 1
+            """, [wallet_address, token_symbol]).fetchone()
+            
+            return json.loads(result[0]) if result else None
+        finally:
+            db.close()
+    
+    async def _estimate_entry_market_cap(self, token_address: str, avg_buy_price: float, 
+                                       current_price: float, current_mcap: float) -> Optional[float]:
+        """Estimate market cap at average entry price based on price ratio"""
+        try:
+            if current_price > 0 and avg_buy_price > 0 and current_mcap > 0:
+                # Market cap scales linearly with price for most tokens
+                # mcap = price * circulating_supply, so if supply is constant:
+                # entry_mcap / current_mcap = avg_buy_price / current_price
+                price_ratio = avg_buy_price / current_price
+                estimated_entry_mcap = current_mcap * price_ratio
+                
+                logger.info(f"Estimated entry mcap: ${estimated_entry_mcap:,.0f} "
+                          f"(avg buy ${avg_buy_price:.6f}, current ${current_price:.6f})")
+                
+                return estimated_entry_mcap
+            return None
+        except Exception as e:
+            logger.error(f"Error estimating entry market cap: {e}")
+            return None
+    
     async def _monitor_wallet(self, user_id: int, wallet_address: str):
         """Monitor a wallet for new transactions"""
         parser = TransactionParser()
@@ -545,9 +722,26 @@ _Based on your actual trading history._
         import json
         
         try:
-            # 1. Get bankroll BEFORE trade
-            bankroll_before_sol = await self._get_sol_balance(wallet_address)
-            logger.info(f"Bankroll before: {bankroll_before_sol:.4f} SOL")
+            # 1. Get bankroll from transaction pre/post balances
+            # First get the actual balance changes from the transaction
+            pre_post_balances = await self._get_transaction_balances(swap.signature, wallet_address)
+            
+            if pre_post_balances:
+                bankroll_before_sol = pre_post_balances['pre_sol_balance']
+                bankroll_after_sol = pre_post_balances['post_sol_balance']
+                logger.info(f"From transaction - Bankroll before: {bankroll_before_sol:.4f} SOL, after: {bankroll_after_sol:.4f} SOL")
+            else:
+                # Fallback to current balance if we can't get transaction balances
+                logger.warning("Could not get pre/post balances from transaction, using current balance")
+                current_balance = await self._get_sol_balance(wallet_address)
+                # For BUY, add back what was spent. For SELL, subtract what was received
+                if swap.action == 'BUY':
+                    bankroll_before_sol = current_balance + swap.amount_in  # Add back SOL spent
+                    bankroll_after_sol = current_balance
+                else:  # SELL
+                    bankroll_before_sol = current_balance - swap.amount_out  # Subtract SOL received
+                    bankroll_after_sol = current_balance
+                logger.info(f"Estimated - Bankroll before: {bankroll_before_sol:.4f} SOL, after: {bankroll_after_sol:.4f} SOL")
             
             # 2. Determine token info based on action
             if swap.action == 'BUY':
@@ -563,16 +757,39 @@ _Based on your actual trading history._
             token_metadata = await self.token_metadata_service.get_token_metadata(token_address)
             token_symbol = token_metadata.symbol if token_metadata else 'Unknown'
             
-            # 3. Get actual bankroll after trade (don't infer from math)
-            # Wait a moment for chain state to update
-            await asyncio.sleep(0.5)
-            bankroll_after_sol = await self._get_sol_balance(wallet_address)
-            logger.info(f"Bankroll after: {bankroll_after_sol:.4f} SOL")
+            # Get market cap at trade time
+            market_cap = await self.token_metadata_service.get_market_cap(token_address)
+            market_cap_formatted = self.token_metadata_service.format_market_cap(market_cap)
+            logger.info(f"Market cap at {swap.action}: {market_cap_formatted}")
+            
+            # 3. Start price monitoring for this token (if not already monitoring)
+            await self.start_price_monitoring(token_address, token_symbol)
+            
+            # 4. Fetch current price snapshot for position tracking
+            price_snapshot = await self.price_history_service.fetch_and_store_price_data(
+                token_address, token_symbol
+            )
+            
+            # 5. Update user position
+            if swap.action == 'BUY' and price_snapshot:
+                await self._update_position_on_buy(
+                    user_id, wallet_address, token_address, token_symbol,
+                    token_amount, sol_amount, price_snapshot
+                )
+            elif swap.action == 'SELL':
+                await self._update_position_on_sell(
+                    user_id, wallet_address, token_address, token_amount
+                )
+            
+            # 6. Bankroll after is already set from transaction data above
             
             # Calculate exact percentage (no rounding as per requirement)
             trade_pct_bankroll = (sol_amount / bankroll_before_sol) * 100 if bankroll_before_sol > 0 else 0
             
-            # 4. Prepare complete trade data for diary
+            # Log the calculation for debugging
+            logger.info(f"Trade percentage calculation: {sol_amount:.4f} SOL / {bankroll_before_sol:.4f} SOL = {trade_pct_bankroll:.2f}%")
+            
+            # 7. Prepare complete trade data for diary
             trade_data = {
                 'signature': swap.signature,
                 'action': swap.action,
@@ -584,33 +801,145 @@ _Based on your actual trading history._
                 'bankroll_after_sol': bankroll_after_sol,
                 'trade_pct_bankroll': trade_pct_bankroll,
                 'dex': swap.dex,
-                'timestamp': datetime.fromtimestamp(swap.timestamp).isoformat()
+                'timestamp': datetime.fromtimestamp(swap.timestamp).isoformat(),
+                'market_cap': market_cap,
+                'market_cap_formatted': market_cap_formatted
             }
             
-            # 5. Write to diary (single source of truth)
+            # Add price per token for better tracking (especially for DCA scenarios)
+            if token_amount > 0:
+                trade_data['price_per_token'] = sol_amount / token_amount
+                logger.info(f"Price per token: {trade_data['price_per_token']:.8f} SOL")
+            
+            # Add SOL price for USD context
+            try:
+                sol_price_usd = await self.pnl_service.get_sol_price()
+                trade_data['sol_price_usd'] = sol_price_usd
+                trade_data['trade_size_usd'] = sol_amount * sol_price_usd
+                logger.info(f"Trade size: {sol_amount:.3f} SOL (${trade_data['trade_size_usd']:.2f} USD)")
+            except Exception as e:
+                logger.error(f"Error fetching SOL price: {e}")
+            
+            # 8.5 For SELL trades, fetch P&L data from Cielo and entry market cap
+            if swap.action == 'SELL':
+                try:
+                    # Get P&L data from Cielo
+                    pnl_data = await self.pnl_service.get_token_pnl_data(
+                        wallet_address, 
+                        token_address
+                    )
+                    
+                    if pnl_data:
+                        # Add P&L fields to diary entry
+                        trade_data['realized_pnl_usd'] = pnl_data.get('realized_pnl_usd', 0)
+                        trade_data['total_pnl_usd'] = pnl_data.get('total_pnl_usd', 0)
+                        trade_data['avg_buy_price'] = pnl_data.get('avg_buy_price', 0)
+                        trade_data['avg_sell_price'] = pnl_data.get('avg_sell_price', 0)
+                        trade_data['roi_percentage'] = pnl_data.get('roi_percentage', 0)
+                        trade_data['num_swaps'] = pnl_data.get('total_trades', 0)
+                        trade_data['hold_time_seconds'] = pnl_data.get('holding_time_seconds', 0)
+                        
+                        logger.info(f"Added P&L data: realized=${trade_data['realized_pnl_usd']:.2f}, ROI={trade_data['roi_percentage']:.1f}%")
+                except Exception as e:
+                    logger.error(f"Error fetching P&L data: {e}")
+                    # Continue without P&L data rather than failing
+                
+                # Calculate average entry market cap using Cielo's average buy price
+                try:
+                    if 'avg_buy_price' in trade_data and trade_data['avg_buy_price'] > 0:
+                        # IMPORTANT: Use the ACTUAL price of this trade, not Cielo's avg_sell_price
+                        # which is the average of ALL historical sells
+                        current_price = sol_amount / token_amount if token_amount > 0 else 0
+                        
+                        # Estimate market cap at average entry price
+                        entry_mcap = await self._estimate_entry_market_cap(
+                            token_address,
+                            trade_data['avg_buy_price'],
+                            current_price,
+                            market_cap
+                        )
+                        
+                        if entry_mcap:
+                            trade_data['entry_market_cap'] = entry_mcap
+                            trade_data['entry_market_cap_formatted'] = self.token_metadata_service.format_market_cap(entry_mcap)
+                            trade_data['market_cap_multiplier'] = market_cap / entry_mcap
+                            
+                            logger.info(f"Market cap multiplier: {trade_data['market_cap_multiplier']:.2f}x "
+                                      f"(from {trade_data['entry_market_cap_formatted']} avg entry to {market_cap_formatted})")
+                    else:
+                        # Fallback to last buy if no average price from Cielo
+                        logger.info("No average buy price from Cielo, falling back to last buy trade")
+                        last_buy = await self._get_last_buy_trade(wallet_address, token_symbol)
+                        if last_buy and 'market_cap' in last_buy:
+                            entry_mcap = last_buy['market_cap']
+                            trade_data['entry_market_cap'] = entry_mcap
+                            trade_data['entry_market_cap_formatted'] = self.token_metadata_service.format_market_cap(entry_mcap)
+                            trade_data['market_cap_multiplier'] = market_cap / entry_mcap
+                            
+                except Exception as e:
+                    logger.error(f"Error calculating entry market cap: {e}")
+            
+            # 9. Write to diary (single source of truth)
             await write_to_diary('trade', user_id, wallet_address, trade_data)
             logger.info(f"Wrote trade to diary: {swap.action} {token_symbol} - {trade_pct_bankroll:.2f}% of bankroll")
             
-            # 6. Send trade notification first
+            # 10. Send market cap-centric trade notification
             if app:
                 try:
-                    # Format using the NotificationEngine
-                    trade_msg = await self.notification_engine.format_enriched_notification(
+                    # Create market cap-centric notification
+                    if swap.action == 'BUY':
+                        # Format: "🟢 Bought BONK at $1.2M mcap (0.5 SOL)"
+                        trade_msg = f"🟢 Bought {token_symbol} at {market_cap_formatted} mcap ({sol_amount:.3f} SOL)"
+                    else:  # SELL
+                        # Include entry mcap and multiplier if available
+                        if 'market_cap_multiplier' in trade_data and trade_data['market_cap_multiplier']:
+                            # Format: "🔴 Sold WIF at $5.4M mcap (2.7x from $2M avg entry) +$230"
+                            pnl_str = ""
+                            if 'realized_pnl_usd' in trade_data:
+                                pnl = trade_data['realized_pnl_usd']
+                                pnl_str = f" {'+' if pnl >= 0 else ''}${abs(pnl):.0f}"
+                            
+                            # Check if this is from average of multiple buys
+                            avg_indicator = " avg" if trade_data.get('num_swaps', 0) > 1 else ""
+                            
+                            # Format multiplier better - show 2 decimals if less than 1x
+                            multiplier = trade_data['market_cap_multiplier']
+                            if multiplier < 1:
+                                multiplier_str = f"{multiplier:.2f}x"
+                            else:
+                                multiplier_str = f"{multiplier:.1f}x"
+                            
+                            trade_msg = f"🔴 Sold {token_symbol} at {market_cap_formatted} mcap ({multiplier_str} from {trade_data.get('entry_market_cap_formatted', 'unknown')}{avg_indicator} entry){pnl_str}"
+                        else:
+                            # No entry mcap data
+                            trade_msg = f"🔴 Sold {token_symbol} at {market_cap_formatted} mcap ({sol_amount:.3f} SOL)"
+                    
+                    # Add the notification engine's full format as a second message for now
+                    # This preserves all the rich data while we transition to mcap-centric
+                    full_msg = await self.notification_engine.format_enriched_notification(
                         swap,
                         wallet_name=f"{wallet_address[:4]}...{wallet_address[-4:]}"
                     )
                     
+                    # Send market cap focused message first
                     await app.bot.send_message(
                         chat_id=user_id,
                         text=trade_msg,
+                        parse_mode='Markdown'
+                    )
+                    
+                    # Then send full notification
+                    await app.bot.send_message(
+                        chat_id=user_id,
+                        text=full_msg,
                         parse_mode='HTML',
                         disable_web_page_preview=True
                     )
-                    logger.info("Trade notification sent")
+                    logger.info("Market cap-centric notification sent")
                 except Exception as e:
                     logger.error(f"Error sending trade notification: {e}")
             
-            # 7. Get GPT response with new lean system
+            # 11. Get GPT response with new lean system
             try:
                 # Build minimal prompt
                 prompt_data = await build_prompt(user_id, wallet_address, 'trade', trade_data)
@@ -706,6 +1035,60 @@ _Based on your actual trading history._
                         "required": ["token"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_wallet_stats",
+                    "description": "Get overall trading statistics for the wallet including win rate, total P&L, and trade count",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_token_pnl",
+                    "description": "Get P&L data for a specific token including realized/unrealized gains",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "token": {"type": "string", "description": "Token symbol to get P&L for"}
+                        },
+                        "required": ["token"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_market_cap_context",
+                    "description": "Get market cap context for a token including entry mcap, current mcap, multiplier, and risk analysis",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "token": {"type": "string", "description": "Token symbol to analyze"}
+                        },
+                        "required": ["token"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_price_context",
+                    "description": "Get comprehensive price context including 1h/24h changes, peak data, and token age",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "token": {"type": "string", "description": "Token symbol to get price context for"}
+                        },
+                        "required": ["token"]
+                    }
+                }
             }
         ]
     
@@ -726,6 +1109,18 @@ _Based on your actual trading history._
             
             logger.info(f"Restarted monitoring for {len(active_users)} users")
             
+            # Also restart price monitoring for all active positions
+            active_positions = db.execute("""
+                SELECT DISTINCT token_address, token_symbol
+                FROM user_positions
+                WHERE is_active = TRUE
+            """).fetchall()
+            
+            for token_address, token_symbol in active_positions:
+                await self.start_price_monitoring(token_address, token_symbol)
+            
+            logger.info(f"Restarted price monitoring for {len(active_positions)} tokens")
+            
         except Exception as e:
             logger.error(f"Error initializing monitoring: {e}")
         finally:
@@ -745,6 +1140,7 @@ _Based on your actual trading history._
         application.add_handler(CommandHandler("disconnect", self.disconnect_command))
         application.add_handler(CommandHandler("note", self.note_command))
         application.add_handler(CommandHandler("stats", self.stats_command))
+        application.add_handler(CommandHandler("watch", self.watch_command))
         
         # Add conversational handlers
         application.add_handler(CallbackQueryHandler(self.handle_note_callback))
@@ -759,6 +1155,315 @@ _Based on your actual trading history._
         # Start the bot
         logger.info("Starting Pocket Trading Coach bot...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+    async def update_user_position_peak(self, user_id: int, wallet_address: str, 
+                                      token_address: str, current_snapshot: PriceSnapshot):
+        """Update user position with peak tracking"""
+        db = duckdb.connect(self.db_path)
+        try:
+            # Get current position
+            result = db.execute("""
+                SELECT peak_price_sol, peak_price_usd, peak_market_cap,
+                       avg_entry_price_sol, avg_entry_price_usd, avg_entry_market_cap,
+                       token_symbol
+                FROM user_positions
+                WHERE user_id = ? AND token_address = ? AND is_active = TRUE
+            """, [user_id, token_address]).fetchone()
+            
+            if not result:
+                logger.debug(f"No active position found for user {user_id} token {token_address}")
+                return
+            
+            peak_price_sol, peak_price_usd, peak_market_cap, \
+            avg_entry_sol, avg_entry_usd, avg_entry_mcap, token_symbol = result
+            
+            # Check if new peak
+            peak_updated = False
+            new_peak_multiplier = None
+            
+            if peak_price_usd is None or current_snapshot.price_usd > peak_price_usd:
+                # New peak reached!
+                peak_updated = True
+                
+                # Calculate multiplier from entry
+                if avg_entry_price_usd and avg_entry_price_usd > 0:
+                    new_peak_multiplier = current_snapshot.price_usd / avg_entry_price_usd
+                
+                # Update peak values
+                db.execute("""
+                    UPDATE user_positions
+                    SET peak_price_sol = ?,
+                        peak_price_usd = ?,
+                        peak_market_cap = ?,
+                        peak_timestamp = ?,
+                        peak_multiplier_from_entry = ?,
+                        last_update_timestamp = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND token_address = ?
+                """, [
+                    current_snapshot.price_sol,
+                    current_snapshot.price_usd,
+                    current_snapshot.market_cap,
+                    current_snapshot.timestamp,
+                    new_peak_multiplier,
+                    user_id,
+                    token_address
+                ])
+                db.commit()
+                
+                # Check for milestone alerts (3x, 5x, 10x)
+                if new_peak_multiplier:
+                    await self._check_peak_alerts(user_id, token_symbol, new_peak_multiplier)
+                    
+            logger.debug(f"Position update for {token_symbol}: peak_updated={peak_updated}, multiplier={new_peak_multiplier}")
+            
+        except Exception as e:
+            logger.error(f"Error updating user position peak: {e}")
+        finally:
+            db.close()
+    
+    async def _check_peak_alerts(self, user_id: int, token_symbol: str, multiplier: float):
+        """Send alerts for peak milestones"""
+        # Define milestones
+        milestones = [3, 5, 10, 20, 50, 100]
+        
+        # Find which milestone was just crossed
+        for milestone in milestones:
+            if multiplier >= milestone and multiplier < milestone * 1.1:  # Just crossed
+                alert_msg = f"🚀 **{token_symbol} hit {milestone}x from your entry!**\n\n"
+                alert_msg += f"Consider taking some profits to lock in gains."
+                
+                try:
+                    await self.application.bot.send_message(
+                        chat_id=user_id,
+                        text=alert_msg,
+                        parse_mode='Markdown'
+                    )
+                    logger.info(f"Sent {milestone}x peak alert for {token_symbol} to user {user_id}")
+                except Exception as e:
+                    logger.error(f"Error sending peak alert: {e}")
+                break
+    
+    async def _monitor_token_prices(self, token_address: str, token_symbol: str):
+        """Monitor prices for a specific token every minute"""
+        logger.info(f"Starting price monitoring for {token_symbol} ({token_address})")
+        
+        while True:
+            try:
+                # Fetch and store current price
+                snapshot = await self.price_history_service.fetch_and_store_price_data(
+                    token_address, token_symbol
+                )
+                
+                if snapshot:
+                    # Update peaks for all users holding this token
+                    db = duckdb.connect(self.db_path)
+                    try:
+                        # Get all users with active positions in this token
+                        users = db.execute("""
+                            SELECT DISTINCT user_id, wallet_address
+                            FROM user_positions
+                            WHERE token_address = ? AND is_active = TRUE
+                        """, [token_address]).fetchall()
+                        
+                        # Update each user's position
+                        for user_id, wallet_address in users:
+                            await self.update_user_position_peak(
+                                user_id, wallet_address, token_address, snapshot
+                            )
+                            
+                    except Exception as e:
+                        logger.error(f"Error updating user positions: {e}")
+                    finally:
+                        db.close()
+                        
+                    logger.debug(f"Price update for {token_symbol}: ${snapshot.price_usd:.8f}")
+                else:
+                    logger.warning(f"Failed to fetch price for {token_symbol}")
+                
+                # Wait 1 minute before next check
+                await asyncio.sleep(60)
+                
+            except asyncio.CancelledError:
+                logger.info(f"Price monitoring stopped for {token_symbol}")
+                break
+            except Exception as e:
+                logger.error(f"Error in price monitoring for {token_symbol}: {e}")
+                await asyncio.sleep(60)  # Still wait to avoid rapid retries
+    
+    async def start_price_monitoring(self, token_address: str, token_symbol: str):
+        """Start monitoring a token's price if not already monitoring"""
+        if token_address not in self.price_monitoring_tasks:
+            task = asyncio.create_task(
+                self._monitor_token_prices(token_address, token_symbol)
+            )
+            self.price_monitoring_tasks[token_address] = task
+            logger.info(f"Started price monitoring for {token_symbol}")
+    
+    async def watch_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Manually add a token to watch list"""
+        if not context.args:
+            await update.message.reply_text(
+                "Usage: `/watch <token_address>`\n\n"
+                "Example:\n"
+                "`/watch DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263`",
+                parse_mode='Markdown'
+            )
+            return
+        
+        token_address = context.args[0]
+        user_id = update.effective_user.id
+        
+        # Validate token address format
+        if len(token_address) < 32 or len(token_address) > 44:
+            await update.message.reply_text("❌ Invalid token address format")
+            return
+        
+        # Get token metadata
+        metadata = await self.token_metadata_service.get_token_metadata(token_address)
+        token_symbol = metadata.symbol if metadata else "Unknown"
+        
+        # Start monitoring
+        await self.start_price_monitoring(token_address, token_symbol)
+        
+        # Fetch initial price data
+        snapshot = await self.price_history_service.fetch_and_store_price_data(
+            token_address, token_symbol
+        )
+        
+        if snapshot:
+            msg = f"✅ Now tracking **{token_symbol}**\n\n"
+            msg += f"💰 Price: ${snapshot.price_usd:.8f}\n"
+            msg += f"📊 Market Cap: ${snapshot.market_cap:,.0f}\n"
+            msg += f"💧 Liquidity: ${snapshot.liquidity_usd:,.0f}\n\n"
+            msg += "Price updates every minute. Peak alerts enabled."
+            
+            await update.message.reply_text(msg, parse_mode='Markdown')
+        else:
+            await update.message.reply_text(
+                f"✅ Watching {token_symbol}, but couldn't fetch initial price data. "
+                "Will retry in 1 minute."
+            )
+
+    async def _update_position_on_buy(self, user_id: int, wallet_address: str,
+                                    token_address: str, token_symbol: str,
+                                    token_amount: float, sol_amount: float,
+                                    price_snapshot: PriceSnapshot):
+        """Update or create user position on buy"""
+        db = duckdb.connect(self.db_path)
+        try:
+            # Check if position exists
+            result = db.execute("""
+                SELECT token_balance, total_invested_sol, total_invested_usd,
+                       avg_entry_price_sol, avg_entry_price_usd
+                FROM user_positions
+                WHERE user_id = ? AND token_address = ?
+            """, [user_id, token_address]).fetchone()
+            
+            if result:
+                # Update existing position (DCA)
+                old_balance, old_invested_sol, old_invested_usd, _, _ = result
+                
+                new_balance = old_balance + token_amount
+                new_invested_sol = old_invested_sol + sol_amount
+                new_invested_usd = old_invested_usd + (sol_amount * price_snapshot.price_usd / price_snapshot.price_sol)
+                
+                # Calculate new average prices
+                avg_entry_price_sol = new_invested_sol / new_balance if new_balance > 0 else 0
+                avg_entry_price_usd = new_invested_usd / new_balance if new_balance > 0 else 0
+                
+                # Estimate average entry market cap
+                if price_snapshot.price_usd > 0:
+                    price_ratio = avg_entry_price_usd / price_snapshot.price_usd
+                    avg_entry_market_cap = price_snapshot.market_cap * price_ratio
+                else:
+                    avg_entry_market_cap = price_snapshot.market_cap
+                
+                db.execute("""
+                    UPDATE user_positions
+                    SET token_balance = ?,
+                        total_invested_sol = ?,
+                        total_invested_usd = ?,
+                        avg_entry_price_sol = ?,
+                        avg_entry_price_usd = ?,
+                        avg_entry_market_cap = ?,
+                        last_buy_timestamp = CURRENT_TIMESTAMP,
+                        last_update_timestamp = CURRENT_TIMESTAMP,
+                        is_active = TRUE
+                    WHERE user_id = ? AND token_address = ?
+                """, [
+                    new_balance, new_invested_sol, new_invested_usd,
+                    avg_entry_price_sol, avg_entry_price_usd, avg_entry_market_cap,
+                    user_id, token_address
+                ])
+                
+            else:
+                # Create new position
+                db.execute("""
+                    INSERT INTO user_positions (
+                        user_id, wallet_address, token_address, token_symbol,
+                        token_balance, avg_entry_price_sol, avg_entry_price_usd,
+                        avg_entry_market_cap, total_invested_sol, total_invested_usd,
+                        first_buy_timestamp, last_buy_timestamp
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, [
+                    user_id, wallet_address, token_address, token_symbol,
+                    token_amount, 
+                    sol_amount / token_amount if token_amount > 0 else 0,
+                    (sol_amount * price_snapshot.price_usd / price_snapshot.price_sol) / token_amount if token_amount > 0 else 0,
+                    price_snapshot.market_cap,
+                    sol_amount,
+                    sol_amount * price_snapshot.price_usd / price_snapshot.price_sol
+                ])
+            
+            db.commit()
+            logger.info(f"Updated position for {token_symbol}: {token_amount} tokens")
+            
+        except Exception as e:
+            logger.error(f"Error updating position on buy: {e}")
+        finally:
+            db.close()
+    
+    async def _update_position_on_sell(self, user_id: int, wallet_address: str,
+                                     token_address: str, token_amount: float):
+        """Update user position on sell"""
+        db = duckdb.connect(self.db_path)
+        try:
+            # Get current position
+            result = db.execute("""
+                SELECT token_balance
+                FROM user_positions
+                WHERE user_id = ? AND token_address = ?
+            """, [user_id, token_address]).fetchone()
+            
+            if result:
+                old_balance = result[0]
+                new_balance = max(0, old_balance - token_amount)
+                
+                if new_balance < 0.0001:  # Essentially zero
+                    # Mark position as inactive
+                    db.execute("""
+                        UPDATE user_positions
+                        SET token_balance = 0,
+                            is_active = FALSE,
+                            last_update_timestamp = CURRENT_TIMESTAMP
+                        WHERE user_id = ? AND token_address = ?
+                    """, [user_id, token_address])
+                else:
+                    # Update balance
+                    db.execute("""
+                        UPDATE user_positions
+                        SET token_balance = ?,
+                            last_update_timestamp = CURRENT_TIMESTAMP
+                        WHERE user_id = ? AND token_address = ?
+                    """, [new_balance, user_id, token_address])
+                
+                db.commit()
+                logger.info(f"Updated position after sell: {new_balance} tokens remaining")
+                
+        except Exception as e:
+            logger.error(f"Error updating position on sell: {e}")
+        finally:
+            db.close()
 
 def main():
     """Main entry point"""
