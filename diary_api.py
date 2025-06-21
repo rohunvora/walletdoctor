@@ -454,4 +454,129 @@ async def fetch_price_snapshots(token_address: str, hours: int = 24) -> List[Dic
         
     except Exception as e:
         logger.error(f"Error fetching price snapshots: {e}")
+        return []
+
+
+async def save_user_goal(user_id: int, goal_data: dict, raw_text: str) -> Dict:
+    """GPT calls this when goal is clear enough"""
+    try:
+        db = duckdb.connect('pocket_coach.db')
+        
+        # Insert or replace user goal
+        db.execute("""
+            INSERT OR REPLACE INTO user_goals (user_id, goal_json, raw_statement, confirmed)
+            VALUES (?, ?, ?, FALSE)
+        """, [user_id, json.dumps(goal_data), raw_text])
+        
+        db.close()
+        
+        logger.info(f"Saved goal for user {user_id}: {goal_data}")
+        return {
+            'success': True,
+            'goal': goal_data,
+            'message': 'Goal saved successfully'
+        }
+        
+    except Exception as e:
+        logger.error(f"Error saving user goal: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+async def log_fact(user_id: int, key: str, value: str, context: str) -> Dict:
+    """Store any fact worth remembering"""
+    try:
+        db = duckdb.connect('pocket_coach.db')
+        
+        # Insert or replace fact (upsert)
+        db.execute("""
+            INSERT OR REPLACE INTO user_facts (user_id, fact_key, fact_value, context, timestamp)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, [user_id, key, value, context])
+        
+        # Increment usage count on update
+        db.execute("""
+            UPDATE user_facts 
+            SET usage_count = usage_count + 1
+            WHERE user_id = ? AND fact_key = ?
+        """, [user_id, key])
+        
+        db.close()
+        
+        logger.info(f"Logged fact for user {user_id}: {key}={value}")
+        return {
+            'success': True,
+            'fact_key': key,
+            'fact_value': value
+        }
+        
+    except Exception as e:
+        logger.error(f"Error logging fact: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+async def fetch_user_goal(user_id: int) -> Optional[Dict]:
+    """Fetch user's current goal if exists"""
+    try:
+        db = duckdb.connect('pocket_coach.db')
+        
+        result = db.execute("""
+            SELECT goal_json, raw_statement, confirmed, created_at
+            FROM user_goals
+            WHERE user_id = ?
+        """, [user_id]).fetchone()
+        
+        db.close()
+        
+        if result:
+            goal_json, raw_statement, confirmed, created_at = result
+            goal_data = json.loads(goal_json) if goal_json else {}
+            return {
+                'goal': goal_data,
+                'raw_statement': raw_statement,
+                'confirmed': confirmed,
+                'created_at': created_at.isoformat() if created_at else None
+            }
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error fetching user goal: {e}")
+        return None
+
+
+async def fetch_recent_facts(user_id: int, limit: int = 10) -> List[Dict]:
+    """Fetch recent facts for a user"""
+    try:
+        db = duckdb.connect('pocket_coach.db')
+        
+        results = db.execute("""
+            SELECT fact_key, fact_value, context, timestamp, usage_count
+            FROM user_facts
+            WHERE user_id = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, [user_id, limit]).fetchall()
+        
+        db.close()
+        
+        facts = []
+        for row in results:
+            facts.append({
+                'key': row[0],
+                'value': row[1],
+                'context': row[2],
+                'timestamp': row[3].isoformat() if row[3] else None,
+                'usage_count': row[4]
+            })
+        
+        return facts
+        
+    except Exception as e:
+        logger.error(f"Error fetching recent facts: {e}")
         return [] 

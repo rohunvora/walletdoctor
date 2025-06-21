@@ -1108,6 +1108,48 @@ _Based on your actual trading history._
                         "required": ["token"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "save_user_goal",
+                    "description": "Store user's trading goal when clearly expressed. Extract metric (sol_balance, usd_earned, win_rate), target value, time window, and confidence level.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "integer", "description": "User ID"},
+                            "goal_data": {
+                                "type": "object",
+                                "description": "Structured goal data",
+                                "properties": {
+                                    "metric": {"type": "string", "description": "What to measure (sol_balance, usd_earned, win_rate, etc)"},
+                                    "target": {"type": "number", "description": "The target value"},
+                                    "window": {"type": "string", "description": "Time constraint if any (e.g., '3 months', '1 week')"},
+                                    "confidence": {"type": "number", "description": "How clear the goal is (0-1)"}
+                                }
+                            },
+                            "raw_text": {"type": "string", "description": "User's original goal statement"}
+                        },
+                        "required": ["user_id", "goal_data", "raw_text"]
+                    }
+                }
+            },
+            {
+                "type": "function", 
+                "function": {
+                    "name": "log_fact",
+                    "description": "Store any important fact about the user (preferences, habits, constraints, personal context)",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "integer", "description": "User ID"},
+                            "key": {"type": "string", "description": "Fact category/key (e.g., 'trading_time', 'risk_preference', 'financial_goal')"},
+                            "value": {"type": "string", "description": "The fact value"},
+                            "context": {"type": "string", "description": "When/where this was mentioned"}
+                        },
+                        "required": ["user_id", "key", "value", "context"]
+                    }
+                }
             }
         ]
     

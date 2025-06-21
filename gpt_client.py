@@ -270,7 +270,9 @@ Never:
             fetch_wallet_stats,
             fetch_token_pnl,
             fetch_market_cap_context,
-            fetch_price_context
+            fetch_price_context,
+            save_user_goal,
+            log_fact
         )
         
         try:
@@ -363,6 +365,22 @@ Never:
                                         result = {"error": f"Token address not found for {token_symbol}"}
                                 else:
                                     result = {"error": f"No trades found for {token_symbol}"}
+                            elif function_name == "save_user_goal":
+                                # Extract user_id from wallet (this is simplified - you may need better user mapping)
+                                user_id = arguments.get("user_id")
+                                result = await save_user_goal(
+                                    user_id,
+                                    arguments.get("goal_data", {}),
+                                    arguments.get("raw_text", "")
+                                )
+                            elif function_name == "log_fact":
+                                user_id = arguments.get("user_id")
+                                result = await log_fact(
+                                    user_id,
+                                    arguments.get("key", ""),
+                                    arguments.get("value", ""),
+                                    arguments.get("context", "")
+                                )
                             else:
                                 result = {"error": f"Unknown function: {function_name}"}
                             
