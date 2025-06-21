@@ -499,3 +499,22 @@ The Pocket Trading Coach evolving into an adaptive, personalized trading compani
 Next Decision Point: Ready to implement Phase 1+2 with this primitives-first approach? ✅ COMPLETED
 
 Current Status: Phase 1+2 implemented and pushed. Ready for testing and Phase 3 emergence.
+
+### ✅ UX Improvements (Just Completed)
+- **Reduced message length** from 80→40 tokens max
+- **Updated personality** to be conversational, not analytical
+- **Added brief examples** showing desired style
+- **Result**: Bot now texts like a friend, not writes reports
+
+### Next: Test the New Experience
+Try these messages to see the difference:
+- "how am i doing?"
+- "should i buy this pump?"
+- "lost money today"
+
+The bot should now respond with quick, natural messages like:
+- "at 33 sol. long way from 100"
+- "buying pumps? that's your problem"
+- "rough day. still at 33 sol though"
+
+Not long paragraphs explaining your trading patterns!
