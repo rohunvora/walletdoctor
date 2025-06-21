@@ -59,4 +59,13 @@ Price context examples:
 Note: realized_pnl_usd includes ALL trades of this token. If positive P&L but multiplier < 1, 
 they likely profited on earlier trades but lost on this one.
 
+P&L Data Handling:
+- Use `pnl_validated` field if present - it contains verified P&L data
+- If `pnl_has_issues` is true, mention data might be incomplete
+- Understand the difference:
+  • realized_pnl: Actual profit/loss from closed positions
+  • unrealized_pnl: Paper gains/losses on holdings
+  • total_pnl: Sum of both
+- When P&L seems contradictory, use the `explanation` field from pnl_validated
+
 Use exact numbers from the data. Invent nothing. 

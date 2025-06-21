@@ -85,6 +85,10 @@ class PocketCoachBot:
         else:
             logger.warning("GPT client not available - check OPENAI_API_KEY environment variable")
         
+        # Initialize P&L validator
+        from pnl_validator import PnLValidator
+        self.pnl_validator = PnLValidator()
+        
         logger.info("Pocket Trading Coach initialized with lean pipeline and price history")
     
     def init_db(self):
@@ -623,6 +627,7 @@ _Based on your actual trading history._
     
     async def _get_last_buy_trade(self, wallet_address: str, token_symbol: str) -> Optional[Dict]:
         """Get the most recent BUY trade for a token to find entry market cap"""
+        import json
         db = duckdb.connect(self.db_path)
         try:
             result = db.execute("""
@@ -833,13 +838,23 @@ _Based on your actual trading history._
                         # Add P&L fields to diary entry
                         trade_data['realized_pnl_usd'] = pnl_data.get('realized_pnl_usd', 0)
                         trade_data['total_pnl_usd'] = pnl_data.get('total_pnl_usd', 0)
+                        trade_data['unrealized_pnl_usd'] = pnl_data.get('unrealized_pnl_usd', 0)
                         trade_data['avg_buy_price'] = pnl_data.get('avg_buy_price', 0)
                         trade_data['avg_sell_price'] = pnl_data.get('avg_sell_price', 0)
                         trade_data['roi_percentage'] = pnl_data.get('roi_percentage', 0)
                         trade_data['num_swaps'] = pnl_data.get('total_trades', 0)
                         trade_data['hold_time_seconds'] = pnl_data.get('holding_time_seconds', 0)
                         
-                        logger.info(f"Added P&L data: realized=${trade_data['realized_pnl_usd']:.2f}, ROI={trade_data['roi_percentage']:.1f}%")
+                        # Validate and reconcile P&L data
+                        validated_pnl = self.pnl_validator.validate_and_reconcile_pnl(trade_data)
+                        
+                        # Use validated P&L for logging
+                        logger.info(f"Validated P&L: {validated_pnl['explanation']}")
+                        
+                        # Add validation results to trade data
+                        trade_data['pnl_validated'] = validated_pnl
+                        trade_data['pnl_has_issues'] = validated_pnl.get('has_issues', False)
+                        
                 except Exception as e:
                     logger.error(f"Error fetching P&L data: {e}")
                     # Continue without P&L data rather than failing
@@ -849,13 +864,17 @@ _Based on your actual trading history._
                     if 'avg_buy_price' in trade_data and trade_data['avg_buy_price'] > 0:
                         # IMPORTANT: Use the ACTUAL price of this trade, not Cielo's avg_sell_price
                         # which is the average of ALL historical sells
-                        current_price = sol_amount / token_amount if token_amount > 0 else 0
+                        current_price_sol = sol_amount / token_amount if token_amount > 0 else 0
+                        
+                        # Convert current price to USD to match avg_buy_price units
+                        sol_price_usd = trade_data.get('sol_price_usd', 175.0)  # Use fetched SOL price or default
+                        current_price_usd = current_price_sol * sol_price_usd
                         
                         # Estimate market cap at average entry price
                         entry_mcap = await self._estimate_entry_market_cap(
                             token_address,
                             trade_data['avg_buy_price'],
-                            current_price,
+                            current_price_usd,
                             market_cap
                         )
                         
@@ -1186,8 +1205,8 @@ _Based on your actual trading history._
                 peak_updated = True
                 
                 # Calculate multiplier from entry
-                if avg_entry_price_usd and avg_entry_price_usd > 0:
-                    new_peak_multiplier = current_snapshot.price_usd / avg_entry_price_usd
+                if avg_entry_usd and avg_entry_usd > 0:
+                    new_peak_multiplier = current_snapshot.price_usd / avg_entry_usd
                 
                 # Update peak values
                 db.execute("""
