@@ -272,7 +272,12 @@ Never:
             fetch_market_cap_context,
             fetch_price_context,
             save_user_goal,
-            log_fact
+            log_fact,
+            # New analytics functions
+            query_time_range,
+            calculate_metrics,
+            get_goal_progress,
+            compare_periods
         )
         
         try:
@@ -380,6 +385,31 @@ Never:
                                     arguments.get("key", ""),
                                     arguments.get("value", ""),
                                     arguments.get("context", "")
+                                )
+                            elif function_name == "query_time_range":
+                                result = await query_time_range(
+                                    wallet_address,
+                                    arguments.get("period", "today"),
+                                    arguments.get("event_types")
+                                )
+                            elif function_name == "calculate_metrics":
+                                result = await calculate_metrics(
+                                    wallet_address,
+                                    arguments.get("metric_type", "sum"),
+                                    arguments.get("value_field", "profit_sol"),
+                                    arguments.get("period", "today"),
+                                    arguments.get("group_by")
+                                )
+                            elif function_name == "get_goal_progress":
+                                user_id = arguments.get("user_id")
+                                result = await get_goal_progress(user_id, wallet_address)
+                            elif function_name == "compare_periods":
+                                result = await compare_periods(
+                                    wallet_address,
+                                    arguments.get("period1", "last week"),
+                                    arguments.get("period2", "this week"),
+                                    arguments.get("metric_type", "sum"),
+                                    arguments.get("value_field", "profit_sol")
                                 )
                             else:
                                 result = {"error": f"Unknown function: {function_name}"}

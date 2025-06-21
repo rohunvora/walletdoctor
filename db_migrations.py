@@ -63,6 +63,31 @@ def run_migrations(db_path: str = "pocket_coach.db"):
         for col in facts_schema:
             logger.info(f"  {col}")
         
+        # Create events table for analytics
+        logger.info("Creating events table...")
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS events (
+                event_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                data TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Create indexes for common query patterns
+        logger.info("Creating events indexes...")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_events_user_timestamp ON events(user_id, timestamp)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(event_type, timestamp)")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)")
+        
+        # Check events schema
+        events_schema = db.execute("DESCRIBE events").fetchall()
+        logger.info("events schema:")
+        for col in events_schema:
+            logger.info(f"  {col}")
+        
         logger.info("✅ Database migrations completed successfully")
         
     except Exception as e:

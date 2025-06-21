@@ -506,15 +506,180 @@ Current Status: Phase 1+2 implemented and pushed. Ready for testing and Phase 3 
 - **Added brief examples** showing desired style
 - **Result**: Bot now texts like a friend, not writes reports
 
-### Next: Test the New Experience
-Try these messages to see the difference:
-- "how am i doing?"
-- "should i buy this pump?"
-- "lost money today"
+### ✅ aixbt-Inspired Style Rewrite (Just Completed)
+- **Complete lowercase** except tickers (SOL, BONK)
+- **20 word max** (down from 40)
+- **No questions** unless user asks for advice
+- **Dry trader tone** - "buying the top" not "buying the top?"
+- **Natural reactions** - "sup. 33 sol" not formal greetings
+- **Sometimes just acknowledge** - "noted" or "got it"
 
-The bot should now respond with quick, natural messages like:
-- "at 33 sol. long way from 100"
-- "buying pumps? that's your problem"
-- "rough day. still at 33 sol though"
+### Test the New Style
+Send messages to see the difference:
+- "yo" → should get "sup. 33 sol" not a paragraph
+- "how far from goal" → "67 sol to go" not explanation
+- "should i buy this pump" → "your call" not interrogation
+- "lost money today" → "happens. still at 33 sol"
 
-Not long paragraphs explaining your trading patterns!
+The bot should now:
+- React like a trader friend in group chat
+- Give quick hits, not essays
+- Stop asking pointless questions
+- Actually be fun to talk to
+
+---
+
+## 🏛️ Analytics Architecture Decision (January 2025)
+
+### The Problem
+Bot can't answer basic questions like:
+- "How am I doing today?" (no date-based queries)
+- "$100/day profit goal" (no rate calculations)
+- "Am I improving?" (no period comparisons)
+- "What's my daily P&L?" (GPT does math = wrong)
+
+Current system only has:
+- Point-in-time queries (last N trades)
+- Hour-of-day filtering (2am-6am trades)
+- No aggregations, no time windows
+
+### The Decision: Primitive-Based Event Architecture
+
+After extensive analysis, we're implementing:
+1. **Universal Event Store** - All user actions as timestamped events
+2. **Pure Python Aggregator** - Accurate calculations, not GPT math
+3. **Flexible Time Queries** - Any period (today, this week, custom)
+4. **Goal Progress Tracking** - Pre-calculated, not GPT-estimated
+
+### Why This Approach
+- **Primitives over Templates** - Store facts, let intelligence emerge
+- **Flexibility over Assumptions** - Any future query possible
+- **Accuracy over Speed** - Python math, not LLM approximations
+- **Evolution over Revolution** - Gradual migration, no breaking changes
+
+### Implementation Plan
+See detailed docs:
+- `ANALYTICS_IMPLEMENTATION_PLAN.md` - Full technical plan
+- `ANALYTICS_TECHNICAL_DESIGN.md` - Component designs
+- `ANALYTICS_RISK_ASSESSMENT.md` - Risk analysis
+
+### Key Decisions Made
+1. **Keep diary table** - No breaking changes
+2. **Dual-write period** - Safe migration
+3. **550 LOC addition** - Manageable complexity
+4. **3-4 week timeline** - Thorough testing
+
+### Current Status
+✅ Inventory complete
+✅ Architecture designed
+✅ Risk assessment done
+✅ Implementation plan ready
+
+### Next Steps
+1. Review implementation plan
+2. Set up development branch
+3. Begin Phase 1: Foundation
+4. Create event store infrastructure
+
+The plan is ready to execute. This gives us the primitives to answer any time-based question without making assumptions about specific use cases.
+
+---
+
+## 📋 Execution Plan: Analytics Implementation
+
+### Phase 1: Foundation (Week 1) ✅ COMPLETED
+- [x] Create feature branch: `analytics-event-store`
+- [x] Implement `event_store.py`
+  - [x] Event class with immutable properties
+  - [x] EventStore with record_event and query_events methods
+  - [x] Unit tests for event storage and retrieval (10 tests passing)
+- [x] Implement `aggregator.py`
+  - [x] EventAggregator with aggregate and compare_periods methods
+  - [x] Support for standard metrics (sum, avg, count, group by)
+  - [x] Unit tests for all aggregation scenarios (11 tests passing)
+- [x] Implement `time_utils.py`
+  - [x] parse_time_string for natural language dates
+  - [x] get_period_bounds for common periods
+  - [x] Unit tests for edge cases (21 tests passing)
+- [x] Create database migration in `db_migrations.py`
+  - [x] Add events table with proper indexes
+  - [ ] Add event_aggregates_daily table (optional - deferred)
+  - [x] Test migration on copy of production DB
+
+### Phase 2: Integration (Week 1-2) ✅ COMPLETED
+- [x] Add new GPT tools to `diary_api.py`
+  - [x] `query_time_range` - flexible time queries
+  - [x] `calculate_metrics` - accurate aggregations
+  - [x] `get_goal_progress` - pre-calculated progress
+  - [x] `compare_periods` - added for period comparisons
+- [x] Update `telegram_bot_coach.py` for dual-write
+  - [x] Keep existing diary writes
+  - [x] Add event_store.record_event calls
+  - [x] Non-blocking - continues if event store fails
+- [x] Update `gpt_client.py` tool definitions
+  - [x] Add new tool schemas
+  - [x] Import new analytics functions
+  - [x] Add function handlers in chat_with_tools
+
+### Phase 3: Testing & Validation (Week 2-3)
+- [ ] Create comprehensive test suite
+  - [ ] Load test with 100k+ events
+  - [ ] Verify <100ms query performance
+  - [ ] Test all time parsing edge cases
+  - [ ] Validate aggregation accuracy
+- [ ] Shadow mode testing
+  - [ ] Run both old and new queries
+  - [ ] Compare outputs for consistency
+  - [ ] Log any discrepancies
+- [ ] User acceptance testing
+  - [ ] Test natural language queries
+  - [ ] Verify goal progress tracking
+  - [ ] Check period comparisons
+
+### Phase 4: Migration (Week 3-4)
+- [ ] Run `migrate_diary_to_events.py`
+  - [ ] Migrate historical diary entries
+  - [ ] Validate event counts match
+  - [ ] Spot check data integrity
+- [ ] Enable dual-write in production
+  - [ ] Monitor performance impact
+  - [ ] Verify both systems stay in sync
+- [ ] Update system prompt in `coach_prompt_v1.md`
+  - [ ] Add new tool usage examples
+  - [ ] Remove GPT math calculations
+  - [ ] Test responses use new tools
+
+### Phase 5: Cutover (Week 4)
+- [ ] Gradual rollout
+  - [ ] Enable for test users first
+  - [ ] Monitor tool usage patterns
+  - [ ] Gather feedback
+- [ ] Full cutover
+  - [ ] Switch all users to event queries
+  - [ ] Keep diary as backup
+  - [ ] Monitor for issues
+- [ ] Documentation
+  - [ ] Update API docs
+  - [ ] Create runbook for operations
+  - [ ] Document new patterns
+
+### Success Criteria Checklist
+- [ ] Can answer "how am I doing today?"
+- [ ] Can track "$100/day profit" goals
+- [ ] Can compare "this week vs last week"
+- [ ] All queries return in <100ms
+- [ ] Zero data loss during migration
+- [ ] GPT reliably uses new tools
+- [ ] Math calculations 100% accurate
+
+### Rollback Plan
+If issues arise at any phase:
+1. Stop dual-write immediately
+2. Revert GPT tool definitions
+3. Use diary queries (still working)
+4. Fix issues and retry
+5. Full rollback takes <5 minutes
+
+### Current Status: READY TO BEGIN PHASE 1
+
+All planning complete. Next action: Create feature branch and start building.

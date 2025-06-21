@@ -902,6 +902,33 @@ _Based on your actual trading history._
             await write_to_diary('trade', user_id, wallet_address, trade_data)
             logger.info(f"Wrote trade to diary: {swap.action} {token_symbol} - {trade_pct_bankroll:.2f}% of bankroll")
             
+            # 9b. DUAL WRITE: Also write to event store for analytics
+            try:
+                from event_store import Event, EventStore, TRADE_BUY, TRADE_SELL
+                from datetime import datetime as dt
+                
+                event_store = EventStore()
+                
+                # Create event from trade data
+                event_type = TRADE_BUY if swap.action == 'BUY' else TRADE_SELL
+                event = Event(
+                    user_id=wallet_address,  # Using wallet as user_id for now
+                    event_type=event_type,
+                    timestamp=dt.fromisoformat(trade_data['timestamp']),
+                    data=trade_data  # Store all trade data
+                )
+                
+                # Record event
+                success = event_store.record_event(event)
+                if success:
+                    logger.info(f"Successfully wrote {swap.action} event to event store")
+                else:
+                    logger.warning(f"Failed to write event to event store")
+                    
+            except Exception as e:
+                logger.error(f"Error writing to event store (non-fatal): {e}")
+                # Continue even if event store fails - diary is primary
+            
             # 10. Send market cap-centric trade notification
             if app:
                 try:
@@ -1148,6 +1175,69 @@ _Based on your actual trading history._
                             "context": {"type": "string", "description": "When/where this was mentioned"}
                         },
                         "required": ["user_id", "key", "value", "context"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "query_time_range",
+                    "description": "Query trades for flexible time periods using natural language (e.g., 'today', 'yesterday', 'last week', 'last 7 days')",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "period": {"type": "string", "description": "Natural language time period"},
+                            "event_types": {"type": "array", "items": {"type": "string"}, "description": "Event types to query (optional)"}
+                        },
+                        "required": ["period"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "calculate_metrics",
+                    "description": "Calculate accurate metrics using Python (not GPT math). Use this for daily totals, averages, etc.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "metric_type": {"type": "string", "enum": ["sum", "count", "avg", "min", "max"], "description": "Type of calculation"},
+                            "value_field": {"type": "string", "description": "Field to aggregate (e.g., 'profit_sol', 'amount_sol')"},
+                            "period": {"type": "string", "description": "Natural language time period"},
+                            "group_by": {"type": "string", "description": "Field to group results by (optional)"}
+                        },
+                        "required": ["metric_type", "value_field", "period"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_goal_progress",
+                    "description": "Get pre-calculated progress toward user's goal",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "integer", "description": "User ID"}
+                        },
+                        "required": ["user_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "compare_periods",
+                    "description": "Compare metrics between two time periods (e.g., 'this week vs last week')",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "period1": {"type": "string", "description": "First period (e.g., 'last week')"},
+                            "period2": {"type": "string", "description": "Second period (e.g., 'this week')"},
+                            "metric_type": {"type": "string", "enum": ["sum", "count", "avg"], "description": "Metric to compare"},
+                            "value_field": {"type": "string", "description": "Field to compare (e.g., 'profit_sol')"}
+                        },
+                        "required": ["period1", "period2"]
                     }
                 }
             }

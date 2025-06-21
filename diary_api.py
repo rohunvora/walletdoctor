@@ -9,7 +9,16 @@ from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from collections import deque
 
+# Import our new analytics components
+from event_store import EventStore, Event, TRADE_BUY, TRADE_SELL
+from aggregator import EventAggregator
+from time_utils import parse_time_string, get_period_bounds
+
 logger = logging.getLogger(__name__)
+
+# Initialize analytics components
+event_store = EventStore()
+aggregator = EventAggregator(event_store)
 
 # In-memory cache for last 20 trades per wallet
 trade_cache = {}  # wallet_address -> deque(maxlen=20)
@@ -482,6 +491,183 @@ async def save_user_goal(user_id: int, goal_data: dict, raw_text: str) -> Dict:
         return {
             'success': False,
             'error': str(e)
+        }
+
+
+async def query_time_range(wallet: str, period: str = "today", event_types: Optional[List[str]] = None) -> Dict:
+    """
+    Query events for flexible time periods using natural language
+    Examples: "today", "yesterday", "last week", "last 7 days"
+    """
+    try:
+        # Parse the time period
+        start_time, end_time = get_period_bounds(period)
+        
+        # Default to trade events if not specified
+        if not event_types:
+            event_types = [TRADE_BUY, TRADE_SELL]
+        
+        # Query events from event store
+        events = event_store.query_events(
+            user_id=wallet,  # Using wallet as user_id for now
+            event_types=event_types,
+            start_time=start_time,
+            end_time=end_time
+        )
+        
+        # Convert events to trade format for GPT
+        trades = []
+        for event in events:
+            if event.event_type in [TRADE_BUY, TRADE_SELL]:
+                trades.append(event.data)
+        
+        return {
+            'period': period,
+            'start_time': start_time.isoformat(),
+            'end_time': end_time.isoformat(),
+            'count': len(trades),
+            'trades': trades
+        }
+        
+    except Exception as e:
+        logger.error(f"Error querying time range: {e}")
+        return {
+            'error': str(e),
+            'period': period
+        }
+
+
+async def calculate_metrics(wallet: str, metric_type: str = "sum", value_field: str = "profit_sol", 
+                           period: str = "today", group_by: Optional[str] = None) -> Dict:
+    """
+    Calculate accurate metrics using Python, not GPT math
+    metric_type: 'sum', 'count', 'avg', 'min', 'max'
+    value_field: field to aggregate (e.g., 'profit_sol', 'amount_sol')
+    period: natural language time period
+    group_by: optional field to group results by (e.g., 'token_symbol')
+    """
+    try:
+        # Parse the time period
+        start_time, end_time = get_period_bounds(period)
+        
+        # Query events
+        events = event_store.query_events(
+            user_id=wallet,
+            event_types=[TRADE_SELL],  # Usually want completed trades for metrics
+            start_time=start_time,
+            end_time=end_time
+        )
+        
+        # Calculate metrics using aggregator
+        result = aggregator.aggregate(
+            events=events,
+            metric_type=metric_type,
+            value_field=value_field,
+            group_by=group_by
+        )
+        
+        return {
+            'metric_type': metric_type,
+            'value_field': value_field,
+            'period': period,
+            'result': result,
+            'event_count': len(events)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating metrics: {e}")
+        return {
+            'error': str(e),
+            'metric_type': metric_type,
+            'period': period
+        }
+
+
+async def get_goal_progress(user_id: int, wallet: str) -> Dict:
+    """
+    Get pre-calculated goal progress, no GPT math needed
+    """
+    try:
+        # First fetch the user's goal
+        db = duckdb.connect('pocket_coach.db')
+        goal_result = db.execute("""
+            SELECT goal_json FROM user_goals
+            WHERE user_id = ?
+        """, [user_id]).fetchone()
+        db.close()
+        
+        if not goal_result:
+            return {
+                'has_goal': False,
+                'message': 'No goal set'
+            }
+        
+        goal_data = json.loads(goal_result[0])
+        
+        # Extract goal parameters
+        goal_amount = goal_data.get('amount', 0)
+        goal_period = goal_data.get('period', 'daily')
+        goal_type = goal_data.get('type', 'profit')
+        
+        # Map goal type to value field
+        value_field = 'profit_sol' if goal_type == 'profit' else 'amount_sol'
+        
+        # Calculate progress using aggregator
+        progress = aggregator.calculate_goal_progress(
+            user_id=wallet,  # Using wallet as user_id
+            goal_amount=goal_amount,
+            goal_period=goal_period,
+            value_field=value_field
+        )
+        
+        return {
+            'has_goal': True,
+            'goal': goal_data,
+            'progress': progress
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting goal progress: {e}")
+        return {
+            'error': str(e),
+            'has_goal': False
+        }
+
+
+async def compare_periods(wallet: str, period1: str = "last week", period2: str = "this week",
+                         metric_type: str = "sum", value_field: str = "profit_sol") -> Dict:
+    """
+    Compare metrics between two time periods
+    """
+    try:
+        # Parse both time periods
+        period1_start, period1_end = get_period_bounds(period1)
+        period2_start, period2_end = get_period_bounds(period2)
+        
+        # Use aggregator to compare
+        comparison = aggregator.compare_periods(
+            user_id=wallet,
+            event_types=[TRADE_SELL],
+            period1_start=period1_start,
+            period1_end=period1_end,
+            period2_start=period2_start,
+            period2_end=period2_end,
+            metric_type=metric_type,
+            value_field=value_field
+        )
+        
+        return {
+            'period1_name': period1,
+            'period2_name': period2,
+            'comparison': comparison
+        }
+        
+    except Exception as e:
+        logger.error(f"Error comparing periods: {e}")
+        return {
+            'error': str(e),
+            'period1': period1,
+            'period2': period2
         }
 
 
