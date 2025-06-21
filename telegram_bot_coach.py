@@ -835,15 +835,13 @@ _Based on your actual trading history._
                     )
                     
                     if pnl_data:
-                        # Add P&L fields to diary entry
-                        trade_data['realized_pnl_usd'] = pnl_data.get('realized_pnl_usd', 0)
-                        trade_data['total_pnl_usd'] = pnl_data.get('total_pnl_usd', 0)
-                        trade_data['unrealized_pnl_usd'] = pnl_data.get('unrealized_pnl_usd', 0)
+                        # Only add non-P&L fields from Cielo - let GPT calculate accurate P&L
                         trade_data['avg_buy_price'] = pnl_data.get('avg_buy_price', 0)
                         trade_data['avg_sell_price'] = pnl_data.get('avg_sell_price', 0)
-                        trade_data['roi_percentage'] = pnl_data.get('roi_percentage', 0)
                         trade_data['num_swaps'] = pnl_data.get('total_trades', 0)
                         trade_data['hold_time_seconds'] = pnl_data.get('holding_time_seconds', 0)
+                        # NOTE: Removed realized_pnl_usd, total_pnl_usd, unrealized_pnl_usd, roi_percentage
+                        # GPT will calculate accurate P&L using calculate_token_pnl_from_trades tool
                         
                         # Validate and reconcile P&L data
                         validated_pnl = self.pnl_validator.validate_and_reconcile_pnl(trade_data)
@@ -898,6 +896,40 @@ _Based on your actual trading history._
                 except Exception as e:
                     logger.error(f"Error calculating entry market cap: {e}")
             
+            # 8.6 POSITION STATE PRIMITIVE: Calculate position info for SELLs
+            if swap.action == 'SELL':
+                try:
+                    # Get all trades for this token to calculate position state
+                    from diary_api import fetch_trades_by_token
+                    logger.info(f"Fetching previous trades for {token_symbol}...")
+                    previous_trades = await fetch_trades_by_token(wallet_address, token_symbol, n=100)
+                    logger.info(f"Found {len(previous_trades) if previous_trades else 0} previous trades for {token_symbol}")
+                    
+                    if previous_trades:
+                        # Calculate totals
+                        total_bought = sum(t.get('amount_sol', 0) for t in previous_trades if t.get('action') == 'BUY')
+                        total_sold = sum(t.get('amount_sol', 0) for t in previous_trades if t.get('action') == 'SELL')
+                        
+                        # Current position before this sell
+                        position_before = total_bought - total_sold
+                        
+                        # Add position state to trade data
+                        if position_before > 0:
+                            trade_data['position_state'] = {
+                                'sold_percentage': min(100, (swap.amount_sol / position_before) * 100),
+                                'remaining_sol': max(0, position_before - swap.amount_sol),
+                                'is_full_exit': (position_before - swap.amount_sol) < 0.01,
+                                'position_before_sol': position_before,
+                                'total_bought_sol': total_bought,
+                                'total_sold_sol': total_sold + swap.amount_sol
+                            }
+                            
+                            logger.info(f"Position state: Sold {trade_data['position_state']['sold_percentage']:.1f}% of position, "
+                                      f"{trade_data['position_state']['remaining_sol']:.3f} SOL remaining")
+                except Exception as e:
+                    logger.error(f"Error calculating position state: {e}")
+                    # Continue without position state rather than failing
+            
             # 9. Write to diary (single source of truth)
             await write_to_diary('trade', user_id, wallet_address, trade_data)
             logger.info(f"Wrote trade to diary: {swap.action} {token_symbol} - {trade_pct_bankroll:.2f}% of bankroll")
@@ -917,6 +949,9 @@ _Based on your actual trading history._
                     timestamp=dt.fromisoformat(trade_data['timestamp']),
                     data=trade_data  # Store all trade data
                 )
+                
+                # Note: No profit calculation here - let analytics tools calculate accurate P&L
+                # from deduplicated trade data using calculate_token_pnl_from_trades
                 
                 # Record event
                 success = event_store.record_event(event)
@@ -939,11 +974,9 @@ _Based on your actual trading history._
                     else:  # SELL
                         # Include entry mcap and multiplier if available
                         if 'market_cap_multiplier' in trade_data and trade_data['market_cap_multiplier']:
-                            # Format: "🔴 Sold WIF at $5.4M mcap (2.7x from $2M avg entry) +$230"
+                            # Format: "🔴 Sold WIF at $5.4M mcap (2.7x from $2M avg entry)"
+                            # Note: Removed P&L from notification - GPT will calculate accurate P&L
                             pnl_str = ""
-                            if 'realized_pnl_usd' in trade_data:
-                                pnl = trade_data['realized_pnl_usd']
-                                pnl_str = f" {'+' if pnl >= 0 else ''}${abs(pnl):.0f}"
                             
                             # Check if this is from average of multiple buys
                             avg_indicator = " avg" if trade_data.get('num_swaps', 0) > 1 else ""
@@ -1097,20 +1130,6 @@ _Based on your actual trading history._
             {
                 "type": "function",
                 "function": {
-                    "name": "fetch_token_pnl",
-                    "description": "Get P&L data for a specific token including realized/unrealized gains",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "token": {"type": "string", "description": "Token symbol to get P&L for"}
-                        },
-                        "required": ["token"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
                     "name": "fetch_market_cap_context",
                     "description": "Get market cap context for a token including entry mcap, current mcap, multiplier, and risk analysis",
                     "parameters": {
@@ -1238,6 +1257,35 @@ _Based on your actual trading history._
                             "value_field": {"type": "string", "description": "Field to compare (e.g., 'profit_sol')"}
                         },
                         "required": ["period1", "period2"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "calculate_token_pnl_from_trades",
+                    "description": "Calculate accurate P&L for a specific token from trade history. Use this for token-specific P&L questions when Cielo data is unavailable. Handles deduplication and gives precise profit/loss.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "token_symbol": {"type": "string", "description": "Token symbol to calculate P&L for (e.g., 'OSCAR', 'BONK')"}
+                        },
+                        "required": ["token_symbol"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_price_snapshots",
+                    "description": "Get historical price data for a token over time (default 24 hours). Useful for understanding price movements and volatility.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "token_address": {"type": "string", "description": "Token contract address"},
+                            "hours": {"type": "integer", "description": "Hours of history to fetch (default 24)"}
+                        },
+                        "required": ["token_address"]
                     }
                 }
             }

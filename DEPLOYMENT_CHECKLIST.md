@@ -49,22 +49,11 @@ sqlite3 events.db "SELECT COUNT(*) FROM events;"
 ```
 
 ### 5. Test New Features
-
-#### Option A: Quick Manual Test
-Send these messages to the bot:
+Send these messages to the bot to test:
 - "how am i doing today"
 - "profit this week?"
 - "am i improving?"
 - "what's my daily average?"
-
-#### Option B: Automated Testing (Recommended)
-```bash
-# Quick functionality test
-python test_analytics_quick.py
-
-# Full chat scenario test (optional)
-python test_chat_scenarios.py
-```
 
 ### 6. Monitor for 24 Hours
 - Check error logs regularly

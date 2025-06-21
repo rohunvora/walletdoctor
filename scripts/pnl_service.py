@@ -19,7 +19,7 @@ class CieloClient:
         self.api_key = api_key
         self.base_url = "https://feed-api.cielo.finance/api/v1"
         self.headers = {
-            "X-API-Key": api_key,
+            "x-api-key": api_key,
             "Content-Type": "application/json"
         }
     
@@ -43,16 +43,32 @@ class CieloClient:
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.base_url}/{wallet_address}/pnl/tokens"
-                async with session.get(url, headers=self.headers) as response:
+                params = {'limit': 1000}  # Get more tokens
+                async with session.get(url, headers=self.headers, params=params) as response:
                     if response.status == 200:
                         data = await response.json()
-                        # Cielo API returns: {"status": "ok", "data": {"items": [...]}}
+                        logger.info(f"Cielo raw response: {data}")
+                        
+                        # Handle different response formats
                         if data.get('status') == 'ok':
+                            # Format 1: {"status": "ok", "data": {"items": [...]}}
                             items = data.get('data', {}).get('items', [])
-                            return items
+                            if items:
+                                return items
+                            # Format 2: {"status": "ok", "data": {"tokens": [...]}}
+                            tokens = data.get('data', {}).get('tokens', [])
+                            if tokens:
+                                return tokens
+                        
+                        # Format 3: Direct tokens array {"tokens": [...]}
+                        if 'tokens' in data:
+                            return data['tokens']
+                        
+                        logger.warning(f"Unexpected Cielo response format: {list(data.keys())}")
                         return []
                     else:
-                        logger.error(f"Cielo API error: {response.status}")
+                        error_text = await response.text()
+                        logger.error(f"Cielo API error {response.status}: {error_text}")
                         return None
         except Exception as e:
             logger.error(f"Error fetching token P&L: {e}")
@@ -66,7 +82,7 @@ class BirdeyeClient:
         self.api_key = api_key
         self.base_url = "https://public-api.birdeye.so"
         self.headers = {
-            "X-API-Key": api_key,
+            "x-api-key": api_key,
             "accept": "application/json"
         }
     

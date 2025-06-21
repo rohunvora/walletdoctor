@@ -765,4 +765,104 @@ async def fetch_recent_facts(user_id: int, limit: int = 10) -> List[Dict]:
         
     except Exception as e:
         logger.error(f"Error fetching recent facts: {e}")
-        return [] 
+        return []
+
+
+async def calculate_token_pnl_from_trades(wallet_address: str, token_symbol: str) -> Dict:
+    """Calculate accurate P&L for a token from trade sequence in diary"""
+    try:
+        conn = duckdb.connect('pocket_coach.db')
+        
+        # Get all trades for this token, ordered by time
+        result = conn.execute('''
+            SELECT timestamp, data 
+            FROM diary 
+            WHERE entry_type = 'trade' 
+              AND wallet_address = ?
+            ORDER BY timestamp ASC
+        ''', [wallet_address]).fetchall()
+        
+        # Parse trades and find token matches
+        token_trades = []
+        for row in result:
+            data = json.loads(row[1])
+            if data.get('token_symbol') == token_symbol:
+                # Deduplicate by signature - same signature = same trade
+                signature = data.get('signature', '')
+                timestamp = row[0]
+                
+                # Skip if we already have this signature (regardless of timestamp)
+                duplicate = False
+                for existing in token_trades:
+                    if existing.get('signature') == signature:
+                        duplicate = True
+                        break
+                
+                if not duplicate and signature:  # Only add if has signature and not duplicate
+                    data['timestamp'] = timestamp
+                    token_trades.append(data)
+        
+        if not token_trades:
+            return {'error': 'No trades found'}
+        
+        # Calculate P&L from trade sequence
+        total_bought_sol = 0
+        total_sold_sol = 0
+        total_bought_tokens = 0
+        total_sold_tokens = 0
+        
+        for trade in token_trades:
+            action = trade.get('action')
+            sol_amount = trade.get('sol_amount', 0)
+            token_amount = trade.get('token_amount', 0)
+            
+            if action == 'BUY':
+                total_bought_sol += sol_amount
+                total_bought_tokens += token_amount
+            elif action == 'SELL':
+                total_sold_sol += sol_amount
+                total_sold_tokens += token_amount
+        
+        # Calculate net P&L
+        net_sol_pnl = total_sold_sol - total_bought_sol
+        remaining_tokens = total_bought_tokens - total_sold_tokens
+        
+        # Get current SOL price for USD conversion
+        sol_price_usd = 140.0  # Fallback price
+        try:
+            # Try to get current SOL price from recent trades
+            recent_trade = conn.execute('''
+                SELECT data FROM diary 
+                WHERE entry_type = 'trade' 
+                ORDER BY timestamp DESC 
+                LIMIT 1
+            ''').fetchone()
+            
+            if recent_trade:
+                recent_data = json.loads(recent_trade[0])
+                sol_price_usd = recent_data.get('sol_price_usd', 140.0)
+        except:
+            pass
+        
+        net_usd_pnl = net_sol_pnl * sol_price_usd
+        
+        conn.close()
+        
+        return {
+            'token_symbol': token_symbol,
+            'total_trades': len(token_trades),
+            'buy_trades': len([t for t in token_trades if t.get('action') == 'BUY']),
+            'sell_trades': len([t for t in token_trades if t.get('action') == 'SELL']),
+            'total_bought_sol': total_bought_sol,
+            'total_sold_sol': total_sold_sol,
+            'net_pnl_sol': net_sol_pnl,
+            'net_pnl_usd': net_usd_pnl,
+            'remaining_tokens': remaining_tokens,
+            'is_closed_position': remaining_tokens < 1000,  # Account for dust
+            'avg_buy_price_sol': total_bought_sol / total_bought_tokens if total_bought_tokens > 0 else 0,
+            'avg_sell_price_sol': total_sold_sol / total_sold_tokens if total_sold_tokens > 0 else 0,
+            'sol_price_usd': sol_price_usd
+        }
+        
+    except Exception as e:
+        return {'error': f'Failed to calculate P&L: {str(e)}'} 

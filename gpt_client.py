@@ -268,16 +268,18 @@ Never:
             fetch_trades_by_time,
             fetch_token_balance,
             fetch_wallet_stats,
-            fetch_token_pnl,
             fetch_market_cap_context,
             fetch_price_context,
+            fetch_price_snapshots,
             save_user_goal,
             log_fact,
             # New analytics functions
             query_time_range,
             calculate_metrics,
             get_goal_progress,
-            compare_periods
+            compare_periods,
+            # Accurate P&L calculation
+            calculate_token_pnl_from_trades
         )
         
         try:
@@ -353,8 +355,6 @@ Never:
                                 result = await fetch_token_balance(wallet_address, arguments["token"])
                             elif function_name == "fetch_wallet_stats":
                                 result = await fetch_wallet_stats(wallet_address)
-                            elif function_name == "fetch_token_pnl":
-                                result = await fetch_token_pnl(wallet_address, arguments["token"])
                             elif function_name == "fetch_market_cap_context":
                                 result = await fetch_market_cap_context(wallet_address, arguments["token"])
                             elif function_name == "fetch_price_context":
@@ -410,6 +410,16 @@ Never:
                                     arguments.get("period2", "this week"),
                                     arguments.get("metric_type", "sum"),
                                     arguments.get("value_field", "profit_sol")
+                                )
+                            elif function_name == "calculate_token_pnl_from_trades":
+                                result = await calculate_token_pnl_from_trades(
+                                    wallet_address,
+                                    arguments.get("token_symbol", "")
+                                )
+                            elif function_name == "fetch_price_snapshots":
+                                result = await fetch_price_snapshots(
+                                    arguments.get("token_address", ""),
+                                    arguments.get("hours", 24)
                                 )
                             else:
                                 result = {"error": f"Unknown function: {function_name}"}
