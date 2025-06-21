@@ -65,3 +65,4 @@ data/*
 
 # PID files
 telegram_bot_coach.pid
+.test_cache/

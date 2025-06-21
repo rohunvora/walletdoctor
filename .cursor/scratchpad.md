@@ -977,3 +977,177 @@ The bot now:
 - System prompt cleaned of unfounded assumptions
 - Bot running with dual-write to events table
 - Ready for handoff to continue development on another device
+
+---
+
+## 🔍 First Principles Analysis: "Ironman Suit" Bot Behavior Issue
+
+**Date**: June 21, 2025  
+**Status**: Investigation Complete - Root Cause Identified
+
+### Background and Motivation
+
+Testing revealed the bot completely fails to deliver the "ironman suit" vision:
+- User says "just bought POPCAT" 
+- **Current**: "noted. just bought POPCAT." (useless)
+- **Wanted**: "that's 15% of bankroll, similar to your BONK buy at $2M that went 3x. what's the thesis?" (intelligent)
+
+The analytics infrastructure is solid, but the bot behavior is fundamentally misaligned with user needs.
+
+### Root Cause Analysis
+
+#### Primary Issue: Conflicting Design Goals
+The current system prompt optimizes for **brevity and acknowledgment**, while user wants **detailed analysis and accountability**:
+
+1. **20 word max limit** vs detailed position analysis (incompatible)
+2. **"react to trades, don't write reports"** vs proactive intelligence (contradictory)  
+3. **"sometimes just acknowledge: 'noted'"** vs engaging analysis (opposite behaviors)
+
+#### Secondary Issues: Missing Behavioral Triggers
+Current prompt has analytics tools but no instructions on WHEN to use them proactively:
+- Lists 15+ analytics functions
+- Shows examples only for explicit user questions ("how am i doing today")
+- No guidance for implicit triggers ("just bought POPCAT" should trigger position analysis)
+
+#### Technical Investigation Results
+From ironman scenarios test across 4 wallets:
+- ✅ **Analytics tools work** (logs show tools being called)
+- ✅ **Data is available** (position data, trade history, mcap context)
+- ❌ **Synthesis fails** (bot doesn't connect tool results to meaningful responses)
+- ❌ **No proactive behavior** (waits for explicit requests vs surfacing insights)
+
+### User Journey Analysis
+
+#### Real Use Cases (from user brain dump):
+1. **Position sizing awareness**: When buying → show % of bankroll + find similar trades
+2. **Moonboy accountability**: When excited about pumps → push for sell plan
+3. **Random buy discipline**: When impulsive → ask for reasoning to sharpen thinking
+4. **Pattern recognition**: Spot repeated behaviors and provide context
+5. **Price target reminders**: Remember sell plans and alert when targets hit
+
+#### Current vs Desired Behavior:
+
+| Scenario | Current Response | Desired Response |
+|----------|------------------|------------------|
+| "just bought POPCAT" | "noted. just bought POPCAT." | "that's 15% of bankroll. biggest position this month. similar to your BONK buy at $2M that went 3x. what's the thesis?" |
+| "this is pumping hard" | "noted. watching for the pump." | "what's your exit plan? last time you held through a 5x and gave back 60%" |
+| "aped into this new token" | "noted. what token?" | "quick - why this one? helps sharpen your thinking vs buying randomly" |
+
+### Key Challenges and Analysis
+
+#### Challenge 1: Behavioral Transformation Scope
+This isn't a prompt tweak - it's a fundamental behavior change requiring:
+- Complete system prompt rewrite
+- New trigger conditions for proactive analysis
+- Response length adjustment (20 words → 50-100 words for complex scenarios)
+- New examples showing intelligent vs acknowledgment responses
+
+#### Challenge 2: Message vs Trade Event Handling
+Current system handles two event types differently:
+- **Trade events**: Automatic notifications with built-in context
+- **Message events**: User text that might reference trades but lacks automatic analysis
+
+User's scenarios are mostly **message events** that should trigger **trade event analysis**.
+
+#### Challenge 3: Context Timing
+For "just bought POPCAT" to work intelligently, bot needs:
+- Recent trade history to calculate position sizing
+- Similar trade comparisons 
+- Market cap context
+- Pattern recognition against user's typical behavior
+
+All this data exists but requires proactive tool calls during message processing.
+
+### High-level Task Breakdown
+
+#### Task 1: System Prompt Behavioral Rewrite (2-3 hours)
+**Objective**: Transform from "brief acknowledgment" to "intelligent assistant"
+
+**Changes needed**:
+- Remove 20-word limit for complex scenarios
+- Add proactive tool usage triggers
+- Include "ironman suit" behavioral examples
+- Define when to be brief vs detailed
+
+**Success criteria**: 
+- Bot automatically analyzes position sizing on buy mentions
+- Bot proactively surfaces pattern comparisons
+- Bot pushes for reasoning/plans when appropriate
+
+#### Task 2: Message Event Enhancement (1-2 hours) 
+**Objective**: Make message events trigger intelligent analysis
+
+**Changes needed**:
+- Detect buy/sell mentions in messages
+- Automatically call relevant analytics tools
+- Synthesize tool results into user-facing insights
+- Handle context timing (recent trades vs historical)
+
+**Success criteria**:
+- "just bought POPCAT" triggers position analysis
+- "this is pumping" triggers historical pattern lookup
+- Bot provides context without explicit requests
+
+#### Task 3: Response Quality Testing (1 hour)
+**Objective**: Validate new behavior against real scenarios
+
+**Testing approach**:
+- Use actual wallet data from ironman scenarios
+- Test all 5 user brain dump scenarios  
+- Validate responses feel like "intelligent assistant" not "chat bot"
+- Ensure responses are actionable and engaging
+
+**Success criteria**:
+- User would naturally continue conversations
+- Responses change trading behavior 
+- Bot feels like "ironman suit" enhancement tool
+
+### Project Status Board
+
+#### To Do
+- [ ] Rewrite system prompt with intelligent assistant behaviors
+- [ ] Add proactive tool usage triggers for message events
+- [ ] Test new behavior against ironman scenarios
+- [ ] Validate response quality and user engagement
+
+#### In Progress
+- [x] Root cause analysis completed
+- [x] User requirements clarified  
+- [x] Technical investigation finished
+
+#### Done
+- [x] Analytics infrastructure (working)
+- [x] Tool integration (functional)
+- [x] Basic testing framework (operational)
+
+### Executor's Feedback or Assistance Requests
+
+**Critical Decision Point**: The scope of changes needed is significant:
+
+1. **System prompt rewrite** - Complete behavioral transformation
+2. **Message processing logic** - Add intelligence layer 
+3. **Response synthesis** - Connect analytics to user-facing insights
+
+**Risk Assessment**:
+- ✅ **Low technical risk** (infrastructure works)
+- ⚠️ **Medium behavior risk** (new prompt might over-trigger or under-trigger)
+- ✅ **High value potential** (matches user's core vision)
+
+**Recommendation**: Proceed with Task 1 (system prompt rewrite) first, then test before implementing message processing changes. This allows validation of the behavioral approach before committing to implementation work.
+
+**Question for user**: Should I proceed with the system prompt rewrite plan, or do you want to modify the approach based on this analysis?
+
+### Success Criteria
+
+**Core Behaviors Working**:
+- Position sizing automatically calculated and shared
+- Pattern recognition surfaces relevant comparisons  
+- Accountability questions push for reasoning/planning
+- Responses feel engaging vs passive acknowledgment
+- User naturally continues conversations for more details
+
+**Validation Metrics**:
+- All 5 ironman scenarios produce intelligent responses
+- Response length appropriate for complexity (brief for simple, detailed for complex)
+- User reports feeling "coached" vs just "acknowledged"
+- Bot proactively surfaces non-obvious insights from data

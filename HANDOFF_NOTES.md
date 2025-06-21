@@ -1,3 +1,7 @@
+# Handoff Notes
+
+> **📌 LATEST STATE**: See `HANDOFF_CURRENT_STATE.md` for the most recent updates (January 21, 2025)
+
 # Handoff Notes - Lean Pipeline Implementation
 
 ## Current State (as of deployment)

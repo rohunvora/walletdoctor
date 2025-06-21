@@ -1,4 +1,6 @@
-# Pocket Trading Coach
+# Pocket Trading Coach (Wallet Doctor)
+
+> **🚀 Latest Updates (January 2025)**: Analytics system live! Bot now answers time-based queries ("how am i doing today?") and provides intelligent trading insights. See `HANDOFF_CURRENT_STATE.md` for details.
 
 A goal-oriented Solana trading coach that helps you achieve your specific targets through natural conversation.
 
