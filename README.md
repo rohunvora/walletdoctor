@@ -1,169 +1,161 @@
 # Pocket Trading Coach
 
-A real-time Solana trading coach that monitors your trades and provides contextual insights through Telegram.
+A goal-oriented Solana trading coach that helps you achieve your specific targets through natural conversation.
 
-## 🎯 Features
+## 🎯 Core Vision
 
-- **Real-time Trade Monitoring**: Detects trades within 5 seconds
-- **Bankroll Awareness**: Tracks SOL balance and position sizing (% of bankroll)
-- **Market Cap Intelligence**: All trades tracked with entry/exit market caps and multipliers
-- **Price History Tracking**: Continuous monitoring with 1-minute snapshots
-- **Peak Alerts**: Automatic notifications at 3x, 5x, 10x gains
-- **Self-Directed Intelligence**: GPT-4 powered responses with data access tools
-- **Conversation Memory**: Learns from your trading patterns and conversations
-- **Risk Analysis**: Flags oversized positions, FOMO entries, and risky patterns
+**The Payoff Loop**: Users set goals → Bot tracks progress → Bot nudges at critical moments → Users see value → Users engage more
+
+Unlike generic trading bots, this coach adapts to YOUR specific goal:
+- Want to reach 1k SOL? It'll calculate how aggressive you need to be
+- Need $100/day for expenses? It'll track your daily cashouts
+- Aiming for 10% monthly returns? It'll monitor your consistency
 
 ## 🏗️ Architecture
 
-### Lean Pipeline Design
+### Simple, Direct Flow
 ```
-Wallet → Listener → Diary → Prompt Builder → GPT (with tools) → Telegram
-                       ↓                         ↑
-                Price History ←←←←←←←←←←←←←←← (Real-time context)
+Wallet → Trades → Diary → Goal Context → GPT → Coaching
 ```
 
-- **Single Data Flow**: No complex abstraction layers
-- **Diary Table**: Append-only source of truth for all events
-- **Price Monitoring**: Automatic 1-minute snapshots for all traded tokens
-- **GPT Tools**: Self-directed data access for intelligent responses
-- **Sub-5ms Performance**: Fast cold start to first response
+- **No complex abstractions** - Single pipeline
+- **Goal-aware intelligence** - Every response filtered through your objective
+- **Natural conversation** - No commands, just chat
+- **Performance** - <200ms end-to-end including APIs
 
 ## 🚀 Quick Start
 
-1. **Clone the repository**
+1. **Clone and install**
 ```bash
 git clone https://github.com/yourusername/walletdoctor.git
 cd walletdoctor
-```
-
-2. **Install dependencies**
-```bash
 pip install -r requirements.txt
 ```
 
-3. **Set up environment variables**
+2. **Set up environment**
 ```bash
 cp env.example .env
-# Edit .env and add:
+# Add your keys:
 # - TELEGRAM_BOT_TOKEN (from @BotFather)
-# - OPENAI_API_KEY (for GPT-4)
-# - HELIUS_KEY (for RPC calls)
+# - OPENAI_API_KEY
+# - HELIUS_KEY (for blockchain data)
+# - CIELO_KEY (for P&L data)
+# - BIRDEYE_API_KEY (for prices)
 ```
 
-4. **Initialize database**
-```bash
-python3 -c "import duckdb; db = duckdb.connect('pocket_coach.db'); db.execute(open('diary_schema.sql').read())"
-```
-
-5. **Start the bot**
+3. **Start the bot**
 ```bash
 python3 telegram_bot_coach.py
 ```
 
-## 💬 Using the Bot
+## 💬 Natural Conversation Flow
 
-1. **Connect your wallet**
-   ```
-   /connect YOUR_WALLET_ADDRESS
-   ```
+### First Connection
+```
+You: /connect YOUR_WALLET
 
-2. **Make trades** - The bot will automatically detect and analyze them
+Bot: [Analyzes your history]
+"Looks like you're a momentum trader, averaging 15 SOL positions, 
+42% win rate. What are you trying to achieve?"
 
-3. **Ask questions**
-   - "How were my last 5 trades?"
-   - "Show me my BONK trades"
-   - "What did I trade late at night?"
+You: trying to get to 1k sol by end of year
 
-4. **View stats**
-   ```
-   /stats
-   ```
+Bot: "So you want to reach 1000 SOL. Got that right?"
+
+You: yes
+
+Bot: "noted. you're at 142 SOL now, 45 days to go. 
+enough yapping, show me your next trade"
+```
+
+### During Trading
+```
+[You buy 40% of bankroll on BONK]
+
+Bot: "40% on one trade? that's aggressive. 
+one zero delays your 1k target by 3 weeks"
+
+You: this one's different, trust me
+
+Bot: "noted. hope you're right"
+```
+
+### Progress Tracking
+```
+You: how am i doing?
+
+Bot: "168 SOL, up 18% this week. 
+on pace for 1k in 6 weeks not 7"
+```
+
+## 🎯 Goal System
+
+Every goal breaks down into 4 primitives:
+- **Metric**: What you measure (bankroll_sol, realized_usd, pnl_pct)
+- **Target**: What you're aiming for (1000, 100/day, 10%)
+- **Window**: Time frame (none, day, week, month)
+- **Triggers**: When to speak (trade, hit target, slip, deviation)
+
+### Supported Goal Types
+- **Bankroll Growth**: "I want to reach X SOL"
+- **Daily Income**: "I need $X per day"
+- **Return Targets**: "I want X% monthly"
+- **Custom Goals**: Natural language parsing adapts to your phrasing
 
 ## 🛠️ Technical Details
 
 ### Core Components
+- `telegram_bot_coach.py` - Main bot with goal tracking
+- `diary_api.py` - Data layer
+- `prompt_builder.py` - Context with goal awareness
+- `gpt_client.py` - OpenAI integration
+- `goal_calculator.py` - Deterministic goal math (upcoming)
 
-- **telegram_bot_coach.py**: Main bot with bankroll tracking
-- **diary_api.py**: Data access functions with caching
-- **prompt_builder.py**: Minimal context builder
-- **gpt_client.py**: OpenAI integration with function calling
-- **coach_prompt_v1.md**: Coach L personality prompt
-
-### Data Storage
-
-All data is stored in a single `diary` table:
-- Trades with bankroll snapshots
-- User messages
-- Bot responses
-- Exact percentages preserved (no rounding)
-
-### GPT Tools Available
-
-1. `fetch_last_n_trades` - Get recent trades
-2. `fetch_trades_by_token` - Get trades for specific token
-3. `fetch_trades_by_time` - Get trades in hour range (e.g., late night)
-4. `fetch_token_balance` - Calculate current token balance
-5. `fetch_wallet_stats` - Get overall win rate and P&L statistics
-6. `fetch_token_pnl` - Get detailed P&L for a specific token
-7. `fetch_market_cap_context` - Get market cap analysis and risk assessment
-8. `fetch_price_context` - Get real-time price data (1h/24h changes, peaks, token age)
+### Intervention Rules
+The bot only speaks when it matters:
+- Trade impacts goal by >10%
+- Position size >25% of bankroll
+- Clear deviation from stated plan
+- Otherwise: stays silent, logs data
 
 ### Performance
+- Goal calculation: <5ms
+- End-to-end response: <200ms including APIs
+- P99 latency: <500ms under load
 
-- Cold start: < 5ms
-- Cache: 1000x+ faster for repeated queries
-- Rate limit: 3 function calls per message
+## 📊 Coming Soon
 
-## 📊 Example Interactions
+### Phase 1+2: Foundation (In Progress)
+- [ ] Goal setting with confirmation flow
+- [ ] Historical data import on connect
+- [ ] Cold-read generation from patterns
+- [ ] 3-cycle onboarding limit
+- [ ] Core integration test
 
-**After a risky trade:**
-```
-Bot: 15.2% of your bankroll on BONK? That's 3x your usual size. Conviction play or just tilted?
-```
+### Phase 3: Runtime Integration
+- [ ] Trade impact calculations
+- [ ] Progress tracking
+- [ ] Silence thresholds
+- [ ] Goal-aware nudges
 
-**FOMO detection:**
-```
-Bot: Buying after a 50% pump in the last hour? That's FOMO territory.
-```
+### Phase 4: Advanced Features
+- [ ] Multi-goal support
+- [ ] Progress visualization
+- [ ] Weekly reports
+- [ ] Goal adjustments
 
-**Peak alerts:**
-```
-Bot: 🚀 PEPE hit 5x from your entry! Consider taking some profits to lock in gains.
-```
+## 🧪 Testing
 
-**Market cap awareness:**
-```
-Bot: Getting in at $5M? The easy money was at $500K. What's your exit - $20M for a 4x?
-```
-
-**Asking about history:**
-```
-You: How were my last 5 trades?
-Bot: [Fetches data] 0 for 5, down $847. Your late night sessions aren't working - 4 of these were between 2-4am.
-```
-
-**Pattern recognition:**
-```
-Bot: Third time buying PEPE after a dump. The last two cost you $312. Different this time?
+Run the core integration test:
+```python
+python3 test_goal_coach.py
 ```
 
-**Price context:**
-```
-Bot: This token is only 2 hours old and already down 40% from peak. Might be a rug.
-```
-
-## 🔧 Development
-
-### Running Tests
-```bash
-python3 test_lean_pipeline.py
-```
-
-### Architecture Decisions
-- **No ORM**: Direct SQL for speed and clarity
-- **DuckDB**: Fast embedded database
-- **Async Everything**: Non-blocking I/O throughout
-- **Lean Context**: Only essential data sent to GPT
+This validates:
+1. Goal extraction from natural language
+2. Trade impact on goal progress
+3. Appropriate intervention timing
+4. Fact storage and retrieval
 
 ## 📝 License
 
@@ -171,12 +163,16 @@ MIT License - see LICENSE file
 
 ## 🤝 Contributing
 
-Pull requests welcome! Please ensure:
-- Tests pass
-- No new abstraction layers
-- Performance remains < 5s cold start
-- Bankroll tracking stays accurate
+We're building the coach every trader needs but won't admit they need.
+
+Pull requests welcome! Focus on:
+- Natural conversation flow (no jankiness)
+- Goal-oriented features
+- Performance (<200ms responses)
+- Clear, deterministic logic
 
 ---
 
-Built with ❤️ for Solana degens who want to trade better.
+**Current Status**: Preparing Phase 1+2 implementation
+**Bot Handle**: @mytradebro_bot
+**Support**: Open an issue or DM on Twitter
