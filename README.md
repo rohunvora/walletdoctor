@@ -1,5 +1,7 @@
 # Pocket Trading Coach (Wallet Doctor)
 
+> **📝 Project Status: Concluded** - See [`PROJECT_RETROSPECTIVE.md`](PROJECT_RETROSPECTIVE.md) for a comprehensive analysis of the two-week journey, lessons learned, and why this project ended.
+
 > **🚀 Latest Updates (January 2025)**: Analytics system live! Bot now answers time-based queries ("how am i doing today?") and provides intelligent trading insights. See `HANDOFF_CURRENT_STATE.md` for details.
 
 A goal-oriented Solana trading coach that helps you achieve your specific targets through natural conversation.
