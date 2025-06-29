@@ -4,65 +4,43 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environment
 venv/
-ENV/
 env/
+ENV/
 .venv/
+*.egg-info/
+dist/
+build/
 
-# IDE
-.vscode/
-.idea/
-.cursor/
-*.swp
-*.swo
-*~
-
-# Project specific
-coach.db
-*.db
+# Environment
 .env
 .env.*
 !env.example
 
-# API Keys and Secrets
-*.key
-*.pem
-secrets/
-
-# OS
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
-*_temp.parquet
-
-# Logs
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+test_trades.csv
 *.log
 
-# Data directory
-data/*
-!data/.gitkeep .env
+# Application
+*.db
+*.sqlite
+*.sqlite3
 
-# PID files
-telegram_bot_coach.pid
-.test_cache/
+# Archive
+archive_v1/
+
+# Temporary files
+*.tmp
+*.bak
+*~

@@ -1,182 +1,99 @@
-# Pocket Trading Coach (Wallet Doctor)
+# WalletDoctor Analytics
 
-> **📝 Project Status: Concluded** - See [`PROJECT_RETROSPECTIVE.md`](PROJECT_RETROSPECTIVE.md) for a comprehensive analysis of the two-week journey, lessons learned, and why this project ended.
+A pure analytics microservice for trading data analysis. Upload CSV → Get comprehensive metrics → Let GPT handle the narrative.
 
-> **🚀 Latest Updates (January 2025)**: Analytics system live! Bot now answers time-based queries ("how am i doing today?") and provides intelligent trading insights. See `HANDOFF_CURRENT_STATE.md` for details.
+## What This Is
 
-A goal-oriented Solana trading coach that helps you achieve your specific targets through natural conversation.
+WalletDoctor V2 is a complete refactor from live blockchain monitoring to CSV-based batch analysis. The service performs heavy mathematical computations on trading data and returns structured JSON metrics that can be consumed by LLMs or other applications.
 
-## 🎯 Core Vision
+## Quick Start
 
-**The Payoff Loop**: Users set goals → Bot tracks progress → Bot nudges at critical moments → Users see value → Users engage more
-
-Unlike generic trading bots, this coach adapts to YOUR specific goal:
-- Want to reach 1k SOL? It'll calculate how aggressive you need to be
-- Need $100/day for expenses? It'll track your daily cashouts
-- Aiming for 10% monthly returns? It'll monitor your consistency
-
-## 🏗️ Architecture
-
-### Simple, Direct Flow
-```
-Wallet → Trades → Diary → Goal Context → GPT → Coaching
-```
-
-- **No complex abstractions** - Single pipeline
-- **Goal-aware intelligence** - Every response filtered through your objective
-- **Natural conversation** - No commands, just chat
-- **Performance** - <200ms end-to-end including APIs
-
-## 🚀 Quick Start
-
-1. **Clone and install**
 ```bash
-git clone https://github.com/yourusername/walletdoctor.git
-cd walletdoctor
+# Install dependencies
 pip install -r requirements.txt
+
+# Generate test data
+python generate_test_csv.py
+
+# Test analytics directly
+python wallet_analytics_service.py test_trades.csv
+
+# Start API server
+python wallet_analytics_api.py
+
+# Test API endpoint
+curl -X POST -F "file=@test_trades.csv" http://localhost:5000/analyze
 ```
 
-2. **Set up environment**
+## CSV Format
+
+Your CSV must include these columns:
+- `timestamp` - ISO format datetime
+- `action` - buy/sell/swap_in/swap_out
+- `token` - Token symbol
+- `amount` - Token quantity
+- `price` - Price per token
+- `value_usd` - Total USD value
+- `pnl_usd` - Profit/loss (0 for buys)
+- `fees_usd` - Transaction fees
+
+## What You Get
+
+The service returns comprehensive JSON analytics:
+
+```json
+{
+  "summary": {
+    "total_pnl_usd": -215706.61,
+    "win_rate_pct": 20.5,
+    "profit_factor": 0.09
+  },
+  "pnl_analysis": { ... },
+  "fee_analysis": { ... },
+  "timing_analysis": { ... },
+  "risk_analysis": { ... },
+  "psychological_analysis": { ... }
+}
+```
+
+## Architecture
+
+- **Analytics Engine** (`wallet_analytics_service.py`) - Core computation engine
+- **Web API** (`wallet_analytics_api.py`) - Flask-based HTTP endpoint
+- **No blockchain dependencies** - Pure mathematical analysis
+- **Timeout-safe** - Designed for GPT's 30-second limit
+
+## Deployment
+
+### Heroku
 ```bash
-cp env.example .env
-# Add your keys:
-# - TELEGRAM_BOT_TOKEN (from @BotFather)
-# - OPENAI_API_KEY
-# - HELIUS_KEY (for blockchain data)
-# - CIELO_KEY (for P&L data)
-# - BIRDEYE_API_KEY (for prices)
+git push heroku main
 ```
 
-3. **Start the bot**
-```bash
-python3 telegram_bot_coach.py
-```
+### Railway
+Use the included `railway_deploy.json` configuration.
 
-## 💬 Natural Conversation Flow
+### Environment Variables
+- `PORT` - Server port (default: 5000)
+- `API_BASE_URL` - Public URL for OpenAPI spec
+- `FLASK_ENV` - Set to 'production' for deployment
 
-### First Connection
-```
-You: /connect YOUR_WALLET
+## GPT Integration
 
-Bot: [Analyzes your history]
-"Looks like you're a momentum trader, averaging 15 SOL positions, 
-42% win rate. What are you trying to achieve?"
+1. Deploy API to public URL
+2. Get OpenAPI spec from `/openapi.json`
+3. Add as GPT Action in ChatGPT
+4. Let GPT handle the coaching narrative
 
-You: trying to get to 1k sol by end of year
+## Files
 
-Bot: "So you want to reach 1000 SOL. Got that right?"
+- `wallet_analytics_service.py` - Core analytics engine
+- `wallet_analytics_api.py` - Web API wrapper
+- `generate_test_csv.py` - Test data generator
+- `requirements.txt` - Python dependencies
+- `WALLETDOCTOR_V2_ARCHITECTURE.md` - Detailed architecture
+- `example_analytics_output_formatted.json` - Example output
 
-You: yes
+## License
 
-Bot: "noted. you're at 142 SOL now, 45 days to go. 
-enough yapping, show me your next trade"
-```
-
-### During Trading
-```
-[You buy 40% of bankroll on BONK]
-
-Bot: "40% on one trade? that's aggressive. 
-one zero delays your 1k target by 3 weeks"
-
-You: this one's different, trust me
-
-Bot: "noted. hope you're right"
-```
-
-### Progress Tracking
-```
-You: how am i doing?
-
-Bot: "168 SOL, up 18% this week. 
-on pace for 1k in 6 weeks not 7"
-```
-
-## 🎯 Goal System
-
-Every goal breaks down into 4 primitives:
-- **Metric**: What you measure (bankroll_sol, realized_usd, pnl_pct)
-- **Target**: What you're aiming for (1000, 100/day, 10%)
-- **Window**: Time frame (none, day, week, month)
-- **Triggers**: When to speak (trade, hit target, slip, deviation)
-
-### Supported Goal Types
-- **Bankroll Growth**: "I want to reach X SOL"
-- **Daily Income**: "I need $X per day"
-- **Return Targets**: "I want X% monthly"
-- **Custom Goals**: Natural language parsing adapts to your phrasing
-
-## 🛠️ Technical Details
-
-### Core Components
-- `telegram_bot_coach.py` - Main bot with goal tracking
-- `diary_api.py` - Data layer
-- `prompt_builder.py` - Context with goal awareness
-- `gpt_client.py` - OpenAI integration
-- `goal_calculator.py` - Deterministic goal math (upcoming)
-
-### Intervention Rules
-The bot only speaks when it matters:
-- Trade impacts goal by >10%
-- Position size >25% of bankroll
-- Clear deviation from stated plan
-- Otherwise: stays silent, logs data
-
-### Performance
-- Goal calculation: <5ms
-- End-to-end response: <200ms including APIs
-- P99 latency: <500ms under load
-
-## 📊 Coming Soon
-
-### Phase 1+2: Foundation (In Progress)
-- [ ] Goal setting with confirmation flow
-- [ ] Historical data import on connect
-- [ ] Cold-read generation from patterns
-- [ ] 3-cycle onboarding limit
-- [ ] Core integration test
-
-### Phase 3: Runtime Integration
-- [ ] Trade impact calculations
-- [ ] Progress tracking
-- [ ] Silence thresholds
-- [ ] Goal-aware nudges
-
-### Phase 4: Advanced Features
-- [ ] Multi-goal support
-- [ ] Progress visualization
-- [ ] Weekly reports
-- [ ] Goal adjustments
-
-## 🧪 Testing
-
-Run the core integration test:
-```python
-python3 test_goal_coach.py
-```
-
-This validates:
-1. Goal extraction from natural language
-2. Trade impact on goal progress
-3. Appropriate intervention timing
-4. Fact storage and retrieval
-
-## 📝 License
-
-MIT License - see LICENSE file
-
-## 🤝 Contributing
-
-We're building the coach every trader needs but won't admit they need.
-
-Pull requests welcome! Focus on:
-- Natural conversation flow (no jankiness)
-- Goal-oriented features
-- Performance (<200ms responses)
-- Clear, deterministic logic
-
----
-
-**Current Status**: Preparing Phase 1+2 implementation
-**Bot Handle**: @mytradebro_bot
-**Support**: Open an issue or DM on Twitter
+MIT
