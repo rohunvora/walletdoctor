@@ -1,5 +1,5 @@
-# WalletDoctor V2 Requirements
-# Minimal dependencies for analytics microservice
+# WalletDoctor V3 Requirements
+# Dependencies for blockchain fetching and analytics
 
 # Core analytics
 pandas==2.0.3
@@ -7,9 +7,14 @@ numpy==1.24.3
 
 # Web API
 Flask==2.3.2
+flask-cors==4.0.0
 Werkzeug==2.3.6
 
-# Optional for production
+# Async operations for blockchain fetching
+aiohttp==3.9.1
+aiofiles==23.2.1
+
+# Production server
 gunicorn==21.2.0
 
 # Development/Testing

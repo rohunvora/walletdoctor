@@ -1,0 +1,37 @@
+[project]
+name = "walletdoctor"
+version = "3.0.0"
+description = "Real-time Solana wallet trading analytics via blockchain data"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+dependencies = [
+    "pandas==2.0.3",
+    "numpy==1.24.3",
+    "Flask==2.3.2",
+    "flask-cors==4.0.0",
+    "Werkzeug==2.3.6",
+    "aiohttp==3.9.1",
+    "aiofiles==23.2.1",
+    "gunicorn==21.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.4.0",
+    "requests==2.31.0",
+    "black==23.12.1",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py" 

@@ -1,0 +1,13 @@
+Fetching trades for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+[11:09:49] Starting fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+[11:09:49] Fetching all SWAP transactions...
+[11:09:51] Fetched page 1 with 33 transactions
+[11:09:51] Found 8 RAYDIUM transactions
+[11:09:51] Found 25 PUMP_AMM transactions
+[11:09:51] Fetched 33 total transactions
+[11:09:51] Extracted 31 trades
+[11:09:51] Fetching metadata for 10 tokens...
+[11:09:51] Fetching prices for 27 time buckets...
+
+Fetched 18 trades
+Total volume: $0.00

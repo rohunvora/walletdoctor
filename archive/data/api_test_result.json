@@ -1,0 +1,57 @@
+{
+  "fee_analysis": {
+    "fee_impact_on_profits": 100.0,
+    "fees_as_pct_of_volume": 0.3,
+    "recommendation": "Fees eating significant profits. Focus on higher conviction trades.",
+    "total_fees_paid": 192.55
+  },
+  "metadata": {
+    "fetch_timestamp": "2025-06-30T15:19:46.352403",
+    "total_trades_analyzed": 35,
+    "total_trades_fetched": 35,
+    "wallet_address": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"
+  },
+  "pnl_analysis": {
+    "average_loss": 0,
+    "average_win": 0,
+    "largest_loss": 0,
+    "largest_win": 0,
+    "profit_factor": Infinity,
+    "risk_reward_ratio": Infinity,
+    "total_profit_loss": 0.0,
+    "win_rate": 0.0
+  },
+  "psychological_analysis": {
+    "fomo_tendency": 5.6,
+    "patience_score": 0.0,
+    "recommendation": "Psychological discipline maintained.",
+    "revenge_trading_tendency": 0,
+    "tilt_periods_identified": 0
+  },
+  "risk_analysis": {
+    "max_consecutive_losses": 0,
+    "max_drawdown": 0.0,
+    "position_sizing_variance": 110.3,
+    "recommendation": "Inconsistent position sizing. Develop systematic sizing rules."
+  },
+  "summary": {
+    "profit_factor": Infinity,
+    "sharpe_ratio": 0,
+    "total_pnl_usd": 0.0,
+    "total_trades": 17,
+    "win_rate_pct": 0.0
+  },
+  "timing_analysis": {
+    "avg_hold_time_minutes": 697.0,
+    "best_performance_hours": [
+      0,
+      2,
+      9
+    ],
+    "loser_avg_hold_time": 697.0,
+    "overtrading_score": 23.5,
+    "recommendation": "Overtrading detected. Space out entries for better decisions.",
+    "winner_avg_hold_time": 0.0
+  },
+  "wallet_id": "ecd0f8e2"
+}

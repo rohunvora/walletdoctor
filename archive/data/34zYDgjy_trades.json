@@ -1,0 +1,351 @@
+{
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "summary": {
+    "total_trades": 31,
+    "priced_trades": 31,
+    "total_volume": 22345.808750777953
+  },
+  "trades": [
+    {
+      "timestamp": "2025-06-18T15:21:27",
+      "action": "sell",
+      "token": "USDC",
+      "amount": 228.71336,
+      "price": 1.0375771366171447,
+      "value_usd": 237.30775317488616,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.7119232595246585,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T00:41:05",
+      "action": "buy",
+      "token": "jockey",
+      "amount": 1422013.644363,
+      "price": 0.0005268081353603796,
+      "value_usd": 749.1283564438901,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.24738506933167,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T01:06:42",
+      "action": "buy",
+      "token": "GOR",
+      "amount": 11211.927561,
+      "price": 0.013363060932436464,
+      "value_usd": 149.82567116770676,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.44947701350312025,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T01:35:52",
+      "action": "sell",
+      "token": "GOR",
+      "amount": 75258.905727,
+      "price": 0.01454834658213657,
+      "value_usd": 1094.8926439087388,
+      "pnl_usd": 0.0,
+      "fees_usd": 3.2846779317262165,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T01:35:57",
+      "action": "buy",
+      "token": "SOL",
+      "amount": 2580151.265663,
+      "price": 0.00029034280525075835,
+      "value_usd": 749.1283564438901,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.24738506933167,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T02:31:55",
+      "action": "sell",
+      "token": "SOL",
+      "amount": 2580151.265663,
+      "price": 0.00016560033554423217,
+      "value_usd": 427.2739153486681,
+      "pnl_usd": 0.0,
+      "fees_usd": 1.2818217460460042,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T15:59:06",
+      "action": "buy",
+      "token": "gor",
+      "amount": 1382677.43115,
+      "price": 0.00043347208394600256,
+      "value_usd": 599.3520675056959,
+      "pnl_usd": 0.0,
+      "fees_usd": 1.7980562025170879,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T16:18:59",
+      "action": "buy",
+      "token": "gor",
+      "amount": 111890.577625,
+      "price": 0.0006695738796301336,
+      "value_usd": 74.91900815442787,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.2247570244632836,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T16:45:11",
+      "action": "sell",
+      "token": "gor",
+      "amount": 1494568.008775,
+      "price": 0.0002383583723740243,
+      "value_usd": 356.2427979738955,
+      "pnl_usd": 0.0,
+      "fees_usd": 1.0687283939216865,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:32:30",
+      "action": "buy",
+      "token": "GTA",
+      "amount": 0.004067,
+      "price": 73684.78825387848,
+      "value_usd": 299.6760338285237,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.8990281014855712,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:39:36",
+      "action": "buy",
+      "token": "GOR",
+      "amount": 40428.818356,
+      "price": 0.03706218064048103,
+      "value_usd": 1498.380168991267,
+      "pnl_usd": 0.0,
+      "fees_usd": 4.495140506973802,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:39:56",
+      "action": "sell",
+      "token": "GOR",
+      "amount": 40428.818356,
+      "price": 0.03634510353479524,
+      "value_usd": 1469.3895889382502,
+      "pnl_usd": 0.0,
+      "fees_usd": 4.40816876681475,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:40:09",
+      "action": "buy",
+      "token": "GOR",
+      "amount": 8209.769274,
+      "price": 0.03650236974075292,
+      "value_usd": 299.6760335258207,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.899028100577462,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:43:22",
+      "action": "sell",
+      "token": "GOR",
+      "amount": 8209.769274,
+      "price": 0.03404594761511481,
+      "value_usd": 279.50937463478317,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.8385281239043494,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:46:26",
+      "action": "buy",
+      "token": "Honey",
+      "amount": 5941217.999696,
+      "price": 0.00012610041989004483,
+      "value_usd": 749.1900844199578,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.2475702532598736,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:46:54",
+      "action": "buy",
+      "token": "Honey",
+      "amount": 3793486.51964,
+      "price": 0.0001579950434521576,
+      "value_usd": 599.3520675056959,
+      "pnl_usd": 0.0,
+      "fees_usd": 1.7980562025170879,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-19T23:47:50",
+      "action": "sell",
+      "token": "Honey",
+      "amount": 9734704.519336,
+      "price": 5.067788144694748e-06,
+      "value_usd": 49.333420155197366,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.1480002604655921,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-20T02:59:21",
+      "action": "buy",
+      "token": "OSCAR",
+      "amount": 1253414.286004,
+      "price": 0.0011957309715983455,
+      "value_usd": 1498.7462820188096,
+      "pnl_usd": 0.0,
+      "fees_usd": 4.496238846056428,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-20T03:34:25",
+      "action": "sell",
+      "token": "OSCAR",
+      "amount": 1253414.286004,
+      "price": 0.0008069181167453157,
+      "value_usd": 1011.4026951640221,
+      "pnl_usd": 0.0,
+      "fees_usd": 3.0342080854920663,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-21T19:56:01",
+      "action": "buy",
+      "token": "LABUBU",
+      "amount": 24992.646781,
+      "price": 0.029983766367570306,
+      "value_usd": 749.3736819887121,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.248121045966136,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-23T07:31:09",
+      "action": "buy",
+      "token": "COIN ACT ",
+      "amount": 3374779.346163,
+      "price": 0.00022203764315435666,
+      "value_usd": 749.3280521880333,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.2479841565641,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-23T09:30:37",
+      "action": "sell",
+      "token": "COIN ACT ",
+      "amount": 3374779.346163,
+      "price": 0.00013673822820404422,
+      "value_usd": 461.46134837393146,
+      "pnl_usd": 0.0,
+      "fees_usd": 1.3843840451217944,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-23T14:42:48",
+      "action": "buy",
+      "token": "BUNK",
+      "amount": 2786860.990908,
+      "price": 0.0010751559029134354,
+      "value_usd": 2996.3100449739222,
+      "pnl_usd": 0.0,
+      "fees_usd": 8.988930134921766,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-23T14:42:59",
+      "action": "buy",
+      "token": "BUNK",
+      "amount": 674166.288625,
+      "price": 0.0011111168324031296,
+      "value_usd": 749.0775111299839,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.247232533389952,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-23T15:12:08",
+      "action": "sell",
+      "token": "BUNK",
+      "amount": 3461027.279533,
+      "price": 0.0007108407832954298,
+      "value_usd": 2460.2393423900885,
+      "pnl_usd": 0.0,
+      "fees_usd": 7.380718027170265,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-27T15:56:27",
+      "action": "buy",
+      "token": "USDC",
+      "amount": 701.824877,
+      "price": 1.0673282407476028,
+      "value_usd": 749.0775112813127,
+      "pnl_usd": 0.0,
+      "fees_usd": 2.2472325338439383,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-27T18:50:49",
+      "action": "sell",
+      "token": "USDC",
+      "amount": 385.57978,
+      "price": 1.0574727684541292,
+      "value_usd": 407.7401174165341,
+      "pnl_usd": 0.0,
+      "fees_usd": 1.2232203522496021,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-27T19:06:17",
+      "action": "buy",
+      "token": "USDC",
+      "amount": 282.003398,
+      "price": 1.0625084897470813,
+      "value_usd": 299.6310045125251,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.8988930135375753,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-27T19:31:44",
+      "action": "sell",
+      "token": "USDC",
+      "amount": 207.197844,
+      "price": 1.06046330205735,
+      "value_usd": 219.7257098274037,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.6591771294822111,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-27T23:05:25",
+      "action": "buy",
+      "token": "USDC",
+      "amount": 282.971316,
+      "price": 1.0588741245862712,
+      "value_usd": 299.6310045125251,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.8988930135375753,
+      "priced": true
+    },
+    {
+      "timestamp": "2025-06-28T11:57:02",
+      "action": "sell",
+      "token": "USDC",
+      "amount": 11.206871,
+      "price": 1.0250053631254417,
+      "value_usd": 11.48710287885498,
+      "pnl_usd": 0.0,
+      "fees_usd": 0.03446130863656494,
+      "priced": true
+    }
+  ]
+}

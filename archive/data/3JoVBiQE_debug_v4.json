@@ -1,0 +1,18 @@
+{
+  "total_transactions": 35,
+  "swap_transactions": 35,
+  "has_swap_event": 7,
+  "has_inner_swaps": 0,
+  "multi_hop_swaps": 0,
+  "missing_swap_event": 28,
+  "token_metadata_failures": 0,
+  "price_lookup_failures": 0,
+  "dex_sources": {
+    "RAYDIUM": 7
+  },
+  "swap_types": {
+    "Token\u2192SOL": 3,
+    "SOL\u2192Token": 4
+  },
+  "unparseable_swaps": []
+}

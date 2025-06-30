@@ -1,0 +1,265 @@
+{
+  "unique_tokens": 52,
+  "tokens": {
+    "4dmQFkCM1WiUhC75UndLkmMtWj78fQJUvfc4xpMLpump": {
+      "first_trade": "2025-06-23T14:42:48",
+      "last_trade": "2025-06-23T15:12:08",
+      "trade_count": 3
+    },
+    "DDZFBrYKALrLwQrSaoYpjtistsbZn9SrYhNUwAXmpump": {
+      "first_trade": "2025-06-23T07:31:09",
+      "last_trade": "2025-06-23T09:30:37",
+      "trade_count": 2
+    },
+    "JB2wezZLdzWfnaCfHxLg193RS3Rh51ThiXxEDWQDpump": {
+      "first_trade": "2025-06-21T19:56:01",
+      "last_trade": "2025-06-21T19:56:01",
+      "trade_count": 1
+    },
+    "8Q8KPBL21FVatn2C1EaxAQSorAkHW2W2jDUXapVPZmhm": {
+      "first_trade": "2025-06-20T02:59:21",
+      "last_trade": "2025-06-20T03:34:25",
+      "trade_count": 2
+    },
+    "4VsLXe59omX19XCuQZUaCZk7fWe3RMkuP4cc4Arbpump": {
+      "first_trade": "2025-06-19T23:46:26",
+      "last_trade": "2025-06-19T23:47:50",
+      "trade_count": 3
+    },
+    "71Jvq4Epe2FCJ7JFSF7jLXdNk1Wy4Bhqd9iL6bEFELvg": {
+      "first_trade": "2025-06-19T01:06:42",
+      "last_trade": "2025-06-19T23:43:22",
+      "trade_count": 7
+    },
+    "AoaomgLcUiXgvagCbLtrsPnsYg3CF6yqX1nWaJcd1jwo": {
+      "first_trade": "2025-06-19T23:32:30",
+      "last_trade": "2025-06-19T23:32:30",
+      "trade_count": 1
+    },
+    "h2h3tNnocBwoEd8SGgzZxHuKYkXQE7TFbSoygkUpump": {
+      "first_trade": "2025-06-19T15:59:06",
+      "last_trade": "2025-06-19T16:45:11",
+      "trade_count": 3
+    },
+    "B91Nyc6SnWqr5DRR34eEMKuZrWh4zBhW9VhX4UNLpump": {
+      "first_trade": "2025-06-19T00:41:05",
+      "last_trade": "2025-06-19T02:36:20",
+      "trade_count": 4
+    },
+    "719cLKqG9nhJCAYCjrBUGxsUSwJwPCcQjNkkq1Gypump": {
+      "first_trade": "2025-06-19T01:35:57",
+      "last_trade": "2025-06-19T02:31:55",
+      "trade_count": 2
+    },
+    "ZEXy1pqteRu3n13kdyh4LwPQknkFk3GzmMYMuNadWPo": {
+      "first_trade": "2025-06-13T08:07:19",
+      "last_trade": "2025-06-18T15:21:27",
+      "trade_count": 15
+    },
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": {
+      "first_trade": "2025-06-13T08:07:19",
+      "last_trade": "2025-06-18T15:21:27",
+      "trade_count": 33
+    },
+    "B1oEzGes1QxVZoxR3abiwAyL4jcPRF2s2ok5Yerrpump": {
+      "first_trade": "2025-06-17T13:08:19",
+      "last_trade": "2025-06-18T15:18:20",
+      "trade_count": 5
+    },
+    "4Uf883orBx89VQZiV4EoRpNqUWYN5ZuEvC4PCpQ9moon": {
+      "first_trade": "2025-06-16T19:54:14",
+      "last_trade": "2025-06-16T23:47:38",
+      "trade_count": 7
+    },
+    "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump": {
+      "first_trade": "2025-06-16T20:28:44",
+      "last_trade": "2025-06-16T22:25:31",
+      "trade_count": 2
+    },
+    "AKiVWoxj4b6QSDXzbkBkjYpy6XjSYtsYxDduKwhLpump": {
+      "first_trade": "2025-06-16T18:30:55",
+      "last_trade": "2025-06-16T18:34:53",
+      "trade_count": 2
+    },
+    "CGkRYvHnV6guL8DMadWG57qe6qUm6m3zDyGpMrcvpump": {
+      "first_trade": "2025-06-15T17:24:30",
+      "last_trade": "2025-06-16T17:33:54",
+      "trade_count": 20
+    },
+    "644xBRmGHvRAUswXuo7NNemcFB97YfvuX35AnbtTpump": {
+      "first_trade": "2025-06-16T17:14:55",
+      "last_trade": "2025-06-16T17:15:38",
+      "trade_count": 2
+    },
+    "41vwPynvqxpzJec1NTMnpg8HyqNfQsRDLATuK7ZCvNbk": {
+      "first_trade": "2025-06-16T15:21:05",
+      "last_trade": "2025-06-16T16:18:39",
+      "trade_count": 6
+    },
+    "BLTHfX6stpJfMrdJQMUB5uPySgFHj9Y5ucAuHEQ5pump": {
+      "first_trade": "2025-06-16T11:15:21",
+      "last_trade": "2025-06-16T15:46:08",
+      "trade_count": 7
+    },
+    "CFGLDb1pv2B5qqTQP9mcU9BkY8GZA4Q6FJeTNcbKpump": {
+      "first_trade": "2025-06-16T15:33:04",
+      "last_trade": "2025-06-16T15:41:04",
+      "trade_count": 3
+    },
+    "9VcdXrdcmbDc8b6D1a8Zyx2FJStpaW6dfQdhcaUKpump": {
+      "first_trade": "2025-06-16T14:29:04",
+      "last_trade": "2025-06-16T15:29:02",
+      "trade_count": 2
+    },
+    "DFVeSFxNohR5CVuReaXSz6rGuJ62LsKhxFpWsDbbjups": {
+      "first_trade": "2025-06-16T13:12:31",
+      "last_trade": "2025-06-16T13:24:21",
+      "trade_count": 7
+    },
+    "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump": {
+      "first_trade": "2025-06-14T17:41:30",
+      "last_trade": "2025-06-16T13:18:01",
+      "trade_count": 47
+    },
+    "8CDe8CVX74r3mEpcr2LsGGrNoGdJFt4uSYWyGfKUpump": {
+      "first_trade": "2025-06-16T11:57:01",
+      "last_trade": "2025-06-16T12:23:33",
+      "trade_count": 3
+    },
+    "HWrgYyGdivwuxV2ePxbk6vwkrKYqMa7is9fYMm5kcQWY": {
+      "first_trade": "2025-06-15T21:58:40",
+      "last_trade": "2025-06-16T10:59:01",
+      "trade_count": 6
+    },
+    "5T6bWCA3pY1B9V6Dw3ndX99jsuEgkRJqoMeD5muBpump": {
+      "first_trade": "2025-06-15T23:04:48",
+      "last_trade": "2025-06-16T04:03:59",
+      "trade_count": 22
+    },
+    "6RnQmga2ZwPK6AZ4eQTYBpDrJ4yXHmQJzC3eGo6Z2Bvu": {
+      "first_trade": "2025-06-15T20:38:46",
+      "last_trade": "2025-06-15T20:45:15",
+      "trade_count": 3
+    },
+    "6Nijf9VXcybuKUV2kP8WZ2CLKND6UjeFiDPBff3Zpump": {
+      "first_trade": "2025-06-15T19:51:16",
+      "last_trade": "2025-06-15T20:43:09",
+      "trade_count": 11
+    },
+    "6sSLWfHyM6sV3EEPncVSJHkwqA4692aJMx4BvMn3zMgH": {
+      "first_trade": "2025-06-15T02:57:23",
+      "last_trade": "2025-06-15T10:06:02",
+      "trade_count": 2
+    },
+    "DtR4D9FtVoTX2569gaL837ZgrB6wNjj6tkmnX9Rdk9B2": {
+      "first_trade": "2025-06-13T01:47:27",
+      "last_trade": "2025-06-15T00:09:14",
+      "trade_count": 4
+    },
+    "8NNXWrWVctNw1UFeaBypffimTdcLCcD8XJzHvYsmgwpF": {
+      "first_trade": "2025-06-14T22:34:52",
+      "last_trade": "2025-06-15T00:08:47",
+      "trade_count": 5
+    },
+    "3C6pxjxg6naDZY23yF1E57dx3YpVbwJ65PEYHrgKpump": {
+      "first_trade": "2025-06-14T19:15:15",
+      "last_trade": "2025-06-14T21:27:53",
+      "trade_count": 3
+    },
+    "bngh6ZAWP3WH9tM24y4aZXHzLK6UgLjSdBPqVEqpump": {
+      "first_trade": "2025-06-14T21:18:19",
+      "last_trade": "2025-06-14T21:27:49",
+      "trade_count": 2
+    },
+    "FqfV4VA9okRt5PvG2XLuVfsfaKbA92STFMfqNyq8pump": {
+      "first_trade": "2025-06-14T21:09:21",
+      "last_trade": "2025-06-14T21:18:26",
+      "trade_count": 2
+    },
+    "J4o4p8u8MJFCHankcvX2roVYxhQ8rp5eGjDZCpx2pump": {
+      "first_trade": "2025-06-14T18:50:33",
+      "last_trade": "2025-06-14T20:21:55",
+      "trade_count": 3
+    },
+    "DraS4FNiswvMCAjedfLFxECspv61ie42hQRi5RGXpump": {
+      "first_trade": "2025-06-14T20:08:30",
+      "last_trade": "2025-06-14T20:21:47",
+      "trade_count": 2
+    },
+    "zGh48JtNHVBb5evgoZLXwgPD2Qu4MhkWdJLGDAupump": {
+      "first_trade": "2025-06-14T17:56:55",
+      "last_trade": "2025-06-14T19:25:14",
+      "trade_count": 9
+    },
+    "Fo255HqbipTisSamH2UhgqT8UfNc5cBvAc8FSj4qpump": {
+      "first_trade": "2025-06-13T22:19:24",
+      "last_trade": "2025-06-14T19:15:58",
+      "trade_count": 9
+    },
+    "BediSYEPUiuye8W5bFJueqwpLpry9CckehLEv1tBmoon": {
+      "first_trade": "2025-06-14T15:58:14",
+      "last_trade": "2025-06-14T17:57:24",
+      "trade_count": 3
+    },
+    "F4dqMnX665khxfGJ26PaAKrFoUCmqCmMPoos2ai7pump": {
+      "first_trade": "2025-06-14T12:01:51",
+      "last_trade": "2025-06-14T17:57:19",
+      "trade_count": 2
+    },
+    "CPqeJZVQLxEfEHyRd8bnrbumu9wBdTJj1KnoDXxRpump": {
+      "first_trade": "2025-06-14T14:03:22",
+      "last_trade": "2025-06-14T14:05:14",
+      "trade_count": 2
+    },
+    "CfVs3waH2Z9TM397qSkaipTDhA9wWgtt8UchZKfwkYiu": {
+      "first_trade": "2025-06-13T01:28:30",
+      "last_trade": "2025-06-14T12:57:12",
+      "trade_count": 333
+    },
+    "6nhC348vzsU91mwvqUXPbLz6jpc8gj4Lj6N87j5opump": {
+      "first_trade": "2025-06-13T17:47:17",
+      "last_trade": "2025-06-13T22:19:00",
+      "trade_count": 2
+    },
+    "GuKFu6wn9YM6gq5SQcoLHiGynpyjMZJrE2g7SRawpump": {
+      "first_trade": "2025-06-13T17:19:18",
+      "last_trade": "2025-06-13T17:19:41",
+      "trade_count": 2
+    },
+    "JBVZc2muVBLkMtzwDwie2b6LDVRsTJSugZxK4b7Lpump": {
+      "first_trade": "2025-06-13T08:31:56",
+      "last_trade": "2025-06-13T17:16:42",
+      "trade_count": 3
+    },
+    "7UctwwNbQ7HxmgSJswUTrUBbXU3PUwwd8hmdkn7Mpump": {
+      "first_trade": "2025-06-13T14:40:19",
+      "last_trade": "2025-06-13T15:18:56",
+      "trade_count": 2
+    },
+    "43yfnktSfyKkPXRLyevHu8rNXwWHxTXS1ntQbeArpump": {
+      "first_trade": "2025-06-13T14:38:26",
+      "last_trade": "2025-06-13T15:04:48",
+      "trade_count": 8
+    },
+    "HVaijGB8m1EdPDYtYKV7DP67M78ugeUcJ5Nz6VGHpump": {
+      "first_trade": "2025-06-13T13:14:30",
+      "last_trade": "2025-06-13T14:32:48",
+      "trade_count": 3
+    },
+    "5RdUozMDTHC4NZYaYtF8ut8NxyCGiFfQaL6ydAZKpump": {
+      "first_trade": "2025-06-13T12:09:32",
+      "last_trade": "2025-06-13T14:32:43",
+      "trade_count": 2
+    },
+    "4Tt6siivnSEjLQCKATp96BUQh2uwCyEVS3e57erNpump": {
+      "first_trade": "2025-06-13T08:18:14",
+      "last_trade": "2025-06-13T12:02:09",
+      "trade_count": 5
+    },
+    "HW9ZFtHZQKMVCt4fA6Lnm81FbrXaWYX56ehopufkRTLY": {
+      "first_trade": "2025-06-13T02:04:44",
+      "last_trade": "2025-06-13T02:14:15",
+      "trade_count": 3
+    }
+  }
+}

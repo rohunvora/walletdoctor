@@ -1,0 +1,14 @@
+{
+  "total_tokens": 0,
+  "unique_tokens": [
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "JB2wezZLdzWfnaCfHxLg193RS3Rh51ThiXxEDWQDpump"
+  ],
+  "price_success": 7,
+  "price_failures": 1,
+  "price_api_calls": 8,
+  "tokens_missing_price": [
+    "JB2wezZLdzWfnaCfHxLg193RS3Rh51ThiXxEDWQDpump"
+  ],
+  "token_categories": {}
+}

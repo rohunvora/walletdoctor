@@ -1,0 +1,56 @@
+{
+  "wallet_id": "bf495373",
+  "summary": {
+    "total_pnl_usd": 229.56,
+    "total_trades": 4,
+    "win_rate_pct": 25.0,
+    "profit_factor": 41.63,
+    "sharpe_ratio": 8.84
+  },
+  "pnl_analysis": {
+    "total_profit_loss": 229.56,
+    "largest_win": 235.21,
+    "largest_loss": 3.77,
+    "average_win": 235.21,
+    "average_loss": 1.88,
+    "win_rate": 25.0,
+    "profit_factor": 41.63,
+    "risk_reward_ratio": 124.89
+  },
+  "fee_analysis": {
+    "total_fees_paid": 8.84,
+    "fees_as_pct_of_volume": 0.3,
+    "fee_impact_on_profits": 3.7,
+    "recommendation": "Fee management acceptable."
+  },
+  "timing_analysis": {
+    "avg_hold_time_minutes": 324.0,
+    "winner_avg_hold_time": 0.0,
+    "loser_avg_hold_time": 324.0,
+    "best_performance_hours": [
+      15,
+      11,
+      19
+    ],
+    "overtrading_score": 0.0,
+    "recommendation": "Holding losers longer than winners. Cut losses quicker."
+  },
+  "risk_analysis": {
+    "max_drawdown": 5.65,
+    "position_sizing_variance": 49.5,
+    "max_consecutive_losses": 3,
+    "recommendation": "Risk management within normal bounds."
+  },
+  "psychological_analysis": {
+    "revenge_trading_tendency": 0.0,
+    "fomo_tendency": 0.0,
+    "patience_score": 0.0,
+    "tilt_periods_identified": 0,
+    "recommendation": "Psychological discipline maintained."
+  },
+  "metadata": {
+    "analysis_timestamp": "2025-06-29T21:12:39.737632",
+    "data_completeness": "full",
+    "warnings": []
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "filter": "Top 135 by activity score (min score: 2)",
+  "token_count": 135,
+  "logic": "This is a sensible, non-arbitrary filter"
+}

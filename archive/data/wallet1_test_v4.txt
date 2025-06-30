@@ -1,0 +1,14 @@
+Fetching trades for wallet: 3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2
+[11:11:43] Starting fetch for wallet: 3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2
+[11:11:43] Fetching all SWAP transactions...
+[11:11:47] Fetched page 1 with 35 transactions
+[11:11:47] Found 7 RAYDIUM transactions
+[11:11:47] Found 23 PUMP_AMM transactions
+[11:11:47] Found 5 METEORA transactions
+[11:11:47] Fetched 35 total transactions
+[11:11:47] Extracted 35 trades
+[11:11:47] Fetching metadata for 8 tokens...
+[11:11:47] Fetching prices for 32 time buckets...
+
+Fetched 18 trades
+Total volume: $0.00

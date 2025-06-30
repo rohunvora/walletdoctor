@@ -1,0 +1,90 @@
+{
+  "total_transactions": 196,
+  "type_distribution": {
+    "TRANSFER": 177,
+    "SWAP": 19
+  },
+  "source_distribution": {
+    "SYSTEM_PROGRAM": 172,
+    "RAYDIUM": 6,
+    "SOLANA_PROGRAM_LIBRARY": 4,
+    "PUMP_AMM": 11,
+    "PHANTOM": 1,
+    "METEORA": 2
+  },
+  "potential_swaps_count": 15,
+  "potential_swaps_examples": [
+    {
+      "signature": "5VcFLX7ijuYNntTvSUnxuhPaPcP6iwav3ycpayYgEDAnbfzciKVAPs51RL9zQACmBr3NDZB7Atxxufj8GDbjnMkL",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 350402.483899708 YOURSELF to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "3FJL4DGVu6pZWBtnPbY1zrTsYeXgwBYoW3CHkf5fFmxeeTzUmngrfpmu9h5QosxbbZ7RzsvTBrvexneZuzJX3fH3",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 1.98 SOL to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "3aCoY3uieSDNtEf1RXgMM83hsfo7MhPUe7J2kCzqMyzSatbRfmBR4khy11pJzoMEwJ7vhLRQ5LjCDFxEeP7oC7XB",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 779753.414677884 MOCHI to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "4Scs614uL7bt1EAL5HzXo5TNEAdfgfF5PFnS1zPg2Xdm364SqXf5fXyseQoYscZZNBNgsHdom2Df1jDVP5BeswYA",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 1.98 SOL to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "3UnMPeADMaKaRiuvezttarVjsrazVnLngcBpXxgNL99oT8miKRKn7kkmeCHnTGjdphgC8Yoo93eMHaoucuFMQbrG",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 1554393.534839486 WEINER to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "3HAruF9Xk1PYLK9fUnz7JEcvWFGKjZWF8imNd1wVwiX5EZ5hVyn4xkceMw6sLGrdUJt3TRRENpUERskQYgK7grha",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 1.188 SOL to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "32Aik7Lmcqx2WpPqu2CSer44WNXrkbxPeV1NoDy1rNMCpN1yUbkhHfDZTVNsTtdtkxbpRXfkiicP7yfAaSXeYYA1",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 3,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 6.93 SOL to HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC."
+    },
+    {
+      "signature": "khjqstXY7ZvozGm5cmh6anLwkXwoQR5p4oKyy9YnjVMxRLWterW1Pz8Re9MwSgpKpLBENrdYomCdBtNnEvsXpb9",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 2,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 632996.724139481 RDMP to GpMZbSM2GgvTKHJirzeGfMFoaZ8UR2X7F4v8vHTvxFbL."
+    },
+    {
+      "signature": "48WRpGY87gBVRuZNhYUcKsCJztjrDfNDaMxrdnoUwi8S289kSAT6voSGy9V655Pzf3iGKHH372WV4zNmY4p2Qg2C",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 2,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 632996.724139481 RDMP to GpMZbSM2GgvTKHJirzeGfMFoaZ8UR2X7F4v8vHTvxFbL."
+    },
+    {
+      "signature": "5Wg7SjDEWSCVMMZubLuiUxAQCLUzruVudEd7fr9UBwxza6fPGJ1PUoNrxtfVJFdJ4aXvX4vVX85FnKJp7aTMffv2",
+      "type": "TRANSFER",
+      "source": "SYSTEM_PROGRAM",
+      "transfers": 2,
+      "description": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 transferred 140665.938697662 RDMP to GpMZbSM2GgvTKHJirzeGfMFoaZ8UR2X7F4v8vHTvxFbL."
+    }
+  ],
+  "dex_transfers_count": 0,
+  "dex_transfers_examples": []
+}

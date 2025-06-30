@@ -1,0 +1,56 @@
+{
+  "wallet_id": "c0e119e1",
+  "summary": {
+    "total_pnl_usd": -22.3,
+    "total_trades": 3,
+    "win_rate_pct": 66.7,
+    "profit_factor": 0.48,
+    "sharpe_ratio": -3.68
+  },
+  "pnl_analysis": {
+    "total_profit_loss": -22.3,
+    "largest_win": 19.74,
+    "largest_loss": 42.76,
+    "average_win": 10.23,
+    "average_loss": 42.76,
+    "win_rate": 66.7,
+    "profit_factor": 0.48,
+    "risk_reward_ratio": 0.24
+  },
+  "fee_analysis": {
+    "total_fees_paid": 13.87,
+    "fees_as_pct_of_volume": 0.3,
+    "fee_impact_on_profits": 0,
+    "recommendation": "Fee management acceptable."
+  },
+  "timing_analysis": {
+    "avg_hold_time_minutes": 266.0,
+    "winner_avg_hold_time": 399.0,
+    "loser_avg_hold_time": 2.0,
+    "best_performance_hours": [
+      19,
+      11,
+      13
+    ],
+    "overtrading_score": 16.7,
+    "recommendation": "Timing discipline looks good."
+  },
+  "risk_analysis": {
+    "max_drawdown": 0.0,
+    "position_sizing_variance": 75.0,
+    "max_consecutive_losses": 1,
+    "recommendation": "Inconsistent position sizing. Develop systematic sizing rules."
+  },
+  "psychological_analysis": {
+    "revenge_trading_tendency": 0,
+    "fomo_tendency": 0.0,
+    "patience_score": 100,
+    "tilt_periods_identified": 0,
+    "recommendation": "Psychological discipline maintained."
+  },
+  "metadata": {
+    "analysis_timestamp": "2025-06-29T21:12:40.645520",
+    "data_completeness": "full",
+    "warnings": []
+  }
+}

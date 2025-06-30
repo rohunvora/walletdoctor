@@ -1,0 +1,101 @@
+{
+  "total_swap_transactions": 132,
+  "has_events_swap": 39,
+  "no_events_swap": 93,
+  "has_token_transfers": 132,
+  "parseable_with_transfers": 127,
+  "by_source": {
+    "RAYDIUM": {
+      "total": 27,
+      "has_swap": 27,
+      "no_swap": 0,
+      "has_transfers": 27
+    },
+    "PUMP_AMM": {
+      "total": 63,
+      "has_swap": 0,
+      "no_swap": 63,
+      "has_transfers": 63
+    },
+    "METEORA": {
+      "total": 27,
+      "has_swap": 0,
+      "no_swap": 27,
+      "has_transfers": 27
+    },
+    "JUPITER": {
+      "total": 12,
+      "has_swap": 12,
+      "no_swap": 0,
+      "has_transfers": 12
+    },
+    "PUMP_FUN": {
+      "total": 3,
+      "has_swap": 0,
+      "no_swap": 3,
+      "has_transfers": 3
+    }
+  },
+  "transfer_patterns": {
+    "2_out_2_in": 8,
+    "1_out_1_in": 49,
+    "3_out_1_in": 36,
+    "2_out_1_in": 34,
+    "0_out_0_in": 2,
+    "1_out_0_in": 1,
+    "0_out_1_in": 2
+  },
+  "examples": {
+    "good_transfer_pattern": [
+      {
+        "signature": "2uBhmjvYbffVjFQKVEXbzXyFfFMSWGkwxFGFz2sNsCkeLrjnfyAr2qCaWFBoDaibamqvcGSEoJ5XNK8J8bpY4VUp",
+        "source": "PUMP_AMM",
+        "pattern": "1_out_1_in",
+        "out_mint": "B91Nyc6S",
+        "in_mint": "So111111",
+        "has_swap_event": false
+      },
+      {
+        "signature": "5k9gGESAP5rFRBgdxNwSFw1f83o8JKaKBo9DHDs4XCdCSF9FcZFHN9uaxBKhAVANZgB8WiEim8bq7jHXfDqsgRsY",
+        "source": "PUMP_AMM",
+        "pattern": "3_out_1_in",
+        "out_mint": "So111111",
+        "in_mint": "B91Nyc6S",
+        "has_swap_event": false
+      },
+      {
+        "signature": "5kvb9zhEq4EhVjVi1wFQnUVeZtCEUeGKYp4rpsH9tizGo6X6UGESCG1FX9R2x9vY4aiJ1TJZGn26RXcwGUv8UCGN",
+        "source": "PUMP_AMM",
+        "pattern": "1_out_1_in",
+        "out_mint": "GuFK1iRQ",
+        "in_mint": "So111111",
+        "has_swap_event": false
+      }
+    ],
+    "bad_transfer_pattern": [
+      {
+        "signature": "spg4EBfBNqTGhDvq3NDmNX4Dbrhq9nsEoieJCeSRYwFUtzzVnHaVYehk16hZxKkEZFsD5jyngnBw4mfRqHaGwTX",
+        "source": "PUMP_FUN",
+        "pattern": "1_out_0_in",
+        "transfer_count": 1
+      },
+      {
+        "signature": "SFQZLcGk8e7YmZhhuYDUXrkh3mKoKUgsx74qjTcyQjz1fQjpdhDjuuVx8iwemqQwCsaLJGhxeXKxJm7RJkQUPEw",
+        "source": "PUMP_FUN",
+        "pattern": "0_out_1_in",
+        "transfer_count": 1
+      }
+    ],
+    "has_events_swap": [
+      {
+        "signature": "5g5rkbqii8rkHfgC8CWLDB2bBzKeoXcqmjyFbMvxUW9xXEEHnFc1QRqiG9eEcxdmLk6XgjVpJRnwYqqbWZKg3eBP",
+        "source": "RAYDIUM"
+      },
+      {
+        "signature": "4EeVbfsnYj9p9T4kwPJDKu2qi1PF9ixrFAgvs5kwZqBnssEUs1hpNBcfCV5iq3ZkzuZJo1Re3sWaanQRvMbb9fR",
+        "source": "RAYDIUM"
+      }
+    ],
+    "no_events_no_transfers": []
+  }
+}

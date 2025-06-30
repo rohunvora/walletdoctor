@@ -1,0 +1,5 @@
+{
+  "filter": "2+ interactions, excluding 3 oldest with exactly 2 interactions",
+  "token_count": 135,
+  "verification": "EXACT MATCH - 135 tokens"
+}

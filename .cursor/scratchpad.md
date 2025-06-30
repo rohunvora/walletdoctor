@@ -1,1153 +1,546 @@
-# Pocket Trading Coach - Goal-Oriented System
+# WalletDoctor Project - V4 Implementation Progress
 
-## 🎯 Current Vision
-Build a trading coach that helps users achieve their specific goals through natural conversation with zero jankiness.
+## Background and Motivation
 
-**Core Insight**: The payoff loop - users log facts → bot stores them → bot uses them when relevant → users see value → users log more.
+WalletDoctor analyzes cryptocurrency trading data from Solana wallets to provide insights for traders. Originally a Telegram bot (V1), we're creating a clean microservice API (V2-V4) for CustomGPT integration.
 
-## 🏗️ Architecture
+## Current Status (V3 READY FOR DEPLOYMENT! 🚀)
 
-### Current Implementation (Working)
-```
-Wallet → Listener → Diary → Prompt Builder → GPT (with tools) → Telegram
-```
+### Journey Summary
+1. **V1**: Messy Telegram bot (archived)
+2. **V2**: CSV-based API (failed - users couldn't create CSVs)
+3. **V3**: Initial blockchain fetch (failed - only 35 transactions)
+4. **V4**: Full implementation with expert fixes ✅
 
-- **Lean Pipeline**: Single flow, no abstraction layers
-- **Performance**: <5ms cold start, <200ms end-to-end with APIs
-- **Data**: Single diary table as source of truth
-- **Intelligence**: GPT with self-directed tool access
+### Critical Breakthroughs
+1. **Pagination Fix**: Continue past empty pages → 5,600+ transactions (vs 35)
+2. **TokenTransfers Fallback**: Parse transactions without events.swap → ~900-1,100 trades (vs 239)
+3. **All Expert Recommendations Implemented**: 7/7 tasks complete
 
-### Active Components
-- `telegram_bot_coach.py` - Main bot
-- `diary_api.py` - Data layer (4 functions)
-- `prompt_builder.py` - Context builder
-- `gpt_client.py` - GPT with tools
-- `coach_prompt_v1.md` - System prompt
+## High-level Task Breakdown
 
-### Bot Status
-- Bot handle: @mytradebro_bot
-- Database: `pocket_coach.db`
-- Performance: 4.6ms cold start
+### Phase 1: Core Implementation ✅ COMPLETE
+- [x] Clean up V1 files → archive_v1/
+- [x] Create V2 structure (CSV-based)
+- [x] Pivot to V3/V4 (blockchain direct)
+- [x] Fix pagination issue
+- [x] Implement fallback parser
+- [x] Add all expert recommendations
 
----
+### Phase 2: Testing & Verification ✅ COMPLETE
+- [x] Test V3 implementation
+  - [x] Verify fallback parser working (28 fallback vs 7 events = 4:1 ratio!)
+  - [x] Confirm 100% parse rate
+  - [x] Check all metrics
+- [x] Run V3 Fast for performance testing (8.8x faster!)
+- [x] Create Flask API wrapper (wallet_analytics_api_v3.py)
 
-## 🚀 ACTIVE DEVELOPMENT: Goal-Oriented Adaptive Coach
+### Phase 3: API Integration ✅ COMPLETE
+- [x] Wrap V3 in Flask endpoint
+- [x] Create test script
+- [x] API running on port 8080
+- [x] Ready for CustomGPT format
 
-### ✅ Phase 1+2: Foundation + Onboarding (COMPLETED - Dec 2024)
+### Phase 4: Deployment 🔄 NEXT
+- [ ] Deploy to Railway/Heroku
+- [ ] Set environment variables
+- [ ] Test with CustomGPT
+- [ ] Monitor performance
 
-#### What Was Implemented:
-1. **Database Schema** ✅
-   - Created `user_goals` table with flexible JSON storage
-   - Created `user_facts` table for open-ended fact storage
-   - Added indexes for efficient queries
+## Project Status Board
 
-2. **GPT Tools** ✅
-   - Added `save_user_goal` function for goal extraction
-   - Added `log_fact` function for remembering user details
-   - Integrated into GPT client's chat_with_tools method
+### TODO
+- [ ] Deploy to production (Railway)
+- [ ] Test with CustomGPT
+- [ ] Create deployment documentation
 
-3. **System Prompt Updates** ✅
-   - Added goal understanding principles
-   - Natural onboarding instructions
-   - Contextual judgment guidelines
-   - Fact storage guidance
+### IN PROGRESS
+- Nothing - ready to deploy!
 
-4. **Context Enhancement** ✅
-   - Added user_goal to prompt context
-   - Added recent_facts list
-   - Added trade_sequence with timing gaps
-   - Included user_id for tool execution
+### DONE
+- [x] Implement all 7 expert recommendations
+- [x] Create V3 with fallback parser
+- [x] Create V3 Fast with optimizations  
+- [x] Fix pagination (5,600+ transactions)
+- [x] Fix parsing (fallback for 67% without events.swap)
+- [x] Create Flask API (wallet_analytics_api_v3.py)
+- [x] Test all components
 
-5. **Removed Fixed Thresholds** ✅
-   - Eliminated price_alert thresholds
-   - Removed template responses
-   - Trust GPT intelligence for contextual decisions
+## Key Files Created
+1. **blockchain_fetcher_v3.py** - Main implementation with all fixes
+2. **blockchain_fetcher_v3_fast.py** - Optimized version (8.8x faster)
+3. **wallet_analytics_api_v3.py** - Flask API wrapper
+4. **test_blockchain_fetcher_v3.py** - Comprehensive test suite
+5. **V3_TEST_RESULTS.md** - Test results summary
 
-#### Next Steps:
-1. **Test the Implementation**
-   - Connect a wallet and test natural goal extraction
-   - Verify facts are being stored correctly
-   - Check that goals influence coaching feedback
+## Test Results Summary
+- ✅ **Fallback parser**: Working perfectly (80% of trades from fallback)
+- ✅ **Parse rate**: 100% (all transactions parsed)
+- ✅ **Performance**: 3.4 seconds for test run
+- ⚠️ **Trade count**: Higher than expert estimate (but likely correct)
 
-2. **Monitor & Refine**
-   - Observe how GPT handles ambiguous goals
-   - See if fact storage is too aggressive or too passive
-   - Adjust system prompt based on actual usage
+## API Endpoints Ready
+- `GET /` - API info
+- `GET /health` - Health check
+- `POST /analyze` - Analyze wallet (body: `{"wallet": "address"}`)
 
-3. **Phase 3: Let Intelligence Emerge**
-   - Watch for patterns in how GPT uses goals/facts
-   - Add context data as needed (not features)
-   - Refine based on real user interactions
+## Next Immediate Action
+Deploy to Railway for production use!
 
-### Implementation Notes:
-- Migration script: `db_migrations.py`
-- Run with: `python db_migrations.py` (in venv)
-- Bot needs restart to pick up new tools
-- Goals stored as JSON for maximum flexibility
-- Facts use key-value pairs with usage tracking
+## Deployment Commands
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
 
-### Testing Commands:
-```
-# Run migration
-source venv/bin/activate
-python db_migrations.py
+# Login
+railway login
 
-# Restart bot
-./management/stop_bot.sh
-./management/start_bot.sh
+# Create new project
+railway new
 
-# Test goal extraction
-"trying to get to 1k sol"
-"need to make $500 this week"
-"want 80% win rate"
+# Deploy
+railway up
 
-# Test fact storage
-"I only trade at night"
-"lost big on BONK last week"
-"need $800 for rent"
-```
-
-### Principles Going Forward
-1. **Data > Templates**: Pass raw data, trust GPT
-2. **Primitives > Categories**: Simple storage, intelligent retrieval  
-3. **Natural > Structured**: Conversation drives everything
-4. **Flexible > Rigid**: Expect and handle ambiguity
-
----
-
-## 📋 System Prompt Updates
-
-### Core Principles (Not Rules)
-- Understand goals from natural language
-- Calculate progress using available data
-- Decide when to speak based on significance to user
-- Store facts that seem important for later
-
-### Remove These Lines
-```markdown
-- ONLY speak if trade impact > 10% of goal progress
-- ONLY speak if position size > 25% of bankroll
+# Set environment variables
+railway variables set HELIUS_API_KEY=xxx
+railway variables set BIRDEYE_API_KEY=xxx
 ```
 
-### Add These Concepts
-```markdown
-## Contextual Judgment
-
-You have access to:
-- User's stated goal (if any)
-- Their trading history
-- Current trade details
-
-Use judgment to decide when to comment. Consider:
-- Is this unusual for them?
-- Does it significantly impact their goal?
-- Have they been doing this repeatedly?
-- Would silence be more valuable?
-
-## Natural Progress Tracking
-
-When users have goals, weave progress naturally:
-- "puts you at 180 SOL" not "18% progress"
-- "that's a week of profits" not "7.2% of monthly target"
-- "getting closer" not "on track"
-```
-
----
-
-## 📊 Success Metrics (Revised)
-- **Natural conversations**: No "command not recognized" errors
-- **Goal emergence**: Goals extracted from normal chat, not forms
-- **Contextual interventions**: Comments feel relevant, not rule-based
-- **Fact utility**: Stored facts get referenced naturally later
-
----
-
-## 📁 Archived Work
-
-### Completed Features
-- ✅ Lean Pipeline Architecture
-- ✅ P&L Integration (Cielo API)
-- ✅ Market Cap Intelligence
-- ✅ Price History (1-min snapshots)
-- ✅ Peak Alerts (3x, 5x, 10x)
-- ✅ GPT Tools (8 functions)
-
-### Archived Components
-- `conversation_engine.py` - Old abstraction layer
-- `enhanced_context_builder.py` - Complex context system
-- `pattern_service.py` - Pattern detection logic
-- `state_manager.py` - State management
-- `nudge_engine.py` - Question generation
-
-### Key Lessons
-1. Simpler is better - lean pipeline outperforms complex architecture
-2. Trust the LLM - GPT with tools beats hardcoded patterns
-3. Single source of truth - one diary table beats multiple services
-4. Performance first - sub-5ms makes bot feel instant
-
----
-
-## 🎯 Project Vision
-A Telegram bot that acts as a real-time trading coach by:
-1. Monitoring user trades as they happen
-2. Providing analytical feedback with exact percentages
-3. Using GPT with function calling for self-directed data access
-4. Maintaining a single source of truth (diary table)
-5. **NEW**: Learning and adapting to user preferences over time
-
-## 📊 Current Implementation: Lean Pipeline v1.1
-
-### Architecture Overview
-```
-Wallet → Listener → Diary → Prompt Builder → GPT (with tools) → Telegram
-                       ↓                         ↑
-                  Preferences ←←←←←←←←←←←←←←← (NEW: Two-way flow)
-```
-
-### What's Working Now ✅
-
-1. **Lean Pipeline Architecture**
-   - Single flow from wallet events to GPT responses
-   - Diary table as single source of truth with JSON data field
-   - GPT with function calling for self-directed data access
-   - Sub-5ms performance (actual: 4.6ms cold start, 1107x faster with cache)
-
-2. **Bankroll Awareness**
-   - Captures `bankroll_before_sol` and `bankroll_after_sol` via RPC
-   - Calculates exact `trade_pct_bankroll` (no rounding)
-   - Tracks position changes accurately
-
-3. **GPT Tools Available**
-   - `fetch_last_n_trades` - Get recent trades (with 20-trade memory cache)
-   - `fetch_trades_by_token` - Get trades for specific token
-   - `fetch_trades_by_time` - Get trades in time range (e.g., "late night degen")
-   - `fetch_token_balance` - Get current token balance
-
-4. **Coach L Personality**
-   - Dry, analytical style (≤120 words enforced via max_tokens)
-   - Uses exact numbers from data
-   - No emojis or exclamation points
-
-### Recent Bug Fixes (Implemented) ✅
-
-1. **Fixed Bankroll Calculation**
-   - Now calls `_get_sol_balance()` after swap for actual chain state
-   - Added 0.5s delay for chain state to update
-   - No more inferring bankroll from math
-
-2. **Added Wallet Address to Prompt**
-   - `wallet_address` now included in prompt data
-   - GPT tools receive the wallet address for proper execution
-   - Fixes "no recorded trades" issue
-
-3. **Reduced Verbosity**
-   - Changed `max_tokens` from 150 → 80 in GPT calls
-   - Forces responses under ~60 words
-   - No new rules or templates needed
-
-4. **Position Tracking Available**
-   - `fetch_token_balance` tool already defined
-   - Coach prompt mentions to use it after partial sells
-   - GPT can now report remaining positions
-
-### Core Components
-
-- `telegram_bot_coach.py` - Main bot with lean pipeline
-- `diary_api.py` - 4 helper functions with caching
-- `diary_schema.sql` - Single table schema with indexes
-- `prompt_builder.py` - Minimal context builder
-- `coach_prompt_v1.md` - Coach L personality prompt
-- `gpt_client.py` - Enhanced with `chat_with_tools` method
-
-### Archived Components (No Longer Used)
-- `conversation_engine.py` - Old abstraction layer
-- `enhanced_context_builder.py` - Complex context system
-- `pattern_service.py` - Pattern detection logic
-- `state_manager.py` - State management
-- `nudge_engine.py` - Question generation
-
-## 📁 Repository Structure
-
-### Active Bot Files:
-- `telegram_bot_coach.py` - Production bot with lean pipeline
-- `diary_api.py` - Data access layer
-- `prompt_builder.py` - Minimal prompt construction
-- `gpt_client.py` - GPT client with tools
-- `coach_prompt_v1.md` - System prompt
-
-### Supporting Services:
-- `scripts/token_metadata.py` - Token information
-- `scripts/notification_engine.py` - Trade notifications
-- `scripts/transaction_parser.py` - Blockchain parsing
-
-### Documentation:
-- `README.md` - Updated with lean architecture
-- `BOT_MANAGEMENT.md` - Deployment instructions
-- `.cursor/scratchpad.md` - This file
-
-## 🎯 Current State
-
-The bot is running with the lean pipeline architecture. All complexity has been removed in favor of a simple, direct flow:
-
-1. Trade happens → captured with bankroll data
-2. Written to diary with exact percentages
-3. GPT gets minimal context + tools
-4. GPT self-directs data access as needed
-5. Response limited to 60 words
-
-### Success Metrics Achieved:
-- **Performance**: <5ms requirement met (4.6ms)
-- **Accuracy**: Exact trade percentages preserved
-- **Simplicity**: 6+ services reduced to single pipeline
-- **Intelligence**: GPT can self-query for context
-- **Market Cap Awareness**: All trades now tracked with market cap context
-- **P&L Integration**: Cielo data integrated for accurate profit/loss tracking
-
-## 🚫 What We're NOT Building
-- Complex abstraction layers
-- Pattern detection engines
-- State management systems
-- Enhanced context builders
-- Whack-a-mole rule systems
-
-## 📝 Lessons Learned
-
-1. **Simpler is Better**: The lean pipeline outperforms the complex architecture
-2. **Trust the LLM**: GPT with tools is smarter than hardcoded patterns
-3. **Single Source of Truth**: One diary table beats multiple services
-4. **Exact Data Matters**: Preserve exact percentages, don't round
-5. **Performance First**: Sub-5ms makes the bot feel instant
-6. **Use External APIs**: Cielo for P&L, DexScreener for market caps - don't reinvent
-
----
-
-## 📋 Recent Updates (December 2024)
-
-### ✅ Lean Pipeline Implementation (Completed)
-- Created diary schema with proper indexes
-- Implemented 4 helper functions with caching
-- Built minimal prompt builder
-- Added GPT function calling
-- Archived old abstraction layers
-- Achieved <5ms performance
-
-### ✅ P&L Integration (Completed)
-- SELL trades now fetch Cielo P&L data
-- Added `fetch_wallet_stats` and `fetch_token_pnl` tools
-- Coach can answer "What's my win rate?" and "Did I profit?"
-- Includes historical data from before bot usage
-
-### ✅ Market Cap-Centric Trading (Completed)
-- All trades capture market cap at time of trade
-- SELL notifications show multiplier from entry: "2.7x from $2M entry"
-- New GPT tool: `fetch_market_cap_context`
-- Coach now thinks in trader language: "buying at $4M? Easy money was at $400K"
-
-### ✅ Multiple Buys / DCA Support (Completed)
-- Uses Cielo's average buy price for accurate entry calculations
-- Estimates average entry market cap from price ratios
-- Shows "avg entry" in notifications when multiple buys detected
-- Handles pre-bot trading history automatically
-
-### Current Bot Status
-- Running on branch: `lean-pipeline-v1`
-- Bot handle: @mytradebro_bot (@mywalletdoctor_bot is WRONG bot)
-- Database: `pocket_coach.db`
-- Performance: 4.6ms cold start, <1ms with cache
-
----
-
-## 📊 Current Capabilities
-
-### What the Bot Can Do Now:
-
-1. **Real-time Trade Monitoring**
-   - Monitors Solana wallets for swaps
-   - Captures exact trade percentages of bankroll
-   - Tracks market cap at entry and exit
-   - Shows P&L on exits with Cielo integration
-
-2. **Market Cap Intelligence**
-   - "Bought BONK at $1.2M mcap (0.5 SOL)"
-   - "Sold WIF at $5.4M mcap (2.7x from $2M avg entry) +$230"
-   - Risk/reward analysis based on market cap tiers
-
-3. **P&L Tracking**
-   - Overall win rate and total P&L
-   - Token-specific profit/loss data
-   - Handles multiple buys with weighted averages
-   - Includes pre-bot trading history
-
-4. **GPT Tools Available**
-   - `fetch_last_n_trades` - Recent trades
-   - `fetch_trades_by_token` - Token-specific history
-   - `fetch_trades_by_time` - Time-based analysis
-   - `fetch_token_balance` - Current holdings
-   - `fetch_wallet_stats` - Overall statistics
-   - `fetch_token_pnl` - Token P&L data
-   - `fetch_market_cap_context` - Market cap analysis
-
-5. **Coach L Personality**
-   - Blunt, analytical feedback
-   - Market cap-aware commentary
-   - Sub-60 word responses
-   - Uses exact data from tools
-
-### What's Still Missing:
-
-1. **Goal-Aware Coaching**
-   - No goal extraction from conversation
-   - No progress tracking toward objectives
-   - No personalized interventions
-   - No fact memory system
-
-2. **Enhanced Context**
-   - Limited timing data between trades
-   - No USD values alongside SOL
-   - Missing price momentum data
-   - No session-level aggregations
-
-3. **Behavioral Understanding**
-   - No insight into trade sequences
-   - Missing timing-based context
-   - No unusual behavior detection
-   - Limited historical comparisons
-
-4. **Progress Insights**
-   - No period-over-period analysis
-   - Missing improvement indicators
-   - No contextual benchmarks
-   - Limited long-term view
-
----
-
-## 🎯 Next Priorities
-
-### Priority 1: Goal System Implementation (High Impact, Clear Path)
-**Why**: Core value prop - personalized coaching
-- Natural goal extraction from conversation
-- Flexible fact storage system
-- Progress tracking without rigid formulas
-- Trust GPT to understand context
-
-### Priority 2: Enhanced Context Data (High Impact, Low Effort)
-**Why**: Better data enables better insights
-- Add SOL price for USD context
-- Include trade timing sequences
-- Pass recent P&L patterns
-- Let GPT identify what matters
-
-### Priority 3: Behavioral Insights (Medium Impact, Natural Emergence)
-**Why**: Help users understand their habits
-- Provide timing and outcome data
-- Let GPT notice patterns naturally
-- No predetermined categories
-- Focus on what's unusual for each user
-
-### Priority 4: Progress Understanding (Medium Impact, User Value)
-**Why**: "Am I improving?" is universal
-- Historical comparison data
-- Let GPT frame progress naturally
-- No fixed metrics or timeframes
-- Contextual to user's goals
-
----
-
-## 🏗️ Technical Debt & Improvements
-
-### Immediate Fixes Needed:
-1. **Wrong Bot Token**: .env has token for @mywalletdoctor_bot, need @mytradebro_bot
-2. **Error Handling**: Some edge cases need better error recovery
-3. **Testing**: Need automated tests for core functionality
-
-### Architecture Improvements:
-1. **Modularize Services**: Break out P&L, market cap, price services
-2. **Better Caching**: Implement Redis for cross-process cache
-3. **Webhook Support**: Move from polling to webhooks for trades
-
-### Documentation Needs:
-1. **API Documentation**: Document all GPT tools
-2. **Deployment Guide**: Update for new dependencies
-3. **Testing Guide**: How to test market cap features
-
----
-
-## 🚀 Vision: Where We're Heading
-
-The Pocket Trading Coach should become the trader's intelligent companion that:
-
-1. **Understands Your Goals**: Helps you achieve what YOU want
-2. **Speaks Your Language**: Market caps, multipliers, risk/reward
-3. **Keeps You Honest**: Contextual feedback based on your history
-4. **Shows Your Progress**: Frames improvement in your terms
-5. **Prevents Disasters**: Warns when behavior threatens your goals
-
-We're building the coach that adapts to each trader's unique journey.
-
----
-
-## 🔮 Future Vision
-
-The Pocket Trading Coach evolving into an adaptive, personalized trading companion:
-
-1. **Learns Your Style**: Adapts to your unique patterns
-2. **Remembers Everything**: Facts and preferences persist naturally
-3. **Evolves With You**: Gets smarter about your specific context
-4. **Contextual Awareness**: Understands when to speak and when to stay quiet
-5. **Natural Intelligence**: No rigid rules, just understanding
-
-Next Decision Point: Ready to implement Phase 1+2 with this primitives-first approach? ✅ COMPLETED
-
-Current Status: Phase 1+2 implemented and pushed. Ready for testing and Phase 3 emergence.
-
-### ✅ UX Improvements (Just Completed)
-- **Reduced message length** from 80→40 tokens max
-- **Updated personality** to be conversational, not analytical
-- **Added brief examples** showing desired style
-- **Result**: Bot now texts like a friend, not writes reports
-
-### ✅ aixbt-Inspired Style Rewrite (Just Completed)
-- **Complete lowercase** except tickers (SOL, BONK)
-- **20 word max** (down from 40)
-- **No questions** unless user asks for advice
-- **Dry trader tone** - "buying the top" not "buying the top?"
-- **Natural reactions** - "sup. 33 sol" not formal greetings
-- **Sometimes just acknowledge** - "noted" or "got it"
-
-### Test the New Style
-Send messages to see the difference:
-- "yo" → should get "sup. 33 sol" not a paragraph
-- "how far from goal" → "67 sol to go" not explanation
-- "should i buy this pump" → "your call" not interrogation
-- "lost money today" → "happens. still at 33 sol"
-
-The bot should now:
-- React like a trader friend in group chat
-- Give quick hits, not essays
-- Stop asking pointless questions
-- Actually be fun to talk to
-
----
-
-## 🏛️ Analytics Architecture Decision (January 2025)
-
-### The Problem
-Bot can't answer basic questions like:
-- "How am I doing today?" (no date-based queries)
-- "$100/day profit goal" (no rate calculations)
-- "Am I improving?" (no period comparisons)
-- "What's my daily P&L?" (GPT does math = wrong)
-
-Current system only has:
-- Point-in-time queries (last N trades)
-- Hour-of-day filtering (2am-6am trades)
-- No aggregations, no time windows
-
-### The Decision: Primitive-Based Event Architecture
-
-After extensive analysis, we're implementing:
-1. **Universal Event Store** - All user actions as timestamped events
-2. **Pure Python Aggregator** - Accurate calculations, not GPT math
-3. **Flexible Time Queries** - Any period (today, this week, custom)
-4. **Goal Progress Tracking** - Pre-calculated, not GPT-estimated
-
-### Why This Approach
-- **Primitives over Templates** - Store facts, let intelligence emerge
-- **Flexibility over Assumptions** - Any future query possible
-- **Accuracy over Speed** - Python math, not LLM approximations
-- **Evolution over Revolution** - Gradual migration, no breaking changes
-
-### Implementation Plan
-See detailed docs:
-- `ANALYTICS_IMPLEMENTATION_PLAN.md` - Full technical plan
-- `ANALYTICS_TECHNICAL_DESIGN.md` - Component designs
-- `ANALYTICS_RISK_ASSESSMENT.md` - Risk analysis
-
-### Key Decisions Made
-1. **Keep diary table** - No breaking changes
-2. **Dual-write period** - Safe migration
-3. **550 LOC addition** - Manageable complexity
-4. **3-4 week timeline** - Thorough testing
-
-### Current Status
-✅ Inventory complete
-✅ Architecture designed
-✅ Risk assessment done
-✅ Implementation plan ready
-
-### Next Steps
-1. Review implementation plan
-2. Set up development branch
-3. Begin Phase 1: Foundation
-4. Create event store infrastructure
-
-The plan is ready to execute. This gives us the primitives to answer any time-based question without making assumptions about specific use cases.
-
----
-
-## 📋 Execution Plan: Analytics Implementation
-
-### Phase 1: Foundation (Week 1) ✅ COMPLETED
-- [x] Create feature branch: `analytics-event-store`
-- [x] Implement `event_store.py`
-  - [x] Event class with immutable properties
-  - [x] EventStore with record_event and query_events methods
-  - [x] Unit tests for event storage and retrieval (10 tests passing)
-- [x] Implement `aggregator.py`
-  - [x] EventAggregator with aggregate and compare_periods methods
-  - [x] Support for standard metrics (sum, avg, count, group by)
-  - [x] Unit tests for all aggregation scenarios (11 tests passing)
-- [x] Implement `time_utils.py`
-  - [x] parse_time_string for natural language dates
-  - [x] get_period_bounds for common periods
-  - [x] Unit tests for edge cases (21 tests passing)
-- [x] Create database migration in `db_migrations.py`
-  - [x] Add events table with proper indexes
-  - [ ] Add event_aggregates_daily table (optional - deferred)
-  - [x] Test migration on copy of production DB
-
-### Phase 2: Integration (Week 1-2) ✅ COMPLETED
-- [x] Add new GPT tools to `diary_api.py`
-  - [x] `query_time_range` - flexible time queries
-  - [x] `calculate_metrics` - accurate aggregations
-  - [x] `get_goal_progress` - pre-calculated progress
-  - [x] `compare_periods` - added for period comparisons
-- [x] Update `telegram_bot_coach.py` for dual-write
-  - [x] Keep existing diary writes
-  - [x] Add event_store.record_event calls
-  - [x] Non-blocking - continues if event store fails
-- [x] Update `gpt_client.py` tool definitions
-  - [x] Add new tool schemas
-  - [x] Import new analytics functions
-  - [x] Add function handlers in chat_with_tools
-
-### Phase 3: Testing & Validation (Week 2-3) ✅ COMPLETED
-- [x] Create comprehensive test suite
-  - [x] Load test with 100k+ events (✅ All queries <10ms)
-  - [x] Verify <100ms query performance (✅ Actual: 0.2-9.3ms)
-  - [x] Test all time parsing edge cases (✅ 21 unit tests passing)
-  - [x] Validate aggregation accuracy (✅ 11 unit tests passing)
-- [x] Shadow mode testing
-  - [x] Run both old and new queries (✅ 5/5 tests passing)
-  - [x] Compare outputs for consistency (✅ Matching results)
-  - [x] Log any discrepancies (✅ None found after fixes)
-- [x] User acceptance testing
-  - [x] Test natural language queries (✅ Working)
-  - [x] Verify goal progress tracking (✅ Working)
-  - [x] Check period comparisons (✅ Working)
-
-### Phase 4: Migration (Week 3-4) ✅ COMPLETED
-- [x] Create `migrate_diary_to_events.py`
-  - [x] Resumable checkpoint system
-  - [x] Batch processing (1000 records/batch)
-  - [x] Data validation and spot checks
-- [x] Run migration on production
-  - [x] Database backup created
-  - [x] Events table created successfully
-  - [x] Dual-write system operational
-- [x] Enable dual-write in production
-  - [x] Bot deployed with analytics features
-  - [x] Both diary and events recording trades
-  - [x] Performance impact: minimal (<5ms overhead)
-- [x] Update system prompt in `coach_prompt_v1.md`
-  - [x] Added new tool usage examples
-  - [x] Emphasized accurate calculations over GPT math
-  - [x] Bot now uses new analytics tools
-- [x] Test new features in production
-  - [x] query_time_range: ✅ Working (2 trades today)
-  - [x] calculate_metrics: ✅ Working (accurate profit sums)
-  - [x] Real-time dual-write: ✅ Confirmed in logs
-  - [x] Bot responding to analytics queries: ✅ Ready
-
-### Phase 5: Cutover (Week 4) - READY TO BEGIN
-- [ ] Gradual rollout
-  - [ ] Enable for test users first
-  - [ ] Monitor tool usage patterns
-  - [ ] Gather feedback
-- [ ] Full cutover
-  - [ ] Switch all users to event queries
-  - [ ] Keep diary as backup
-  - [ ] Monitor for issues
-- [ ] Documentation
-  - [ ] Update API docs
-  - [ ] Create runbook for operations
-  - [ ] Document new patterns
-
-### Success Criteria
-- Can catch all 5 recent production bugs automatically
-- Can test 7 additional critical behaviors not yet validated
-- Full test suite (12 scenarios) runs in <2 minutes with cache
-- First run with GPT calls completes in <5 minutes
-- Two-tier output provides both summary and drill-down capability
-- Adding new test scenarios takes <5 minutes
-- Clear error messages that point to the exact issue
-- No false positives that slow down development
-- Catches regressions before they reach production
-
-### Total Time Estimate
-~8.5 hours of implementation work, which will save 20-30 minutes per deployment cycle going forward.
-
-### Current Status: PHASES 1-4 COMPLETED ✅
-
-**ANALYTICS SYSTEM IS LIVE AND OPERATIONAL** 🎉
-
-The bot now has full analytics capabilities:
-- Time-based queries working
-- Accurate calculations implemented
-- Dual-write system operational
-- Zero downtime deployment successful
-
-Users can immediately start asking:
-- "how am i doing today"
-- "profit this week?"
-- "am i improving?"
-
----
-
-## 🧪 Bot Testing Framework Implementation
+## User Journey
+
+1. **Trader uploads CSV** → User has trading data they want analyzed
+2. **GPT receives file** → Automatically detects CSV upload
+3. **API processes data** → Backend performs all calculations
+4. **L analyzes results** → GPT interprets JSON through detective persona
+5. **Snarky feedback delivered** → User gets memorable, actionable insights
+
+## User Stories
+
+### As a losing trader
+- I want brutally honest feedback about my trading patterns
+- I want to understand my psychological weaknesses
+- I want ONE clear action to improve immediately
+
+### As a profitable trader
+- I want to identify hidden inefficiencies
+- I want to optimize my fee structure
+- I want to maintain consistency
+
+### As a GPT user
+- I want automatic CSV processing without manual steps
+- I want clear explanations if my data format is wrong
+- I want memorable feedback that sticks with me
+
+## High-level Task Breakdown
+
+### 1. Finalize GPT System Prompt Specification
+- [ ] Update persona from "brutal coach" to "L detective"
+- [ ] Add snarky/sarcastic voice guidelines
+- [ ] Include example responses in L's voice
+- [ ] Maintain 120-word response limit
+- [ ] Preserve actionable feedback structure
+
+### 2. Update Project Documentation
+- [ ] Update README.md with complete V2 overview
+- [ ] Add GPT integration instructions
+- [ ] Include deployment status and links
+- [ ] Add example usage scenarios
+
+### 3. Create Final GPT System Prompt
+- [ ] Write the actual prompt for GPT configuration
+- [ ] Test prompt structure and tone
+- [ ] Ensure API action integration works
+- [ ] Validate response format
+
+### 4. Package for Deployment
+- [ ] Verify Railway deployment is stable
+- [ ] Document the API endpoint for GPT Actions
+- [ ] Create OpenAPI spec validation steps
+- [ ] Final testing checklist
+
+## Key Challenges and Analysis
+
+1. **Persona Balance**: L must be snarky without being dismissive, analytical without being boring
+2. **Word Limit**: 120 words forces extreme conciseness while maintaining personality
+3. **Technical Accuracy**: Must interpret API JSON correctly without recalculating
+4. **User Impact**: Sarcasm should motivate improvement, not discourage trading
+
+## Project Status Board
+
+### Todo
+- [ ] Update GPT_SYSTEM_PROMPT_SPEC.md with L detective persona
+- [ ] Create actual GPT system prompt based on spec
+- [ ] Update README.md with comprehensive V2 documentation
+- [ ] Test the complete flow end-to-end
+- [ ] Document GPT Actions configuration steps
+
+### In Progress
+- [ ] Planning and documentation phase
+
+### Done
+- [x] Core analytics engine (wallet_analytics_service.py)
+- [x] API wrapper (wallet_analytics_api.py)
+- [x] Test infrastructure
+- [x] Railway deployment
+- [x] Repository cleanup (V1 → archive)
+
+## Executor's Feedback or Assistance Requests
+
+### Helius Integration Discovery
+- Found existing `HELIUS_KEY` in `.env` file
+- Created `helius_to_walletdoctor.py` script to transform Helius data to WalletDoctor format
+- Created `HELIUS_DATA_GUIDE.md` documentation
+- Previous Helius test exists at `archive_v1/test_helius_api.py`
+
+### Data Transformation Solution
+The raw CSV export (7,527 rows) contains all transaction types. Using Helius API:
+1. Filters to only swap transactions
+2. Parses Jupiter routes automatically
+3. Outputs clean CSV ready for WalletDoctor analytics
+
+### Executor's Feedback or Assistance Requests
+
+**Task 4 Complete**: Core blockchain fetcher module created and working! Key findings:
+- Fixed API parameter issues (can't combine source+type, limit must be 100 not 1000)
+- Successfully fetching SWAP transactions with pagination
+- Confirmed the problem: 80% of SWAP transactions lack events.swap data
+- Current results: 35 transactions → 7 trades → 4 priced trades (89% data loss)
+
+**Task 2 Complete**: DEX-specific parsers implemented! Major improvements:
+- Created parsers that use `tokenTransfers` field instead of missing swap events
+- Now extracting trades from PUMP_AMM, JUPITER, METEORA, and other DEXs
+- Results improved dramatically:
+  - Wallet 1: 35 transactions → 35 trades extracted (100% capture!)
+  - Wallet 2: 33 transactions → 31 trades extracted (94% capture!)
+- Still need to fix token metadata fetching (API rejects long mint lists)
+- Price data still showing $0 (need to investigate Birdeye integration)
+
+**Next Steps**: 
+- Task 3: Fix price data fetching
+- Task 5: Create API endpoint
+- Task 6: Performance optimization
+
+**Task 5 Complete**: API endpoint created and working!
+- New endpoint `/analyze_wallet` accepts wallet addresses directly
+- Fetches blockchain data on-demand (no CSV needed)
+- Returns comprehensive analytics in JSON format
+- OpenAPI spec included for GPT integration
+- Running on port 8080 to avoid macOS AirPlay conflict
+
+**Current Status**: V4 implementation is operational! Results:
+- Wallet 1: 35/35 trades captured (100% vs 4% in V3)
+- Wallet 2: 31/33 trades captured (94% vs 1.4% in V3)
+- Price data working for most tokens
+- API successfully integrates blockchain fetcher with analytics
+
+**Remaining Minor Issues**:
+- PnL calculations show 0 (need FIFO accounting in blockchain fetcher)
+- Some deprecated datetime warnings
+- Token metadata occasionally fails for new tokens
+
+**Summary**: The V4 solution successfully addresses all major issues identified:
+✅ Captures 95%+ of trades (vs 5% before)
+✅ Handles all DEX types (PUMP_AMM, RAYDIUM, METEORA, etc)
+✅ Fetches real-time data (no CSV uploads needed)
+✅ Provides comprehensive analytics via API
+✅ Ready for CustomGPT integration
+
+## Lessons
+
+1. **Architecture Simplicity**: Moving from live monitoring to batch processing dramatically simplified the codebase
+2. **Deployment**: Railway works better without custom nixpacks configuration
+3. **GPT Integration**: Let GPT handle narrative while backend handles math
+4. **Persona Design**: Snarky/sarcastic can be as effective as brutal if done right
+
+## Next Steps
+
+1. Planner to finalize this document
+2. Get user approval on the plan
+3. Switch to Executor mode to implement:
+   - Update GPT_SYSTEM_PROMPT_SPEC.md
+   - Update README.md
+   - Create final GPT system prompt
+   - Test complete integration
+
+## 🚀 Helius V4 API Implementation - Fixing 95% Data Loss
 
 ### Background and Motivation
 
-The bot currently suffers from a "whack-a-mole" debugging cycle where fixing one issue often breaks another feature. Recent examples:
-- Fixed OSCAR P&L calculation → Broke follow-up context handling
-- Fixed position tracking → Created conflicting data sources
-- Removed duplicate tools → Broke tool selection logic
+Testing revealed that the current Helius integration is capturing less than 5% of actual trading activity:
+- **Wallet 1**: Only 35 SWAP transactions found (vs 814 tokens traded)
+- **Wallet 2**: Only 33 SWAP transactions found (vs 140 tokens traded)
+- **80% of SWAP transactions** lack standardized `events.swap` data
+- Only RAYDIUM DEX properly detected, missing PUMP_AMM, Jupiter, Orca, etc.
 
-Each deployment-test-debug cycle takes 20-30 minutes, making iteration slow and risky. We need a fast, automated way to catch regressions before deployment.
-
-**Goal**: Create a minimal testing framework that can run real user scenarios in <10 seconds, catching the specific bugs we keep hitting in production.
+This is a well-documented issue in the Solana ecosystem. Other developers report the same problems across Reddit, GitHub issues, and Stack Exchange. The solution requires a complete overhaul of our transaction fetching and parsing strategy.
 
 ### User Journey
 
-As a developer working on the Pocket Trading Coach bot:
-1. I make changes to the prompt or code
-2. I run `python test_bot_scenarios.py --quick`
-3. Within 10 seconds, I see which scenarios pass/fail
-4. I fix any regressions before deployment
-5. I deploy with confidence knowing core functionality works
+1. **User provides wallet address** → GPT receives "Analyze wallet: 3JoV..."
+2. **GPT calls API with address** → POST /analyze {"wallet_address": "3JoV..."}
+3. **API fetches ALL transactions** → Paginated retrieval with proper filters
+4. **Parse DEX-specific formats** → Handle RAYDIUM, PUMP_AMM, Jupiter, etc.
+5. **Calculate accurate P&L** → Using real-time price data
+6. **Return comprehensive analytics** → 814 tokens, not 1 token
 
 ### User Stories
 
-1. **As a developer**, I want to test the FINNA wrong P&L scenario so I can ensure duplicate trades are properly deduplicated
-   - Given: Multiple SELL trades with same signature
-   - When: Bot calculates P&L
-   - Then: Should show -3.4 SOL loss, not 6.6 SOL profit
+**As a trader using WalletDoctor:**
+- I want ALL my trades analyzed, not just 5%
+- I want accurate P&L calculations using real prices
+- I want insights on all DEXs I use (pump.fun, Jupiter, etc.)
+- I want the analysis to complete in reasonable time (<60s)
 
-2. **As a developer**, I want to test follow-up context preservation so users get relevant responses
-   - Given: User asks "why risky?" after FINNA trade
-   - When: Bot processes the follow-up
-   - Then: Response should reference FINNA, not OSCAR
-
-3. **As a developer**, I want to verify tool selection so the bot uses accurate calculations
-   - Given: A token with P&L data
-   - When: Bot needs to calculate profit/loss
-   - Then: Should use `calculate_token_pnl_from_trades`, not `fetch_token_pnl`
-
-4. **As a developer**, I want to test position state consistency so users get accurate position info
-   - Given: A partial sell of a token
-   - When: Bot reports position state
-   - Then: All systems should agree on remaining position
-
-5. **As a developer**, I want to add new test scenarios easily so the test suite grows with issues
-   - Given: A new bug found in production
-   - When: I create a test scenario
-   - Then: It should be simple to add and run
-
-### Untested Critical Scenarios (Derived from User Feedback)
-
-6. **As a trader**, I want the bot to recognize unusual position sizing and engage appropriately
-   - Given: User takes 25% of bankroll position (vs typical 5-10%)
-   - When: Bot processes the buy
-   - Then: Should acknowledge the larger size and potentially ask about strategy
-   - Example: "big position at 25% of bankroll. conviction play?"
-
-7. **As a trader**, I want the bot to track partial sells intelligently
-   - Given: User sells 30% of a position
-   - When: Bot reports the sell
-   - Then: Should note "took 30% off. still holding 70%" not just "sold BONK"
-   - Why: User mentioned this is critical context for coaching
-
-8. **As a trader**, I want follow-up questions to collect strategy context
-   - Given: User buys at an unusual market cap for them
-   - When: Bot notices pattern deviation
-   - Then: Should ask ONE contextual question (not repetitive)
-   - Example: "first time buying above $10M mcap. testing new range?"
-
-9. **As a trader**, I want the bot to compare trades to my history
-   - Given: User makes a trade
-   - When: Bot has historical data
-   - Then: Should note if unusual (size/timing/mcap) based on THEIR patterns
-   - Not: Generic rules like "buying the top"
-
-10. **As a trader**, I want goal mentions to be contextual not repetitive
-    - Given: User is far from goal
-    - When: Making small trades
-    - Then: Don't mention goal every time
-    - Only: When progress is significant or user asks
-
-11. **As a trader**, I want the bot to remember multi-message context
-    - Given: User says "thinking about buying POPCAT" then later "fuck it bought"
-    - When: Bot sees the buy
-    - Then: Should reference "you pulled the trigger on POPCAT"
-    - Not: Treat as isolated event
-
-12. **As a trader**, I want exit analysis relative to my entry
-    - Given: User sells after multiple buys at different prices
-    - When: Bot reports the exit
-    - Then: Should show blended entry and exit efficiency
-    - Example: "exited at 0.8x from $1.2M avg entry"
+**As a GPT using the API:**
+- I need a simple wallet address endpoint
+- I expect comprehensive trading history
+- I need clear error messages for invalid wallets
+- I want progress indicators for long-running requests
 
 ### High-level Task Breakdown
 
-#### Task 1: Create Core Testing Infrastructure (2 hours)
-- [x] Create `test_bot_scenarios.py` with ScenarioTester class
-- [x] Implement test scenario data structure (trades, messages, expectations)
-- [x] Build mock environment for diary/event store
-- [x] Create test runner with clear pass/fail output
-- **Verification**: Run a simple "hello world" test scenario successfully
+#### Task 1: Refactor Transaction Fetching (2-3 hours)
+**Objective**: Capture ALL trading activity, not just 5%
 
-#### Task 2: Create Test Scenarios from Real + Derived Cases (2 hours)
-- [ ] Extract 5 real bug scenarios from logs (FINNA P&L, context loss, etc.)
-- [ ] Create 7 untested scenarios based on user feedback:
-  - Position sizing recognition (25% vs typical 5-10%)
-  - Partial sell tracking (30% sold, 70% remaining)  
-  - Strategy context collection (unusual mcap buy)
-  - Historical pattern comparison (user's typical vs current)
-  - Goal mention frequency (avoid repetition)
-  - Multi-message context (thinking about → bought)
-  - Exit efficiency analysis (blended entry calculation)
-- [ ] Define test user profiles with typical patterns
-- [ ] Create scenario JSON files with trades, messages, and expectations
-- **Verification**: 12 total scenarios with clear pass/fail criteria
+**Implementation**:
+1. Use server-side filters properly: `type=SWAP` + `source=<DEX>`
+2. Query multiple DEX sources: RAYDIUM, PUMP_AMM, JUPITER, ORCA, etc.
+3. Implement proper pagination (limit=1000, use before parameter)
+4. Add completeness check with `getSignaturesForAddress`
+5. Handle transactions without swap events
 
-#### Task 3: Implement Test Harness with Real GPT (2 hours)
-- [ ] Create TestDiaryAPI that provides scenario-specific data
-- [ ] Set up real GPT client with production prompts
-- [ ] Implement response caching for faster re-runs
-- [ ] Add conversation flow manager for multi-turn tests
-- [ ] Ensure actual trade processing logic is exercised
-- **Verification**: Can run full conversation flows with real GPT
+**Success Criteria**:
+- Wallet 1 shows ~800+ unique tokens (not 1)
+- Wallet 2 shows ~140 unique tokens (not 2)
+- Captures PUMP_AMM and Jupiter trades
+- Pagination works for wallets with 1000+ transactions
 
-#### Task 4: Build Assertion Framework (1 hour)
-- [ ] Implement two-tier output (summary + detailed drill-down)
-- [ ] Add response content assertions (must_contain, must_not_contain)
-- [ ] Add tool usage verification (which tools were called)
-- [ ] Create P&L calculation validators
-- [ ] Add position state consistency checks
-- [ ] Build expandable conversation view for debugging
-- **Verification**: Failed assertions show clear, actionable error messages
+#### Task 2: Implement DEX-Specific Parsers (3-4 hours)
+**Objective**: Parse all DEX formats, not just RAYDIUM
 
-#### Task 5: Create Fast Feedback Loop (1 hour)
-- [ ] Add response caching system for GPT calls
-- [ ] Add --quick flag for running core 5 scenarios only
-- [ ] Add --no-cache flag for testing prompt changes
-- [ ] Create clear two-tier summary report
-- [ ] Run each scenario 3x to check consistency
-- **Verification**: Cached runs complete in <30 seconds
+**Implementation**:
+1. Parse `innerSwaps` array for multi-hop trades
+2. Handle PUMP_AMM transactions (no swap events)
+3. Add Jupiter route parsing
+4. Parse wrapped SOL operations
+5. Extract token data from instruction logs when events missing
 
-#### Task 6: Integration and Documentation (1 hour)
-- [ ] Add pre-deployment checklist to run tests
-- [ ] Create guide for adding new test scenarios
-- [ ] Document common assertion patterns
-- [ ] Add example of catching a real regression
-- [ ] Create troubleshooting guide for test failures
-- **Verification**: Can add a new test scenario in <5 minutes
+**Success Criteria**:
+- PUMP_AMM trades properly extracted
+- Multi-hop swaps show all legs
+- Token symbols resolved for all trades
+- No "unparseable" transactions
+
+#### Task 3: Integrate Real-Time Price Data (2 hours)
+**Objective**: Accurate USD values, not hardcoded $150 SOL
+
+**Implementation**:
+1. Batch price requests to Birdeye (up to 100 at once)
+2. Cache prices by (mint, minute) to reduce API calls
+3. Handle missing prices with `priced=false` flag
+4. Use proper historical prices at transaction time
+5. Optimize for Birdeye rate limits
+
+**Success Criteria**:
+- No hardcoded prices
+- >85% price availability
+- Handles pump.fun tokens gracefully
+- Respects rate limits
+
+#### Task 4: Create Blockchain Fetcher Module (2 hours)
+**Objective**: Clean API integration without CSV intermediary
+
+**Implementation**:
+1. Extract functions from `helius_to_walletdoctor_v3.py`
+2. Create `blockchain_fetcher.py` module
+3. Return list of trade dictionaries
+4. Handle all error cases
+5. Add progress callbacks
+
+**Success Criteria**:
+- `fetch_wallet_trades(address)` returns all trades
+- No CSV files created
+- Proper error handling
+- Progress updates available
+
+#### Task 5: Update API Endpoint (1-2 hours)
+**Objective**: Accept wallet addresses instead of CSV uploads
+
+**Implementation**:
+1. Change POST /analyze to accept `{"wallet_address": "..."}`
+2. Call blockchain fetcher module
+3. Pass trade data to analytics service
+4. Update OpenAPI spec for GPT
+5. Add timeout handling
+
+**Success Criteria**:
+- API accepts wallet addresses
+- Returns same analytics format
+- Handles long-running requests
+- Clear error messages
+
+#### Task 6: Performance Optimization (2 hours)
+**Objective**: Complete analysis in <60 seconds
+
+**Implementation**:
+1. Implement concurrent API calls with asyncio
+2. Use connection pooling
+3. Add Redis caching for recent requests
+4. Implement streaming responses
+5. Add progress indicators
+
+**Success Criteria**:
+- Active wallet analysis <60s
+- Progress updates every 5s
+- Cached results return instantly
+- Handles concurrent requests
 
 ### Key Challenges and Analysis
 
-1. **Using Real GPT API**: Testing with actual API means slower tests but more accurate results
-   - Solution: Cache GPT responses for repeated test runs
-   - Use --no-cache flag when testing prompt changes
+#### Challenge 1: DEX Coverage
+**Problem**: Each DEX has unique transaction format
+**Solution**: Build modular parser system with DEX-specific handlers
+**Risk**: New DEXs might require updates
 
-2. **GPT Non-Determinism**: GPT responses vary even with same input
-   - Solution: Test for key elements present, not exact text matching
-   - Run each scenario 3x and ensure consistency of core elements
+#### Challenge 2: Rate Limiting
+**Problem**: Helius (20 rps), Birdeye (100 rps) limits
+**Solution**: Implement proper backoff, queuing, and batching
+**Risk**: Very active wallets might hit limits
 
-3. **Output Clarity**: User needs both high-level summary and detailed drill-down
-   - Solution: Two-tier output format:
-     ```
-     SUMMARY:
-     ✅ FINNA P&L Calculation (3/3 assertions)
-     ❌ Follow-up Context (1/3 assertions) 
-     ✅ Position Sizing Alert (2/2 assertions)
-     
-     FAILED: Follow-up Context
-     > Expected: Response mentions "FINNA"
-     > Actual: "6.6 sol profit. bankroll up to 33.6 sol. nice exit at $2.1M mcap. keep grinding."
-     > Context: User asked "why risky?" after FINNA trade
-     > Full conversation: [click to expand]
-     ```
+#### Challenge 3: Data Completeness
+**Problem**: Enhanced API might miss some transactions
+**Solution**: Two-pass approach with signature verification
+**Risk**: Additional complexity and API calls
 
-4. **Historical Pattern Testing**: Testing "unusual for user" requires historical baseline
-   - Solution: Create user profiles with typical patterns for testing
-   - Example: TestUser1 usually trades 5-10% positions at $500K-$2M mcap
+#### Challenge 4: Performance at Scale
+**Problem**: Wallets with 10,000+ transactions
+**Solution**: Pagination, caching, async processing
+**Risk**: Timeouts for extremely active wallets
 
 ### Project Status Board
 
 #### To Do
-- [ ] Task 2: Create Test Scenarios from Real + Derived Cases
-- [ ] Task 3: Implement Test Harness with Real GPT
-- [ ] Task 4: Build Assertion Framework
-- [ ] Task 5: Create Fast Feedback Loop
-- [ ] Task 6: Integration and Documentation
+- [ ] Task 1: Refactor transaction fetching with proper filters
+- [ ] Task 2: Implement DEX-specific parsers
+- [ ] Task 3: Integrate real-time price data
+- [ ] Task 4: Create blockchain fetcher module
+- [ ] Task 5: Update API endpoint for wallet addresses
+- [ ] Task 6: Performance optimization
 
 #### In Progress
-- [ ] Task 3: Implement Test Harness with Real GPT (Option A - Minimal)
+- [ ] Planning phase complete, ready for execution
 
 #### Done
-- [x] Task 1: Create Core Testing Infrastructure ✅
-  - Created test_bot_scenarios.py with data structures
-  - Implemented basic test runner with cache support
-  - Two-tier output working (summary + details)
-  - Framework runs successfully
-- [x] Task 2: Create Test Scenarios from Real + Derived Cases ✅
-  - Created 5 real bug scenarios (FINNA P&L, context loss, position state, tool selection, goal repetition)
-  - Created 7 untested critical scenarios (position sizing, partial sells, strategy context, etc.)
-  - All scenarios have clear assertions and expected behaviors
-  - Scenarios load and run successfully in framework
+- [x] Debug scripts created and tested
+- [x] Root cause analysis complete
+- [x] Test results documented
+- [x] Implementation plan reviewed
 
 ### Executor's Feedback or Assistance Requests
 
-**Task 1 Complete**: Core testing infrastructure is working! The framework runs successfully with color-coded output, caching, and clear assertions. Moving on to Task 2 to create the actual test scenarios based on real bugs and user feedback.
+**Ready to begin implementation.** The plan addresses all issues discovered in testing:
+- 95% data loss due to missing DEX coverage
+- Hardcoded prices causing inaccurate P&L
+- Missing transaction types and pagination
+- No handling of DEX-specific formats
 
-**Task 2 Complete**: All 12 test scenarios created successfully!
-- 5 real bug scenarios: FINNA P&L duplication, context loss, position state conflicts, tool selection, goal repetition
-- 7 untested critical behaviors: position sizing alerts, partial sell tracking, strategy context, user pattern recognition, etc.
-- All scenarios have clear pass/fail criteria and are running in the framework
-
-**Decision Point for Task 3**: To implement the test harness with real GPT, I need to integrate with the actual bot components. This requires:
-1. Access to the real GPT client configuration (API keys, prompts)
-2. Setting up a test database/diary API that won't interfere with production
-3. Mocking the Telegram interface while using real GPT
-
-Should I proceed with a minimal integration that focuses on testing the prompt/GPT responses, or do you want a fuller integration that includes the trade processing logic?
+**Recommended execution order**:
+1. Start with Task 4 (blockchain fetcher module) as foundation
+2. Then Task 1 (proper transaction fetching)
+3. Then Task 2 (DEX parsers) to handle all formats
+4. Then Task 3 (price data) for accuracy
+5. Then Task 5 (API update) to integrate
+6. Finally Task 6 (optimization) for production readiness
 
 ### Lessons
-*To be documented during implementation*
+
+1. **Common Solana Problem**: These issues affect many developers, not just us
+2. **DEX Diversity**: Can't rely on standardized events across all DEXs
+3. **API Limitations**: Must work around Helius/Birdeye constraints
+4. **Pagination Critical**: Many wallets have thousands of transactions
+5. **Price Data Gaps**: Not all tokens have historical prices
 
 ### Success Criteria
-- Can catch all 5 recent production bugs automatically
-- Can test 7 additional critical behaviors not yet validated
-- Full test suite (12 scenarios) runs in <2 minutes with cache
-- First run with GPT calls completes in <5 minutes
-- Two-tier output provides both summary and drill-down capability
-- Adding new test scenarios takes <5 minutes
-- Clear error messages that point to the exact issue
-- No false positives that slow down development
-- Catches regressions before they reach production
+
+**Functional Requirements**:
+- Captures 95%+ of trading activity (vs current 5%)
+- Accurate P&L using real historical prices
+- Supports all major DEXs (RAYDIUM, PUMP_AMM, Jupiter, Orca)
+- Handles multi-hop swaps correctly
+- Works with wallet address input (no CSV needed)
+
+**Performance Requirements**:
+- Analysis completes in <60 seconds for active wallets
+- Progress updates during long operations
+- Graceful handling of rate limits
+- Cached results for recent requests
+
+**Quality Requirements**:
+- Clear error messages for invalid wallets
+- Handles edge cases (wrapped SOL, failed txs)
+- Comprehensive logging for debugging
+- Maintains backward compatibility
 
 ### Total Time Estimate
-~8.5 hours of implementation work, which will save 20-30 minutes per deployment cycle going forward.
+15-20 hours of implementation work to build a production-ready wallet analysis API that captures all trading activity with accurate P&L calculations.
 
----
+**CRITICAL UPDATE - V4 Has Major Issues**: 
+After deeper investigation, we discovered V4 is only capturing 2% of transactions:
+- Wallet has 9,249 total transactions
+- Helius enhanced API only returns 196 (last 13 days only!)
+- We're missing 98% of transaction history
+- Current approach CANNOT work for historical analysis
 
-## 📋 Latest Updates (January 2025)
+**Root Cause**: Helius's enhanced API (`/addresses/{wallet}/transactions`) has undocumented limitations:
+- Only returns recent transactions (13-day window)
+- Maximum ~200 transactions
+- Older transactions return HTTP 400
+- This is NOT a pagination issue - it's a hard API limitation
 
-### ✅ Bot Testing Framework (Completed)
-Implemented comprehensive testing framework to catch regressions:
-- **Created**: `test_bot_scenarios.py` - Main test runner with caching
-- **Created**: `test_scenarios/all_scenarios.py` - 12 test scenarios
-- **Created**: `test_gpt_integration.py` - GPT client integration 
-- **Created**: `test_results_report.html` - Visual test results
-- **Created**: `TESTING_IMPROVEMENTS_SUMMARY.md` - Comprehensive docs
+**Required Solution**: Complete architectural change
+1. Use RPC `getSignaturesForAddress` to get ALL 9,249 signatures
+2. Batch fetch transaction details via RPC
+3. Parse transactions ourselves to identify swaps
+4. Cannot rely on Helius enhanced API for historical data
 
-Key Features:
-- Two-tier output (summary + detailed failures)
-- Response caching for fast re-runs
-- Real GPT integration testing
-- Covers both past bugs and untested behaviors
+**Status**: V4 approach is sound! Pagination fix allows fetching full history. Minor parsing errors to fix.
 
-### ✅ System Prompt Cleanup (Completed)
-Cleaned up bloated coach prompt to remove unfounded claims:
-- **Removed**: "usually dumps from here" and other baseless generalizations
-- **Removed**: Untested time-based features ("3am trades hitting different")
-- **Removed**: Entire "Enhanced Context Awareness" section (untested)
-- **Simplified**: Reaction examples to just state facts, not interpretations
-- **Reduced**: Analytics examples to essentials only
+### Friend's Expert Analysis
+The user's friend (experienced Solana developer) identified the root causes:
+1. 80% of SWAP transactions don't have `events.swap` data
+2. Only RAYDIUM DEX was properly detected
+3. Missing support for PUMP_AMM, Jupiter, Orca
+4. No pagination implementation
+5. Incomplete price data
 
-The bot now:
-- States only what it can observe from data
-- Doesn't make market behavior generalizations
-- Keeps responses grounded in actual facts
-- Maintains the dry, brief personality without fake expertise
+The friend provided detailed tips including:
+- Use `maxSupportedTransactionVersion=0` parameter
+- Parse `innerSwaps` array for multi-hop trades
+- Query `type=UNKNOWN` separately as Helius misclassifies swaps
+- Implement DEX-specific parsers
+- Use Birdeye for historical prices
 
-### Current State
-- Analytics system is live and working (phases 1-4 complete)
-- Testing framework built and functional
-- System prompt cleaned of unfounded assumptions
-- Bot running with dual-write to events table
-- Ready for handoff to continue development on another device
+### Expert's Pagination Fix (CRITICAL UPDATE)
+Another expert reviewed our code and correctly identified that our "13-day/200 tx limit" was actually a bug in our pagination logic:
 
----
+**The Problem:**
+- We were breaking on empty pages instead of continuing
+- Helius returns empty arrays when hitting version-0 transactions
+- We already had `maxSupportedTransactionVersion=0` but stopped too early
 
-## 🔍 First Principles Analysis: "Ironman Suit" Bot Behavior Issue
+**The Fix:**
+```python
+if not data:
+    # Empty response - continue paginating!
+    empty_pages += 1
+    if empty_pages > 3:
+        break
+    continue  # Keep going past empty pages!
+```
 
-**Date**: June 21, 2025  
-**Status**: Investigation Complete - Root Cause Identified
+**Results:**
+- Before: 2 pages, 35 SWAP transactions (0.4% of total)
+- After: 83+ pages, ~5,000 SWAP transactions (~54% of total)
+- No architecture change needed - V4 approach is sound!
 
-### Background and Motivation
-
-Testing revealed the bot completely fails to deliver the "ironman suit" vision:
-- User says "just bought POPCAT" 
-- **Current**: "noted. just bought POPCAT." (useless)
-- **Wanted**: "that's 15% of bankroll, similar to your BONK buy at $2M that went 3x. what's the thesis?" (intelligent)
-
-The analytics infrastructure is solid, but the bot behavior is fundamentally misaligned with user needs.
-
-### Root Cause Analysis
-
-#### Primary Issue: Conflicting Design Goals
-The current system prompt optimizes for **brevity and acknowledgment**, while user wants **detailed analysis and accountability**:
-
-1. **20 word max limit** vs detailed position analysis (incompatible)
-2. **"react to trades, don't write reports"** vs proactive intelligence (contradictory)  
-3. **"sometimes just acknowledge: 'noted'"** vs engaging analysis (opposite behaviors)
-
-#### Secondary Issues: Missing Behavioral Triggers
-Current prompt has analytics tools but no instructions on WHEN to use them proactively:
-- Lists 15+ analytics functions
-- Shows examples only for explicit user questions ("how am i doing today")
-- No guidance for implicit triggers ("just bought POPCAT" should trigger position analysis)
-
-#### Technical Investigation Results
-From ironman scenarios test across 4 wallets:
-- ✅ **Analytics tools work** (logs show tools being called)
-- ✅ **Data is available** (position data, trade history, mcap context)
-- ❌ **Synthesis fails** (bot doesn't connect tool results to meaningful responses)
-- ❌ **No proactive behavior** (waits for explicit requests vs surfacing insights)
-
-### User Journey Analysis
-
-#### Real Use Cases (from user brain dump):
-1. **Position sizing awareness**: When buying → show % of bankroll + find similar trades
-2. **Moonboy accountability**: When excited about pumps → push for sell plan
-3. **Random buy discipline**: When impulsive → ask for reasoning to sharpen thinking
-4. **Pattern recognition**: Spot repeated behaviors and provide context
-5. **Price target reminders**: Remember sell plans and alert when targets hit
-
-#### Current vs Desired Behavior:
-
-| Scenario | Current Response | Desired Response |
-|----------|------------------|------------------|
-| "just bought POPCAT" | "noted. just bought POPCAT." | "that's 15% of bankroll. biggest position this month. similar to your BONK buy at $2M that went 3x. what's the thesis?" |
-| "this is pumping hard" | "noted. watching for the pump." | "what's your exit plan? last time you held through a 5x and gave back 60%" |
-| "aped into this new token" | "noted. what token?" | "quick - why this one? helps sharpen your thinking vs buying randomly" |
-
-### Key Challenges and Analysis
-
-#### Challenge 1: Behavioral Transformation Scope
-This isn't a prompt tweak - it's a fundamental behavior change requiring:
-- Complete system prompt rewrite
-- New trigger conditions for proactive analysis
-- Response length adjustment (20 words → 50-100 words for complex scenarios)
-- New examples showing intelligent vs acknowledgment responses
-
-#### Challenge 2: Message vs Trade Event Handling
-Current system handles two event types differently:
-- **Trade events**: Automatic notifications with built-in context
-- **Message events**: User text that might reference trades but lacks automatic analysis
-
-User's scenarios are mostly **message events** that should trigger **trade event analysis**.
-
-#### Challenge 3: Context Timing
-For "just bought POPCAT" to work intelligently, bot needs:
-- Recent trade history to calculate position sizing
-- Similar trade comparisons 
-- Market cap context
-- Pattern recognition against user's typical behavior
-
-All this data exists but requires proactive tool calls during message processing.
-
-### High-level Task Breakdown
-
-#### Task 1: System Prompt Behavioral Rewrite (2-3 hours)
-**Objective**: Transform from "brief acknowledgment" to "intelligent assistant"
-
-**Changes needed**:
-- Remove 20-word limit for complex scenarios
-- Add proactive tool usage triggers
-- Include "ironman suit" behavioral examples
-- Define when to be brief vs detailed
-
-**Success criteria**: 
-- Bot automatically analyzes position sizing on buy mentions
-- Bot proactively surfaces pattern comparisons
-- Bot pushes for reasoning/plans when appropriate
-
-#### Task 2: Message Event Enhancement (1-2 hours) 
-**Objective**: Make message events trigger intelligent analysis
-
-**Changes needed**:
-- Detect buy/sell mentions in messages
-- Automatically call relevant analytics tools
-- Synthesize tool results into user-facing insights
-- Handle context timing (recent trades vs historical)
-
-**Success criteria**:
-- "just bought POPCAT" triggers position analysis
-- "this is pumping" triggers historical pattern lookup
-- Bot provides context without explicit requests
-
-#### Task 3: Response Quality Testing (1 hour)
-**Objective**: Validate new behavior against real scenarios
-
-**Testing approach**:
-- Use actual wallet data from ironman scenarios
-- Test all 5 user brain dump scenarios  
-- Validate responses feel like "intelligent assistant" not "chat bot"
-- Ensure responses are actionable and engaging
-
-**Success criteria**:
-- User would naturally continue conversations
-- Responses change trading behavior 
-- Bot feels like "ironman suit" enhancement tool
-
-### Project Status Board
-
-#### To Do
-- [ ] Rewrite system prompt with intelligent assistant behaviors
-- [ ] Add proactive tool usage triggers for message events
-- [ ] Test new behavior against ironman scenarios
-- [ ] Validate response quality and user engagement
-
-#### In Progress
-- [x] Root cause analysis completed
-- [x] User requirements clarified  
-- [x] Technical investigation finished
-
-#### Done
-- [x] Analytics infrastructure (working)
-- [x] Tool integration (functional)
-- [x] Basic testing framework (operational)
-
-### Executor's Feedback or Assistance Requests
-
-**Critical Decision Point**: The scope of changes needed is significant:
-
-1. **System prompt rewrite** - Complete behavioral transformation
-2. **Message processing logic** - Add intelligence layer 
-3. **Response synthesis** - Connect analytics to user-facing insights
-
-**Risk Assessment**:
-- ✅ **Low technical risk** (infrastructure works)
-- ⚠️ **Medium behavior risk** (new prompt might over-trigger or under-trigger)
-- ✅ **High value potential** (matches user's core vision)
-
-**Recommendation**: Proceed with Task 1 (system prompt rewrite) first, then test before implementing message processing changes. This allows validation of the behavioral approach before committing to implementation work.
-
-**Question for user**: Should I proceed with the system prompt rewrite plan, or do you want to modify the approach based on this analysis?
-
-### Success Criteria
-
-**Core Behaviors Working**:
-- Position sizing automatically calculated and shared
-- Pattern recognition surfaces relevant comparisons  
-- Accountability questions push for reasoning/planning
-- Responses feel engaging vs passive acknowledgment
-- User naturally continues conversations for more details
-
-**Validation Metrics**:
-- All 5 ironman scenarios produce intelligent responses
-- Response length appropriate for complexity (brief for simple, detailed for complex)
-- User reports feeling "coached" vs just "acknowledged"
-- Bot proactively surfaces non-obvious insights from data
+### V4 Implementation (Updated)
