@@ -186,6 +186,7 @@ class BlockchainFetcherV3Fast:
         # Now fetch remaining pages in parallel batches
         before_sig = first_page[-1]["signature"]
         page_num = 2
+        empty_pages = 0
 
         while True:
             # Check max pages limit
@@ -227,8 +228,17 @@ class BlockchainFetcherV3Fast:
                     got_data = True
 
             if not got_data:
-                break
+                # Critical fix from V4: Continue past empty pages
+                empty_pages += 1
+                if empty_pages > 3:
+                    self._report_progress(f"Hit {empty_pages} empty pages, stopping")
+                    break
+                self._report_progress(f"Empty page batch {empty_pages}/3, continuing...")
+                page_num += len(batch_tasks)
+                continue
 
+            # Reset empty pages counter on successful data
+            empty_pages = 0
             page_num += len(batch_tasks)
 
         return all_transactions
@@ -392,21 +402,21 @@ class BlockchainFetcherV3Fast:
 
     # Copy remaining methods from V3 (unchanged)
     async def _extract_trades_with_dedup(self, transactions, wallet):
-        from blockchain_fetcher_v3 import BlockchainFetcherV3
+        from .blockchain_fetcher_v3 import BlockchainFetcherV3
 
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics
         return await v3._extract_trades_with_dedup(transactions, wallet)
 
     def _apply_dust_filter(self, trades):
-        from blockchain_fetcher_v3 import BlockchainFetcherV3
+        from .blockchain_fetcher_v3 import BlockchainFetcherV3
 
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics
         return v3._apply_dust_filter(trades)
 
     async def _apply_cached_prices(self, trade):
-        from blockchain_fetcher_v3 import BlockchainFetcherV3
+        from .blockchain_fetcher_v3 import BlockchainFetcherV3
 
         v3 = BlockchainFetcherV3()
         v3.price_cache = self.price_cache
@@ -414,13 +424,13 @@ class BlockchainFetcherV3Fast:
         return await v3._apply_cached_prices(trade)
 
     def _calculate_pnl(self, trades):
-        from blockchain_fetcher_v3 import BlockchainFetcherV3
+        from .blockchain_fetcher_v3 import BlockchainFetcherV3
 
         v3 = BlockchainFetcherV3()
         return v3._calculate_pnl(trades)
 
     def _create_response_envelope(self, wallet, trades, elapsed):
-        from blockchain_fetcher_v3 import BlockchainFetcherV3
+        from .blockchain_fetcher_v3 import BlockchainFetcherV3
 
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics

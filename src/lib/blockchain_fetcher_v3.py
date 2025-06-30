@@ -28,7 +28,7 @@ BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY")
 
 # Constants
 HELIUS_BASE = "https://api.helius.xyz/v0"
-HELIUS_RPS = 10
+HELIUS_RPS = 50  # Updated for paid plan
 BIRDEYE_RPS = 1
 DUST_THRESHOLD = Decimal("0.0000001")  # 10^-7
 SOL_MINT = "So11111111111111111111111111111111111111112"
@@ -57,6 +57,15 @@ class Trade:
     fees_usd: Decimal = Decimal("0")
     dex: str = "UNKNOWN"
     priced: bool = False
+    tx_type: str = "swap"
+
+    def _round_decimal(self, value: Optional[Decimal], places: int = 4) -> Optional[float]:
+        """Round decimal to specified places using banker's rounding"""
+        if value is None:
+            return None
+        # Use quantize for banker's rounding (ROUND_HALF_EVEN)
+        rounded = value.quantize(Decimal(f'0.{"0" * places}'))
+        return float(rounded)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API response"""
@@ -64,11 +73,11 @@ class Trade:
         if self.token_out_mint == SOL_MINT:
             action = "sell"
             token = self.token_in_symbol
-            amount = float(self.token_in_amount)
+            amount = self._round_decimal(self.token_in_amount, 6)  # Keep 6 decimals for amounts
         else:
             action = "buy"
             token = self.token_out_symbol
-            amount = float(self.token_out_amount)
+            amount = self._round_decimal(self.token_out_amount, 6)  # Keep 6 decimals for amounts
 
         return {
             "timestamp": self.timestamp.isoformat(),
@@ -76,12 +85,23 @@ class Trade:
             "action": action,
             "token": token,
             "amount": amount,
-            "price": float(self.price_usd) if self.price_usd else None,
-            "value_usd": float(self.value_usd) if self.value_usd else None,
-            "pnl_usd": float(self.pnl_usd),
-            "fees_usd": float(self.fees_usd),
+            "token_in": {
+                "mint": self.token_in_mint,
+                "symbol": self.token_in_symbol,
+                "amount": self._round_decimal(self.token_in_amount, 6)  # Keep 6 decimals for amounts
+            },
+            "token_out": {
+                "mint": self.token_out_mint,
+                "symbol": self.token_out_symbol,
+                "amount": self._round_decimal(self.token_out_amount, 6)  # Keep 6 decimals for amounts
+            },
+            "price": self._round_decimal(self.price_usd, 4),
+            "value_usd": self._round_decimal(self.value_usd, 4),
+            "pnl_usd": self._round_decimal(self.pnl_usd, 4),
+            "fees_usd": self._round_decimal(self.fees_usd, 4),
             "priced": self.priced,
             "dex": self.dex,
+            "tx_type": self.tx_type,
         }
 
 
@@ -130,6 +150,49 @@ class RateLimiter:
         self.last_call = asyncio.get_event_loop().time()
 
 
+class RateLimitedFetcher:
+    """Semaphore-based rate limiter for concurrent requests"""
+    
+    def __init__(self, max_concurrent: int = 10):
+        """Initialize with max concurrent requests (default 10 for Helius)"""
+        self.semaphore = asyncio.Semaphore(max_concurrent)
+        self.max_concurrent = max_concurrent
+        self._active_requests = 0
+        self._total_requests = 0
+        self._rate_limit_hits = 0
+    
+    async def __aenter__(self):
+        """Acquire semaphore for request"""
+        await self.semaphore.acquire()
+        self._active_requests += 1
+        self._total_requests += 1
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Release semaphore after request"""
+        self._active_requests -= 1
+        self.semaphore.release()
+        
+        # If we got a 429, track it
+        if exc_type and hasattr(exc_val, 'status') and exc_val.status == 429:
+            self._rate_limit_hits += 1
+    
+    @property
+    def active_count(self) -> int:
+        """Get current number of active requests"""
+        return self._active_requests
+    
+    @property
+    def stats(self) -> Dict[str, int]:
+        """Get rate limiter statistics"""
+        return {
+            "max_concurrent": self.max_concurrent,
+            "active_requests": self._active_requests,
+            "total_requests": self._total_requests,
+            "rate_limit_hits": self._rate_limit_hits
+        }
+
+
 class PriceCache:
     """Birdeye price cache keyed by (mint, unix_minute)"""
 
@@ -155,13 +218,16 @@ class PriceCache:
 class BlockchainFetcherV3:
     """V3 fetcher with all expert recommendations"""
 
-    def __init__(self, progress_callback: Optional[Callable[[str], None]] = None):
+    def __init__(self, progress_callback: Optional[Callable[[str], None]] = None, skip_pricing: bool = False, parallel_pages: int = 40):
         self.progress_callback = progress_callback or (lambda x: logger.info(x))
         self.helius_limiter = RateLimiter(HELIUS_RPS)
+        self.helius_rate_limited_fetcher = RateLimitedFetcher(max_concurrent=40)  # Updated for paid plan (50 RPS with buffer)
         self.birdeye_limiter = RateLimiter(BIRDEYE_RPS)
         self.session: Optional[aiohttp.ClientSession] = None
         self.metrics = Metrics()
         self.price_cache = PriceCache()
+        self.skip_pricing = skip_pricing
+        self.parallel_pages = parallel_pages  # Number of pages to fetch concurrently
 
     async def __aenter__(self):
         self.session = aiohttp.ClientSession()
@@ -176,102 +242,255 @@ class BlockchainFetcherV3:
         self.progress_callback(message)
 
     async def fetch_wallet_trades(self, wallet_address: str) -> Dict[str, Any]:
-        """
-        Main entry point - returns response envelope with trades
-        """
+        """Fetch and analyze trades for a wallet"""
         if not HELIUS_KEY:
             raise ValueError("HELIUS_KEY environment variable not set")
 
         self._report_progress(f"Starting fetch for wallet: {wallet_address}")
         start_time = time.time()
+        step_times = {}
 
-        # Reset metrics
-        self.metrics = Metrics()
-
-        # Step 1: Fetch all SWAP transactions (no source parameter)
+        # Step 1: Fetch all SWAP transactions
+        step_start = time.time()
+        self._report_progress("Step 1: Fetching SWAP transactions...")
         transactions = await self._fetch_swap_transactions(wallet_address)
         self.metrics.signatures_fetched = len(transactions)
-        self._report_progress(f"Fetched {len(transactions)} SWAP transactions")
+        step_times['fetch_transactions'] = time.time() - step_start
+        self._report_progress(f"✓ Fetched {len(transactions)} SWAP transactions in {step_times['fetch_transactions']:.1f}s")
 
         # Step 2: Extract trades with deduplication
+        step_start = time.time()
+        self._report_progress("Step 2: Extracting trades...")
         trades = await self._extract_trades_with_dedup(transactions, wallet_address)
-        self._report_progress(f"Extracted {len(trades)} unique trades")
+        step_times['extract_trades'] = time.time() - step_start
+        self._report_progress(f"✓ Extracted {len(trades)} unique trades in {step_times['extract_trades']:.1f}s")
 
         # Step 3: Fetch token metadata
+        step_start = time.time()
+        self._report_progress("Step 3: Fetching token metadata...")
         await self._fetch_token_metadata(trades)
+        step_times['fetch_metadata'] = time.time() - step_start
+        self._report_progress(f"✓ Fetched metadata in {step_times['fetch_metadata']:.1f}s")
 
         # Step 4: Apply dust filter
+        step_start = time.time()
+        self._report_progress("Step 4: Applying dust filter...")
         filtered_trades = self._apply_dust_filter(trades)
-        self._report_progress(f"After dust filter: {len(filtered_trades)} trades")
+        step_times['dust_filter'] = time.time() - step_start
+        self._report_progress(f"✓ After dust filter: {len(filtered_trades)} trades in {step_times['dust_filter']:.1f}s")
 
-        # Step 5: Fetch prices with cache
-        await self._fetch_prices_with_cache(filtered_trades)
+        # Step 5: Fetch prices
+        if not self.skip_pricing:
+            step_start = time.time()
+            self._report_progress("Step 5: Fetching prices...")
+            await self._fetch_prices_with_cache(filtered_trades)
+            step_times['fetch_prices'] = time.time() - step_start
+            self._report_progress(f"✓ Fetched prices in {step_times['fetch_prices']:.1f}s")
+        else:
+            self._report_progress("Step 5: Skipping price fetching (skip_pricing=True)")
 
         # Step 6: Calculate P&L
+        step_start = time.time()
+        self._report_progress("Step 6: Calculating P&L...")
         final_trades = self._calculate_pnl(filtered_trades)
+        step_times['calculate_pnl'] = time.time() - step_start
+        self._report_progress(f"✓ Calculated P&L in {step_times['calculate_pnl']:.1f}s")
+
+        # Log timing summary
+        total_time = time.time() - start_time
+        self._report_progress("\n=== TIMING SUMMARY ===")
+        for step, duration in step_times.items():
+            percentage = (duration / total_time) * 100
+            self._report_progress(f"{step}: {duration:.1f}s ({percentage:.1f}%)")
+        if self.skip_pricing:
+            self._report_progress("fetch_prices: SKIPPED (skip_pricing=True)")
+        self._report_progress(f"TOTAL: {total_time:.1f}s")
+        self._report_progress("===================\n")
 
         # Log metrics
         self.metrics.log_summary(self._report_progress)
 
         # Create response envelope
-        return self._create_response_envelope(wallet_address, final_trades, time.time() - start_time)
+        return self._create_response_envelope(wallet_address, final_trades, total_time)
 
-    async def _fetch_swap_transactions(self, wallet: str) -> List[Dict[str, Any]]:
-        """Fetch all SWAP transactions (no source filter)"""
-        transactions = []
-        before_sig = None
-        page = 0
-        empty_pages = 0
-
-        while True:
-            page += 1
-            await self.helius_limiter.acquire()
-
-            # Task 1: No source parameter
-            params = {"api-key": HELIUS_KEY, "limit": 100, "type": "SWAP", "maxSupportedTransactionVersion": "0"}
-
-            if before_sig:
-                params["before"] = before_sig
-
-            try:
-                url = f"{HELIUS_BASE}/addresses/{wallet}/transactions"
-                if not self.session:
-                    raise RuntimeError("Session not initialized")
-
+    async def _fetch_single_page(
+        self, wallet: str, page_num: int, before_sig: Optional[str] = None
+    ) -> Tuple[List[Dict[str, Any]], Optional[str], bool, bool]:
+        """
+        Fetch a single page of transactions
+        Returns: (transactions, next_before_sig, is_empty, hit_rate_limit)
+        """
+        # Task 1: No source parameter
+        params = {"api-key": HELIUS_KEY, "limit": 100, "type": "SWAP", "maxSupportedTransactionVersion": "0"}
+        
+        if before_sig:
+            params["before"] = before_sig
+        
+        try:
+            url = f"{HELIUS_BASE}/addresses/{wallet}/transactions"
+            if not self.session:
+                raise RuntimeError("Session not initialized")
+            
+            # Use semaphore-based rate limiter for concurrent request control
+            async with self.helius_rate_limited_fetcher:
                 async with self.session.get(url, params=params, timeout=ClientTimeout(total=30)) as resp:
                     if resp.status == 429:
+                        # Return flag indicating rate limit hit - don't retry here
                         retry_after = int(resp.headers.get("Retry-After", "5"))
-                        self._report_progress(f"Rate limited, waiting {retry_after}s...")
-                        await asyncio.sleep(retry_after)
-                        continue
-
+                        self._report_progress(f"Page {page_num}: Rate limited (retry after {retry_after}s)")
+                        return [], before_sig, False, True
+                    
                     resp.raise_for_status()
-                    data = await resp.json()
-
-                    if isinstance(data, dict) and "error" in data:
-                        self._report_progress(f"API error: {data.get('error', 'Unknown error')}")
-                        break
-
+                    json_data = await resp.json()
+                    
+                    # Handle error responses
+                    if isinstance(json_data, dict) and "error" in json_data:
+                        self._report_progress(f"Page {page_num}: API error: {json_data.get('error', 'Unknown error')}")
+                        return [], None, True, False
+                    
+                    # Ensure we have a list
+                    if not isinstance(json_data, list):
+                        self._report_progress(f"Page {page_num}: Unexpected response format")
+                        return [], None, True, False
+                    
+                    data: List[Dict[str, Any]] = json_data
+                    
                     if not data:
-                        empty_pages += 1
-                        if empty_pages > 3:
-                            self._report_progress(f"Hit {empty_pages} empty pages, stopping")
-                            break
-                        self._report_progress(f"Empty page {empty_pages}/3, continuing...")
-                        continue
+                        self._report_progress(f"Page {page_num}: Empty page")
+                        return [], before_sig, True, False
+                    
+                    self._report_progress(f"Page {page_num}: {len(data)} transactions")
+                    next_before = data[-1]["signature"] if data else None
+                    return data, next_before, False, False
+                    
+        except Exception as e:
+            logger.error(f"Error fetching page {page_num}: {e}")
+            self.metrics.parser_errors += 1
+            return [], None, True, False
+    
+    async def _fetch_pages_parallel(
+        self, wallet: str, start_page: int, before_sigs: List[Optional[str]], num_pages: int
+    ) -> Tuple[List[List[Dict[str, Any]]], List[Optional[str]]]:
+        """
+        Fetch multiple pages in parallel with batch-wide 429 handling
+        Returns: (list of transaction lists, list of next before_sigs)
+        """
+        # Exponential backoff delays for retries
+        backoff_delays = [5, 10, 20]
+        retry_count = 0
+        
+        while retry_count <= len(backoff_delays):
+            tasks = []
+            for i in range(num_pages):
+                page_num = start_page + i
+                before_sig = before_sigs[i] if i < len(before_sigs) else None
+                task = self._fetch_single_page(wallet, page_num, before_sig)
+                tasks.append(task)
+            
+            # Gather all results
+            results = await asyncio.gather(*tasks)
+            
+            # Check if any page hit rate limit
+            any_rate_limited = any(hit_rate_limit for _, _, _, hit_rate_limit in results)
+            
+            if any_rate_limited and retry_count < len(backoff_delays):
+                # Batch hit rate limit - wait and retry entire batch
+                wait_time = backoff_delays[retry_count]
+                self._report_progress(f"Batch hit rate limit, waiting {wait_time}s before retry (attempt {retry_count + 1}/3)...")
+                await asyncio.sleep(wait_time)
+                retry_count += 1
+                continue
+            
+            # No rate limit or max retries reached - return results
+            all_transactions = []
+            next_sigs = []
+            
+            for transactions, next_sig, is_empty, hit_rate_limit in results:
+                all_transactions.append(transactions)
+                next_sigs.append(next_sig)
+            
+            return all_transactions, next_sigs
+        
+        # Should never reach here, but return empty results if we do
+        return [[] for _ in range(num_pages)], [None for _ in range(num_pages)]
 
-                    empty_pages = 0
-                    transactions.extend(data)
-                    self._report_progress(f"Page {page}: {len(data)} transactions")
-
-                    before_sig = data[-1]["signature"]
-
-            except Exception as e:
-                logger.error(f"Error fetching transactions: {e}")
-                self.metrics.parser_errors += 1
+    async def _fetch_swap_transactions(self, wallet: str) -> List[Dict[str, Any]]:
+        """Fetch all SWAP transactions using parallel fetching"""
+        all_transactions = []
+        page = 0
+        consecutive_empty_pages = 0
+        batch_num = 0
+        
+        # Start with first page to establish pattern
+        self._report_progress(f"Starting parallel fetch with {self.parallel_pages} concurrent pages...")
+        
+        # Initial fetch to get first before_sig
+        first_page_data, first_before_sig, is_empty, hit_rate_limit = await self._fetch_single_page(wallet, 1, None)
+        if first_page_data:
+            all_transactions.extend(first_page_data)
+            page = 1
+        
+        if is_empty or not first_before_sig:
+            self._report_progress("No transactions found")
+            return all_transactions
+        
+        # Now fetch in parallel batches
+        current_before_sigs = [first_before_sig]
+        
+        while current_before_sigs and any(sig is not None for sig in current_before_sigs):
+            batch_num += 1
+            batch_start = page + 1
+            
+            # Determine how many pages to fetch in this batch
+            num_pages_to_fetch = min(self.parallel_pages, len(current_before_sigs) * 2)  # Allow for growth
+            
+            self._report_progress(f"Batch {batch_num}: Fetching pages {batch_start} to {batch_start + num_pages_to_fetch - 1}")
+            
+            # Prepare before_sigs for this batch
+            batch_before_sigs = []
+            for i in range(num_pages_to_fetch):
+                if i < len(current_before_sigs) and current_before_sigs[i] is not None:
+                    batch_before_sigs.append(current_before_sigs[i])
+                else:
+                    batch_before_sigs.append(None)
+            
+            # Fetch pages in parallel
+            batch_transactions, next_before_sigs = await self._fetch_pages_parallel(
+                wallet, batch_start, batch_before_sigs, num_pages_to_fetch
+            )
+            
+            # Process results
+            batch_had_data = False
+            new_before_sigs = []
+            
+            for i, (transactions, next_sig) in enumerate(zip(batch_transactions, next_before_sigs)):
+                if transactions:
+                    all_transactions.extend(transactions)
+                    batch_had_data = True
+                    consecutive_empty_pages = 0
+                    if next_sig:
+                        new_before_sigs.append(next_sig)
+                else:
+                    consecutive_empty_pages += 1
+                    # Continue past empty pages (expert's pagination fix)
+                    if next_sig and consecutive_empty_pages <= 3:
+                        new_before_sigs.append(next_sig)
+                
+                page += 1
+            
+            # Check if we should stop
+            if not batch_had_data and consecutive_empty_pages > 3:
+                self._report_progress(f"Hit {consecutive_empty_pages} consecutive empty pages, stopping")
                 break
-
-        return transactions
+            
+            # Update before_sigs for next batch
+            current_before_sigs = new_before_sigs
+            
+            # Progress report
+            self._report_progress(f"Batch {batch_num} complete: Total {len(all_transactions)} transactions so far")
+        
+        self._report_progress(f"Parallel fetch complete: {len(all_transactions)} total transactions in {page} pages")
+        return all_transactions
 
     async def _extract_trades_with_dedup(self, transactions: List[Dict[str, Any]], wallet: str) -> List[Trade]:
         """Extract trades with deduplication (one per signature)"""
@@ -483,25 +702,27 @@ class BlockchainFetcherV3:
                 if not self.session:
                     raise RuntimeError("Session not initialized")
 
-                async with self.session.post(
-                    url, params=params, json={"mintAccounts": batch}, timeout=ClientTimeout(total=30)
-                ) as resp:
-                    if resp.status == 200:
-                        metadata_list = await resp.json()
+                # Use semaphore-based rate limiter for token metadata requests
+                async with self.helius_rate_limited_fetcher:
+                    async with self.session.post(
+                        url, params=params, json={"mintAccounts": batch}, timeout=ClientTimeout(total=30)
+                    ) as resp:
+                        if resp.status == 200:
+                            metadata_list = await resp.json()
 
-                        # Create lookup
-                        metadata_map = {m["account"]: m for m in metadata_list if m}
+                            # Create lookup
+                            metadata_map = {m["account"]: m for m in metadata_list if m}
 
-                        # Update trades
-                        for trade in trades:
-                            if trade.token_in_mint in metadata_map:
-                                trade.token_in_symbol = metadata_map[trade.token_in_mint].get(
-                                    "symbol", trade.token_in_mint[:8]
-                                )
-                            if trade.token_out_mint in metadata_map:
-                                trade.token_out_symbol = metadata_map[trade.token_out_mint].get(
-                                    "symbol", trade.token_out_mint[:8]
-                                )
+                            # Update trades
+                            for trade in trades:
+                                if trade.token_in_mint in metadata_map:
+                                    trade.token_in_symbol = metadata_map[trade.token_in_mint].get(
+                                        "symbol", trade.token_in_mint[:8]
+                                    )
+                                if trade.token_out_mint in metadata_map:
+                                    trade.token_out_symbol = metadata_map[trade.token_out_mint].get(
+                                        "symbol", trade.token_out_mint[:8]
+                                    )
 
             except Exception as e:
                 logger.error(f"Error fetching token metadata: {e}")
@@ -509,15 +730,33 @@ class BlockchainFetcherV3:
     async def _fetch_prices_with_cache(self, trades: List[Trade]):
         """Task 5: Fetch prices with caching"""
         self._report_progress("Fetching prices...")
+        
+        # Count unique tokens needing prices
+        unique_tokens = set()
+        for trade in trades:
+            if trade.token_in_mint != SOL_MINT:
+                unique_tokens.add(trade.token_in_mint)
+            if trade.token_out_mint != SOL_MINT:
+                unique_tokens.add(trade.token_out_mint)
+        
+        self._report_progress(f"  - {len(trades)} trades have {len(unique_tokens)} unique tokens")
 
         # Group by minute for efficient fetching
         trades_by_minute: Dict[int, List[Trade]] = defaultdict(list)
         for trade in trades:
             minute_ts = int(trade.timestamp.timestamp() // 60) * 60
             trades_by_minute[minute_ts].append(trade)
+        
+        self._report_progress(f"  - Grouped into {len(trades_by_minute)} time buckets")
+
+        # Track statistics
+        cache_hits = 0
+        cache_misses = 0
+        api_calls = 0
+        tokens_fetched = 0
 
         # Process each minute
-        for minute_ts, minute_trades in trades_by_minute.items():
+        for idx, (minute_ts, minute_trades) in enumerate(trades_by_minute.items()):
             # Collect unique mints for this minute
             mints_needed = set()
 
@@ -527,14 +766,29 @@ class BlockchainFetcherV3:
                     cached_price = self.price_cache.get(trade.token_in_mint, trade.timestamp)
                     if cached_price is None:
                         mints_needed.add(trade.token_in_mint)
+                        cache_misses += 1
+                    else:
+                        cache_hits += 1
 
                 if trade.token_out_mint != SOL_MINT:
                     cached_price = self.price_cache.get(trade.token_out_mint, trade.timestamp)
                     if cached_price is None:
                         mints_needed.add(trade.token_out_mint)
+                        cache_misses += 1
+                    else:
+                        cache_hits += 1
 
             # Fetch missing prices
             if mints_needed:
+                api_calls += 1
+                tokens_fetched += len(mints_needed)
+                
+                if idx % 10 == 0:  # Log progress every 10 buckets
+                    self._report_progress(
+                        f"  - Progress: {idx+1}/{len(trades_by_minute)} buckets, "
+                        f"{api_calls} API calls, {tokens_fetched} tokens fetched"
+                    )
+                
                 prices = await self._fetch_birdeye_prices(minute_ts, list(mints_needed))
 
                 # Cache results
@@ -544,15 +798,36 @@ class BlockchainFetcherV3:
             # Apply prices to trades
             for trade in minute_trades:
                 await self._apply_cached_prices(trade)
+        
+        # Log final statistics
+        self._report_progress(f"  - Price fetching complete:")
+        self._report_progress(f"    - Cache hits: {cache_hits}")
+        self._report_progress(f"    - Cache misses: {cache_misses}")
+        self._report_progress(f"    - Cache hit rate: {(cache_hits / (cache_hits + cache_misses) * 100):.1f}%")
+        self._report_progress(f"    - API calls made: {api_calls}")
+        self._report_progress(f"    - Total tokens fetched: {tokens_fetched}")
 
     async def _fetch_birdeye_prices(self, timestamp: int, mints: List[str]) -> Dict[str, Optional[Decimal]]:
         """Fetch prices from Birdeye"""
         prices = {}
 
         if not BIRDEYE_API_KEY:
+            self._report_progress("    - WARNING: No BIRDEYE_API_KEY set, skipping price fetch")
             return prices
 
+        # Log the request details
+        start_time = time.time()
+        dt = datetime.fromtimestamp(timestamp)
+        self._report_progress(
+            f"    - Fetching prices for {len(mints)} tokens at {dt.strftime('%Y-%m-%d %H:%M')} "
+            f"(waiting for rate limit...)"
+        )
+
         await self.birdeye_limiter.acquire()
+        
+        wait_time = time.time() - start_time
+        if wait_time > 0.1:
+            self._report_progress(f"    - Rate limit wait: {wait_time:.1f}s")
 
         try:
             url = "https://public-api.birdeye.so/public/multi_price"
@@ -571,11 +846,58 @@ class BlockchainFetcherV3:
                                 prices[mint] = Decimal(str(price_data["value"]))
                             else:
                                 prices[mint] = None
+                    
+                    fetch_time = time.time() - start_time
+                    self._report_progress(
+                        f"    - Got {len(prices)}/{len(mints)} prices in {fetch_time:.1f}s"
+                    )
+                else:
+                    self._report_progress(f"    - ERROR: Birdeye returned status {resp.status}")
 
         except Exception as e:
             logger.error(f"Error fetching Birdeye prices: {e}")
+            self._report_progress(f"    - ERROR: {str(e)}")
 
         return prices
+
+    async def _fetch_batch_prices(self, mints: List[str], timestamps: List[int]) -> Dict[str, Optional[float]]:
+        """Fetch prices for multiple mints at multiple timestamps"""
+        if not BIRDEYE_API_KEY:
+            logger.warning("No BIRDEYE_API_KEY set, returning None prices")
+            return {mint: None for mint in mints}
+        
+        all_prices = {}
+        
+        # Process each unique timestamp
+        for timestamp in set(timestamps):
+            # Get unique mints for this timestamp
+            unique_mints = list(set(mints))
+            
+            # Process in batches of 100 (Birdeye limit)
+            for i in range(0, len(unique_mints), 100):
+                batch = unique_mints[i:i+100]
+                
+                # Check cache first
+                uncached_mints = []
+                dt = datetime.fromtimestamp(timestamp)
+                
+                for mint in batch:
+                    cached_price = self.price_cache.get(mint, dt)
+                    if cached_price is not None:
+                        all_prices[mint] = float(cached_price)
+                    else:
+                        uncached_mints.append(mint)
+                
+                # Fetch uncached prices
+                if uncached_mints:
+                    prices = await self._fetch_birdeye_prices(timestamp, uncached_mints)
+                    
+                    # Cache and store results
+                    for mint, price in prices.items():
+                        self.price_cache.set(mint, dt, price)
+                        all_prices[mint] = float(price) if price is not None else None
+        
+        return all_prices
 
     async def _apply_cached_prices(self, trade: Trade):
         """Apply cached prices to trade"""

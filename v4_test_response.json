@@ -1,0 +1,861 @@
+{
+  "elapsed_seconds": 20.88,
+  "from_slot": 346387660,
+  "summary": {
+    "metrics": {
+      "dust_filtered": 0,
+      "events_swap_rows": 7,
+      "fallback_rows": 28,
+      "signatures_fetched": 35,
+      "signatures_parsed": 35
+    },
+    "priced_trades": 35,
+    "total_pnl_usd": -2683.560836301216,
+    "total_trades": 35,
+    "win_rate": 28.57
+  },
+  "to_slot": 349787167,
+  "trades": [
+    {
+      "action": "buy",
+      "amount": 1209.203471,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.655,
+      "priced": true,
+      "signature": "5twV2wfjoFeHZVY6qDJXjj4R8pLAZkubUCXq3s1Wqms52YVEzenyMrgPGrurHf3M9vcrRSF6Ru75tomF9sbVH76D",
+      "timestamp": "2025-06-12T17:27:22",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 7.92,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 1209.203471,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "tx_type": "swap",
+      "value_usd": 792.0
+    },
+    {
+      "action": "sell",
+      "amount": 98064.220703,
+      "dex": "METEORA",
+      "fees_usd": 0.0,
+      "pnl_usd": 1074.8327,
+      "price": 0.011,
+      "priced": true,
+      "signature": "2CvRhxyKY3nGsJRaKtARZPD4QMFHmhuZWFEPHB2rKRBDBKM8PqaMhnhj2N4r3DRgAG91KboB8mXfLZ7egmUytYDR",
+      "timestamp": "2025-06-13T22:54:33",
+      "token": "CfVs3waH",
+      "token_in": {
+        "amount": 98064.220703,
+        "mint": "CfVs3waH2Z9TM397qSkaipTDhA9wWgtt8UchZKfwkYiu",
+        "symbol": "CfVs3waH"
+      },
+      "token_out": {
+        "amount": 10.748327,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 1074.8327
+    },
+    {
+      "action": "buy",
+      "amount": 2457284.597162,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0002,
+      "priced": true,
+      "signature": "4u6zzeY3gJFWkBeRsWgx2LM1f35SoHwPtVQuzpYeZGaWoUKrCHudVryZDLMqgS8WLUTDeqCMWgiAuJzV6NSgY8wi",
+      "timestamp": "2025-06-13T22:54:46",
+      "token": "Fo255Hqb",
+      "token_in": {
+        "amount": 4.945065,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 2457284.597162,
+        "mint": "Fo255HqbipTisSamH2UhgqT8UfNc5cBvAc8FSj4qpump",
+        "symbol": "Fo255Hqb"
+      },
+      "tx_type": "swap",
+      "value_usd": 494.5065
+    },
+    {
+      "action": "buy",
+      "amount": 2104242.843327,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0002,
+      "priced": true,
+      "signature": "25cng92PvSRLdaGFqZ27MQWQfnduj3sSHXtFZc5zQrJio7LEhsPsHVXKbmc52erWnL8V5Wb4DEX9oSaePqSMB1ew",
+      "timestamp": "2025-06-13T22:54:55",
+      "token": "Fo255Hqb",
+      "token_in": {
+        "amount": 4.945065,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 2104242.843327,
+        "mint": "Fo255HqbipTisSamH2UhgqT8UfNc5cBvAc8FSj4qpump",
+        "symbol": "Fo255Hqb"
+      },
+      "tx_type": "swap",
+      "value_usd": 494.5065
+    },
+    {
+      "action": "sell",
+      "amount": 1961.284414,
+      "dex": "METEORA",
+      "fees_usd": 0.0,
+      "pnl_usd": 20.6132,
+      "price": 0.0105,
+      "priced": true,
+      "signature": "26cMRgedzuqjsKuyWSZUJLhTgGtu9KeJZLjJ8SCs7qrgzAUqC2DkBhTvZB9T39fCDMNNcokFfMrHxF3SrgcQX4Qb",
+      "timestamp": "2025-06-13T23:09:44",
+      "token": "CfVs3waH",
+      "token_in": {
+        "amount": 1961.284414,
+        "mint": "CfVs3waH2Z9TM397qSkaipTDhA9wWgtt8UchZKfwkYiu",
+        "symbol": "CfVs3waH"
+      },
+      "token_out": {
+        "amount": 0.206132,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 20.6132
+    },
+    {
+      "action": "sell",
+      "amount": 63414.862721,
+      "dex": "METEORA",
+      "fees_usd": 0.0,
+      "pnl_usd": 664.8192,
+      "price": 0.0105,
+      "priced": true,
+      "signature": "4MJi7TYq3LKDikdE1KtvjsFQcZHE1VrFFHRHPLdgV8aP3FWRbG8YLve1Zi6ERHA3cyZ2s2cQb3AMefLCJKyFbN9N",
+      "timestamp": "2025-06-13T23:09:57",
+      "token": "CfVs3waH",
+      "token_in": {
+        "amount": 63414.862721,
+        "mint": "CfVs3waH2Z9TM397qSkaipTDhA9wWgtt8UchZKfwkYiu",
+        "symbol": "CfVs3waH"
+      },
+      "token_out": {
+        "amount": 6.648192,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 664.8192
+    },
+    {
+      "action": "buy",
+      "amount": 2095466.745786,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0004,
+      "priced": true,
+      "signature": "3zj5C2Gd9XucpL5f8XN6PdUgWSM24ueMAX1X21xxYnbH4KUQMJBTYUnotuHHx7zUZSbB8oCHjuveHxqnQ6BKLXb4",
+      "timestamp": "2025-06-13T23:10:18",
+      "token": "Fo255Hqb",
+      "token_in": {
+        "amount": 7.912104,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 2095466.745786,
+        "mint": "Fo255HqbipTisSamH2UhgqT8UfNc5cBvAc8FSj4qpump",
+        "symbol": "Fo255Hqb"
+      },
+      "tx_type": "swap",
+      "value_usd": 791.2104
+    },
+    {
+      "action": "buy",
+      "amount": 529422.73124,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0056,
+      "priced": true,
+      "signature": "6C75xoN75nwDkS7RPX3sAyCdoZ8p98m1saEmFTaEBD1WLW71CJxfdozhr1eS8TCXowLChYKzv6viUqYGCvfZ63b",
+      "timestamp": "2025-06-15T00:08:38",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 29.670389,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 529422.73124,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "tx_type": "swap",
+      "value_usd": 2967.0389
+    },
+    {
+      "action": "buy",
+      "amount": 153057.788131,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0052,
+      "priced": true,
+      "signature": "5yWq4Qrb8B6dp1BaKi22yRPsQbCvhn94hifSSzsjLen8U4oBnM4k2696XLgrQG3meAJG5H4gnqFYXvtKNNvZ3QCZ",
+      "timestamp": "2025-06-15T00:11:13",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 7.912104,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 153057.788131,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "tx_type": "swap",
+      "value_usd": 791.2104
+    },
+    {
+      "action": "sell",
+      "amount": 341240.259685,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 528.5606,
+      "price": 0.0072,
+      "priced": true,
+      "signature": "sQN261ikXVYoMfCNu1wP1AFrFQcW7MGNAaFx4aKXFS7yAqAyFriiVhSZAEP3F8h1PsZkyXBMddhBZEs7mxANamt",
+      "timestamp": "2025-06-15T09:28:56",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 341240.259685,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "token_out": {
+        "amount": 24.409702,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 2440.9702
+    },
+    {
+      "action": "sell",
+      "amount": 34124.025968,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 36.465,
+      "price": 0.0067,
+      "priced": true,
+      "signature": "dmH64rpgNvrht42dA9SqnMAHeYiUDpHNv4djJAajqVqrytbWJA8D7GsWSL3TyKJGuYD4APPXLPgZ4PiFwnkLJQm",
+      "timestamp": "2025-06-15T09:47:46",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 34124.025968,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "token_out": {
+        "amount": 2.277059,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 227.7059
+    },
+    {
+      "action": "sell",
+      "amount": 307116.233718,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 245.5912,
+      "price": 0.0062,
+      "priced": true,
+      "signature": "4AfbDqnsTHQd42JEj8hjNVBxRNkT5drrDFqHzUFx9FFmRqwuRd1fHmSVhiweyZzavMhDNffZ7mnPDb3Ur4sN27Ka",
+      "timestamp": "2025-06-15T09:48:10",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 307116.233718,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "token_out": {
+        "amount": 19.001899,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 1900.1899
+    },
+    {
+      "action": "buy",
+      "amount": 678529.358764,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0066,
+      "priced": true,
+      "signature": "4JqSZ8XQEt92wAcgrMLrRacNEjtiDtbNzBRhi5xxvXwmm7CxG2ZbtaVxYTkArR9bwgGCwFfB12ac1LxxMvc31tez",
+      "timestamp": "2025-06-15T10:17:05",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 44.505583,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 678529.358764,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "tx_type": "swap",
+      "value_usd": 4450.5583
+    },
+    {
+      "action": "buy",
+      "amount": 16352.652404,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.006,
+      "priced": true,
+      "signature": "2uG1UaVx7yNNcYhhqxHTgAZGe81g7CX286PTjWeVDB9PUc4Z5NBSUYft1e7SsZYW7Dau1dT6TMhsTaENL5oSfa3o",
+      "timestamp": "2025-06-15T10:40:51",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 0.989013,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 16352.652404,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "tx_type": "swap",
+      "value_usd": 98.9013
+    },
+    {
+      "action": "sell",
+      "amount": 69488.201116,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": -50.5718,
+      "price": 0.0058,
+      "priced": true,
+      "signature": "35zRwbaGfcuh2UVbzMoG8mQiTpC294pUtVQHyVNoXYQCBCwDALsn2NEbNBSA2hxd6vi33WJskMJrRtLgKbhLWrkr",
+      "timestamp": "2025-06-15T17:46:00",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 69488.201116,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "token_out": {
+        "amount": 4.052099,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 405.2099
+    },
+    {
+      "action": "sell",
+      "amount": 6656994.186275,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": -1048.0999,
+      "price": 0.0001,
+      "priced": true,
+      "signature": "9TCEf6u9eeizNoQUVFQG8L2GuLfhrQ9w6JkK3cjdHJbUo5P14V6rfCdRpFpj56D741BQhSsJhm6R98GMPGv5xC1",
+      "timestamp": "2025-06-15T17:55:41",
+      "token": "Fo255Hqb",
+      "token_in": {
+        "amount": 6656994.186275,
+        "mint": "Fo255HqbipTisSamH2UhgqT8UfNc5cBvAc8FSj4qpump",
+        "symbol": "Fo255Hqb"
+      },
+      "token_out": {
+        "amount": 7.321234,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 732.1234
+    },
+    {
+      "action": "sell",
+      "amount": 625393.810052,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": -2784.1489,
+      "price": 0.0021,
+      "priced": true,
+      "signature": "3S4qAQEMVbLCMMhtVF9gfQdmpyWVeTSq1pi9eVY4uQQWNWdGnPT2zvVtYshxLgwcLhWhhj46nphQthMcAqKnk42W",
+      "timestamp": "2025-06-16T13:17:50",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 625393.810052,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "token_out": {
+        "amount": 13.095289,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 1309.5289
+    },
+    {
+      "action": "buy",
+      "amount": 1557.501152,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.6356,
+      "priced": true,
+      "signature": "36RebKDuBLGTUyE6ZYXkziJ8MXSs5Hf7t14qpmvqEbU8Mp1DyXBDxgujfJxSSKwEwff1yWLd3oFPMXzrEjmTSN1F",
+      "timestamp": "2025-06-16T13:22:25",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 9.9,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 1557.501152,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "tx_type": "swap",
+      "value_usd": 990.0
+    },
+    {
+      "action": "sell",
+      "amount": 1190.601178,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": -28.5048,
+      "price": 0.631,
+      "priced": true,
+      "signature": "4obPJUmLoJSCfqW2ukte8JAmnj54srqnf1xTBxnWEyYYcU1GHExJLta1pLXCymoBCUry4YnxbJSuXAVJZq1bgqzX",
+      "timestamp": "2025-06-16T13:24:28",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 1190.601178,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "token_out": {
+        "amount": 7.513111,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 751.3111
+    },
+    {
+      "action": "buy",
+      "amount": 1467993.448164,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0027,
+      "priced": true,
+      "signature": "2YnfjFSwP1zj2USoPWLU2TnfegMHTJdyqKjMUVQwbqhASHKGrCVnjpjLH5MT1RURvH3Tv9Cm4b2PUCDiQoGmbEDH",
+      "timestamp": "2025-06-16T13:44:59",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 39.560518,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 1467993.448164,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "tx_type": "swap",
+      "value_usd": 3956.0518
+    },
+    {
+      "action": "sell",
+      "amount": 1467993.448164,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": -1422.4858,
+      "price": 0.0017,
+      "priced": true,
+      "signature": "2g4oS2h1rsDkNL7tNxXvhyMoSFzwkwQPPc75RXwcuKea28nofUft4FTz3fCDbX5u86ZtEs82y9W3Rn2xBTccMgXG",
+      "timestamp": "2025-06-16T18:42:55",
+      "token": "3dk9CNre",
+      "token_in": {
+        "amount": 1467993.448164,
+        "mint": "3dk9CNre8tmv6bbNXd5F6dgkNnEzsyQ7sPhVT8kKpump",
+        "symbol": "3dk9CNre"
+      },
+      "token_out": {
+        "amount": 25.33566,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 2533.566
+    },
+    {
+      "action": "buy",
+      "amount": 556570.298577,
+      "dex": "METEORA",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0062,
+      "priced": true,
+      "signature": "5bmMy2Zpwp89b5NDaZcmgknsmiE35GixzVJnZMviQzRZjP9bJbLAy9fT3U6N1JRTNooCmVWkKMR2aoKKwhdLXwvD",
+      "timestamp": "2025-06-16T19:54:30",
+      "token": "4Uf883or",
+      "token_in": {
+        "amount": 34.5807,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 556570.298577,
+        "mint": "4Uf883orBx89VQZiV4EoRpNqUWYN5ZuEvC4PCpQ9moon",
+        "symbol": "4Uf883or"
+      },
+      "tx_type": "swap",
+      "value_usd": 3458.07
+    },
+    {
+      "action": "buy",
+      "amount": 10635639.360535,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0,
+      "priced": true,
+      "signature": "5vmh4yHxtEsmXhMw6AJ7XmXMfJGF4UxJoKWqWPP6fnLwHzaaTHAXyK4AGyt2cdSTsyhZpVU9YXxvwfqMN96Shozx",
+      "timestamp": "2025-06-16T20:28:07",
+      "token": "GuFK1iRQ",
+      "token_in": {
+        "amount": 4.450558,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 10635639.360535,
+        "mint": "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+        "symbol": "GuFK1iRQ"
+      },
+      "tx_type": "swap",
+      "value_usd": 445.0558
+    },
+    {
+      "action": "sell",
+      "amount": 555457.15798,
+      "dex": "METEORA",
+      "fees_usd": 0.0,
+      "pnl_usd": -124.1045,
+      "price": 0.006,
+      "priced": true,
+      "signature": "2oywWG3d6Gdqh7LMpL4zNL4rKe2hBDBtCd4ZyjTFGY5dqyDA9A7UFGESvQShAMMjJbDwePGE3rDWXSwm6u5RP3yf",
+      "timestamp": "2025-06-17T00:44:08",
+      "token": "4Uf883or",
+      "token_in": {
+        "amount": 555457.15798,
+        "mint": "4Uf883orBx89VQZiV4EoRpNqUWYN5ZuEvC4PCpQ9moon",
+        "symbol": "4Uf883or"
+      },
+      "token_out": {
+        "amount": 33.270493,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 3327.0493
+    },
+    {
+      "action": "buy",
+      "amount": 1355458.849324,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0006,
+      "priced": true,
+      "signature": "DhunwufxawKDw9ftNM7GFYLVVDTwFNMcRJSxwb3o9eEtAv7Yu5hojjsj2YJoqWNbC2Dkn5vLCtQf41wcgEuPH4H",
+      "timestamp": "2025-06-17T11:37:14",
+      "token": "CLEjjvLa",
+      "token_in": {
+        "amount": 7.912104,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 1355458.849324,
+        "mint": "CLEjjvLaGoQjGxu1N3iVvjaCxDVtEZv4YJ3pSoAYpump",
+        "symbol": "CLEjjvLa"
+      },
+      "tx_type": "swap",
+      "value_usd": 791.2104
+    },
+    {
+      "action": "sell",
+      "amount": 1355458.849324,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": -92.4729,
+      "price": 0.0005,
+      "priced": true,
+      "signature": "2mtfVBTfGhZR1fciZJaPtpsCSUfJ5P3GXCyTaGsAJkYHRow7CYaiFzLNxNsVGLVvdXW8SxVkXJf6FNKC5YwaULCM",
+      "timestamp": "2025-06-17T12:18:19",
+      "token": "CLEjjvLa",
+      "token_in": {
+        "amount": 1355458.849324,
+        "mint": "CLEjjvLaGoQjGxu1N3iVvjaCxDVtEZv4YJ3pSoAYpump",
+        "symbol": "CLEjjvLa"
+      },
+      "token_out": {
+        "amount": 6.987375,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 698.7375
+    },
+    {
+      "action": "buy",
+      "amount": 2178842.967573,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0018,
+      "priced": true,
+      "signature": "2VqCQEMpvZnwX6boRY9pAoyS2EHDcrcyBSaHcd2WwoR8k47fKaoAN3wruf4iBAjBTgD5tywF9jsuFteRyNbNWWxn",
+      "timestamp": "2025-06-17T13:08:48",
+      "token": "B1oEzGes",
+      "token_in": {
+        "amount": 39.560518,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 2178842.967573,
+        "mint": "B1oEzGes1QxVZoxR3abiwAyL4jcPRF2s2ok5Yerrpump",
+        "symbol": "B1oEzGes"
+      },
+      "tx_type": "swap",
+      "value_usd": 3956.0518
+    },
+    {
+      "action": "buy",
+      "amount": 176309.290384,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0011,
+      "priced": true,
+      "signature": "46BEg4676GJEtiR9YKFBKwnANta1RrEZLUc3e2SEhoNMtgycPdU6h7hxvVgDuF7LhAvQzZFw4Ce7NyuL7Tcdwdz5",
+      "timestamp": "2025-06-17T13:20:41",
+      "token": "B1oEzGes",
+      "token_in": {
+        "amount": 1.978026,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 176309.290384,
+        "mint": "B1oEzGes1QxVZoxR3abiwAyL4jcPRF2s2ok5Yerrpump",
+        "symbol": "B1oEzGes"
+      },
+      "tx_type": "swap",
+      "value_usd": 197.8026
+    },
+    {
+      "action": "sell",
+      "amount": 10635639.360535,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 259.9414,
+      "price": 0.0001,
+      "priced": true,
+      "signature": "5kvb9zhEq4EhVjVi1wFQnUVeZtCEUeGKYp4rpsH9tizGo6X6UGESCG1FX9R2x9vY4aiJ1TJZGn26RXcwGUv8UCGN",
+      "timestamp": "2025-06-18T15:19:54",
+      "token": "GuFK1iRQ",
+      "token_in": {
+        "amount": 10635639.360535,
+        "mint": "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+        "symbol": "GuFK1iRQ"
+      },
+      "token_out": {
+        "amount": 7.049972,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 704.9972
+    },
+    {
+      "action": "buy",
+      "amount": 561218.676075,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.0004,
+      "priced": true,
+      "signature": "5k9gGESAP5rFRBgdxNwSFw1f83o8JKaKBo9DHDs4XCdCSF9FcZFHN9uaxBKhAVANZgB8WiEim8bq7jHXfDqsgRsY",
+      "timestamp": "2025-06-19T00:41:42",
+      "token": "B91Nyc6S",
+      "token_in": {
+        "amount": 1.978026,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 561218.676075,
+        "mint": "B91Nyc6SnWqr5DRR34eEMKuZrWh4zBhW9VhX4UNLpump",
+        "symbol": "B91Nyc6S"
+      },
+      "tx_type": "swap",
+      "value_usd": 197.8026
+    },
+    {
+      "action": "sell",
+      "amount": 561218.676075,
+      "dex": "PUMP_AMM",
+      "fees_usd": 0.0,
+      "pnl_usd": 22.3651,
+      "price": 0.0004,
+      "priced": true,
+      "signature": "2uBhmjvYbffVjFQKVEXbzXyFfFMSWGkwxFGFz2sNsCkeLrjnfyAr2qCaWFBoDaibamqvcGSEoJ5XNK8J8bpY4VUp",
+      "timestamp": "2025-06-19T02:36:19",
+      "token": "B91Nyc6S",
+      "token_in": {
+        "amount": 561218.676075,
+        "mint": "B91Nyc6SnWqr5DRR34eEMKuZrWh4zBhW9VhX4UNLpump",
+        "symbol": "B91Nyc6S"
+      },
+      "token_out": {
+        "amount": 2.201677,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 220.1677
+    },
+    {
+      "action": "buy",
+      "amount": 282.031788,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.702,
+      "priced": true,
+      "signature": "4TwWWRDtWvrSRhkxkDGTtgaHyqYfUnDbMX7W22g7CVVxJBKETz9DY98WtjsSSJ4pY2sivgJjC5FdxQ5sdSigo6XD",
+      "timestamp": "2025-06-27T19:06:17",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 1.98,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 282.031788,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "tx_type": "swap",
+      "value_usd": 198.0
+    },
+    {
+      "action": "sell",
+      "amount": 207.715684,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": 13.1603,
+      "price": 0.7007,
+      "priced": true,
+      "signature": "2YQi9Dp4fW9vCuRgfUMQt5smTduQuSsg2ieeJno3XuejSabYWr9E2eWm9qFSQRgX9mWyQ7CrGQKk9HLoq27GQMfP",
+      "timestamp": "2025-06-27T19:31:44",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 207.715684,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "token_out": {
+        "amount": 1.455511,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 145.5511
+    },
+    {
+      "action": "buy",
+      "amount": 282.999734,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.0,
+      "price": 0.6996,
+      "priced": true,
+      "signature": "4EeVbfsnYj9p9T4kwPJDKu2qi1PF9ixrFAgvs5kwZqBnssEUs1hpNBcfCV5iq3ZkzuZJo1Re3sWaanQRvMbb9fR",
+      "timestamp": "2025-06-27T23:05:25",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 1.98,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "token_out": {
+        "amount": 282.999734,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "tx_type": "swap",
+      "value_usd": 198.0
+    },
+    {
+      "action": "sell",
+      "amount": 11.493485,
+      "dex": "RAYDIUM",
+      "fees_usd": 0.0,
+      "pnl_usd": 0.4793,
+      "price": 0.6773,
+      "priced": true,
+      "signature": "5g5rkbqii8rkHfgC8CWLDB2bBzKeoXcqmjyFbMvxUW9xXEEHnFc1QRqiG9eEcxdmLk6XgjVpJRnwYqqbWZKg3eBP",
+      "timestamp": "2025-06-28T11:57:02",
+      "token": "EPjFWdd5",
+      "token_in": {
+        "amount": 11.493485,
+        "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "symbol": "EPjFWdd5"
+      },
+      "token_out": {
+        "amount": 0.07785,
+        "mint": "So11111111111111111111111111111111111111112",
+        "symbol": "So111111"
+      },
+      "tx_type": "swap",
+      "value_usd": 7.785
+    }
+  ],
+  "wallet": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"
+}
