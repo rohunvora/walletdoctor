@@ -420,6 +420,7 @@ class BlockchainFetcherV3:
         page = 0
         consecutive_empty_pages = 0
         batch_num = 0
+        warned_100_pages = False  # Track if we've already warned
         
         # Start with first page to establish pattern
         self._report_progress(f"Starting parallel fetch with {self.parallel_pages} concurrent pages...")
@@ -438,11 +439,30 @@ class BlockchainFetcherV3:
         current_before_sigs = [first_before_sig]
         
         while current_before_sigs and any(sig is not None for sig in current_before_sigs):
+            # Check hard cap on pages
+            if page >= 150:
+                logger.error(f"Hit hard cap of 150 pages for wallet {wallet}, stopping pagination")
+                self._report_progress("ERROR: Hit 150 page hard cap, stopping")
+                break
+            
+            # Warn when crossing 100 pages
+            if page >= 100 and not warned_100_pages:
+                logger.warning(f"Fetched 100+ pages for wallet {wallet}, continuing...")
+                self._report_progress("WARNING: Reached 100 pages, continuing...")
+                warned_100_pages = True
+            
             batch_num += 1
             batch_start = page + 1
             
             # Determine how many pages to fetch in this batch
             num_pages_to_fetch = min(self.parallel_pages, len(current_before_sigs) * 2)  # Allow for growth
+            
+            # Don't exceed 150 page hard cap
+            if batch_start + num_pages_to_fetch - 1 > 150:
+                num_pages_to_fetch = max(0, 150 - batch_start + 1)
+                if num_pages_to_fetch <= 0:
+                    logger.error(f"Would exceed 150 page hard cap, stopping")
+                    break
             
             self._report_progress(f"Batch {batch_num}: Fetching pages {batch_start} to {batch_start + num_pages_to_fetch - 1}")
             
@@ -472,14 +492,20 @@ class BlockchainFetcherV3:
                         new_before_sigs.append(next_sig)
                 else:
                     consecutive_empty_pages += 1
-                    # Continue past empty pages (expert's pagination fix)
-                    if next_sig and consecutive_empty_pages <= 3:
+                    # Continue past empty pages (WAL-314: changed from 3 to 5)
+                    if next_sig and consecutive_empty_pages <= 5:
                         new_before_sigs.append(next_sig)
                 
                 page += 1
+                
+                # Check if we just crossed 100 pages
+                if page >= 100 and not warned_100_pages:
+                    logger.warning(f"Fetched 100+ pages for wallet {wallet}, continuing...")
+                    self._report_progress("WARNING: Reached 100 pages, continuing...")
+                    warned_100_pages = True
             
-            # Check if we should stop
-            if not batch_had_data and consecutive_empty_pages > 3:
+            # Check if we should stop (WAL-314: changed from 3 to 5)
+            if not batch_had_data and consecutive_empty_pages > 5:
                 self._report_progress(f"Hit {consecutive_empty_pages} consecutive empty pages, stopping")
                 break
             
