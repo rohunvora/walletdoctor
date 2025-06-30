@@ -421,6 +421,7 @@ class BlockchainFetcherV3:
         consecutive_empty_pages = 0
         batch_num = 0
         warned_100_pages = False  # Track if we've already warned
+        seen_before_sigs: Set[str] = set()  # WAL-315: Track seen signatures for loop detection
         
         # Start with first page to establish pattern
         self._report_progress(f"Starting parallel fetch with {self.parallel_pages} concurrent pages...")
@@ -434,6 +435,10 @@ class BlockchainFetcherV3:
         if is_empty or not first_before_sig:
             self._report_progress("No transactions found")
             return all_transactions
+        
+        # Add first signature to seen set
+        if first_before_sig:
+            seen_before_sigs.add(first_before_sig)
         
         # Now fetch in parallel batches
         current_before_sigs = [first_before_sig]
@@ -489,11 +494,26 @@ class BlockchainFetcherV3:
                     batch_had_data = True
                     consecutive_empty_pages = 0
                     if next_sig:
+                        # WAL-315: Check for loop detection
+                        if next_sig in seen_before_sigs:
+                            logger.error(f"Loop detected: signature {next_sig[:8]}... already seen, stopping pagination")
+                            self._report_progress(f"ERROR: Loop detected with signature {next_sig[:8]}..., stopping")
+                            # Force exit from both loops
+                            current_before_sigs = []
+                            break
+                        seen_before_sigs.add(next_sig)
                         new_before_sigs.append(next_sig)
                 else:
                     consecutive_empty_pages += 1
                     # Continue past empty pages (WAL-314: changed from 3 to 5)
                     if next_sig and consecutive_empty_pages <= 5:
+                        # WAL-315: Check for loop even on empty pages
+                        if next_sig in seen_before_sigs:
+                            logger.error(f"Loop detected on empty page: signature {next_sig[:8]}... already seen")
+                            self._report_progress(f"ERROR: Loop detected with signature {next_sig[:8]}..., stopping")
+                            current_before_sigs = []
+                            break
+                        seen_before_sigs.add(next_sig)
                         new_before_sigs.append(next_sig)
                 
                 page += 1
