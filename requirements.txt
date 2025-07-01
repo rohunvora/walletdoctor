@@ -36,5 +36,8 @@ httpx==0.25.2  # Added for better async testing
 locust==2.17.0  # Added for load testing
 pytest-mock==3.10.0  # Added for mocking
 
+# Caching
+redis==5.0.1  # Added for market cap caching
+
 # Security note: All packages updated on 2024-01-28 to address CVEs
 # Run 'pip-audit' regularly to check for new vulnerabilities
