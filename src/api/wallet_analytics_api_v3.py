@@ -4,12 +4,14 @@ WalletDoctor API V3
 Direct blockchain analysis via Helius
 """
 
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, Response
 from flask_cors import CORS
 import asyncio
 import sys
 import os
 from typing import Optional
+import time
+import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from src.lib.blockchain_fetcher_v3 import BlockchainFetcherV3
@@ -28,7 +30,7 @@ CORS(app)
 async def fetch_and_analyze(wallet_address: str, progress_token: Optional[str] = None, max_pages: int = 100):
     """Fetch blockchain data and analyze"""
     logger.info(f"Starting analysis for wallet: {wallet_address}")
-    
+
     # Setup progress tracking if token provided
     tracker = get_progress_tracker() if progress_token else None
     
@@ -102,7 +104,7 @@ async def fetch_and_analyze(wallet_address: str, progress_token: Optional[str] =
         skip_pricing=True
     ) as fetcher:
         result = await fetcher.fetch_wallet_trades(wallet_address)
-    
+
     # Mark as complete
     if tracker and progress_token:
         trades_count = len(result.get("trades", []))
@@ -284,6 +286,77 @@ def get_progress(token):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/v4/analyze/stream", methods=["POST"])
+def analyze_wallet_stream():
+    """
+    SSE endpoint for streaming wallet analysis results
+    
+    Request body:
+    {
+        "wallet": "wallet_address"
+    }
+    
+    Returns: Server-Sent Events stream
+    """
+    try:
+        data = request.get_json()
+        if not data or "wallet" not in data:
+            return jsonify({"error": "Missing wallet address"}), 400
+
+        wallet_address = data["wallet"]
+
+        # Validate wallet address format
+        if not wallet_address or len(wallet_address) < 32:
+            return jsonify({"error": "Invalid wallet address"}), 400
+
+        logger.info(f"Starting SSE stream for wallet: {wallet_address}")
+        
+        def generate():
+            """Generator function for SSE events"""
+            # Send initial connected event
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'wallet': wallet_address})}\n\n"
+            
+            # For now, just implement heartbeat
+            # In future tickets, this will integrate with the streaming fetcher
+            start_time = time.time()
+            last_heartbeat = start_time
+            
+            # Simulate some work with heartbeats
+            while time.time() - start_time < 60:  # Max 60 seconds for now
+                current_time = time.time()
+                
+                # Send heartbeat every 30 seconds
+                if current_time - last_heartbeat >= 30:
+                    yield f"event: heartbeat\ndata: {json.dumps({'timestamp': int(current_time)})}\n\n"
+                    last_heartbeat = current_time
+                
+                # Small sleep to prevent busy loop
+                time.sleep(0.1)
+                
+                # TODO: In WAL-402/404, integrate actual fetcher here
+                # For now, just send a complete event after 2 seconds to test
+                if current_time - start_time > 2:
+                    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'message': 'Stream scaffolding test complete'})}\n\n"
+                    break
+        
+        # Create SSE response with proper headers
+        response = Response(
+            generate(),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+                "Connection": "keep-alive",
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in SSE stream: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint"""
@@ -302,6 +375,7 @@ def home():
                 "/v4/analyze": 'POST - V4 Analyze wallet (body: {"wallet": "address"}) - Returns X-Progress-Token header',
                 "/v4/prices": 'POST - Batch fetch prices (body: {"mints": [...], "timestamps": [...]})',
                 "/v4/progress/{token}": "GET - Get progress status for long-running operations",
+                "/v4/analyze/stream": "POST - SSE stream for wallet analysis results",
                 "/health": "GET - Health check",
                 "/": "GET - This info",
             },
