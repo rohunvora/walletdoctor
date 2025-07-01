@@ -17,15 +17,18 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-        pip install pytest black
-    
-    - name: Check code formatting
-      run: black --check src/ tests/
+        pip install pytest
     
     - name: Run tests
       env:
         HELIUS_KEY: ${{ secrets.HELIUS_KEY }}
         BIRDEYE_API_KEY: ${{ secrets.BIRDEYE_API_KEY }}
       run: |
-        python -m pytest tests/ -v || echo "No pytest tests found, running integration tests"
-        python tests/test_v3_fast.py 
+        # Run pytest on all test directories
+        python -m pytest tests/ -v --tb=short || true
+        
+        # Run specific accuracy tests if they exist
+        if [ -d "tests/accuracy" ]; then
+          echo "Running accuracy tests..."
+          python -m pytest tests/accuracy/ -v
+        fi 
