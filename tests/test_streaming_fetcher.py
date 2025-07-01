@@ -185,6 +185,10 @@ def test_streaming_batch_size():
 def test_streaming_maintains_performance():
     """Test that streaming doesn't significantly impact total time"""
     
+    # Require HELIUS_KEY
+    if not os.getenv("HELIUS_KEY"):
+        pytest.skip("HELIUS_KEY environment variable not set")
+    
     async def run_test():
         start_time = time.time()
         total_trades = 0
@@ -228,11 +232,9 @@ def test_streaming_compatibility():
 
 
 if __name__ == "__main__":
-    # Run tests
+    # Run tests - require HELIUS_KEY from environment
     if not os.getenv("HELIUS_KEY"):
-        print("⚠️  HELIUS_KEY not set, skipping live tests")
-        test_streaming_compatibility()
-        print("✅ Compatibility test passed")
+        raise ValueError("HELIUS_KEY environment variable not set. Please set it before running tests.")
     else:
         test_streaming_yields_partial_results()
         print("✅ Partial results test passed")
