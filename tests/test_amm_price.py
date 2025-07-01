@@ -249,6 +249,172 @@ class TestAMMPriceReader:
         assert stats["sol_price"] == 150.0
         assert stats["cache_size"] == 0
 
+    @pytest.mark.asyncio
+    async def test_pump_fun_token_detection(self):
+        """Test pump.fun token detection and pool creation"""
+        async with AMMPriceReader() as reader:
+            # Test pump token
+            pump_mint = "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump"
+            pools = await reader._find_pools_for_token(pump_mint)
+            
+            assert len(pools) == 1
+            assert pools[0]["program"] == "pump_amm"
+            assert pools[0]["token_a_mint"] == pump_mint
+            assert pools[0]["token_b_mint"] == "So11111111111111111111111111111111111111112"
+    
+    @pytest.mark.asyncio
+    async def test_pump_pool_realistic_values(self):
+        """Test pump.fun pool returns realistic values"""
+        async with AMMPriceReader() as reader:
+            pump_mint = "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump"
+            pool = await reader._get_pump_fun_pool(pump_mint)
+            
+            assert pool is not None
+            # Check real reserves are small
+            real_sol = Decimal(pool["token_b_amount"]) / Decimal(10**9)
+            assert real_sol < 1  # Less than 1 SOL in real reserves
+            
+            # Check virtual reserves exist
+            assert "virtual_sol_reserves" in pool
+            assert "virtual_token_reserves" in pool
+    
+    @pytest.mark.asyncio
+    async def test_tvl_calculation_pump_pool(self):
+        """Test TVL calculation for pump.fun pools uses only real reserves"""
+        async with AMMPriceReader() as reader:
+            sol_price = Decimal("150.0")
+            
+            pool = {
+                "program": "pump_amm",
+                "token_a_mint": "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+                "token_b_mint": "So11111111111111111111111111111111111111112",
+                "token_a_amount": "100000000000",      # 100K tokens real
+                "token_b_amount": "42000000",          # 0.042 SOL real
+                "token_a_decimals": 6,
+                "token_b_decimals": 9,
+                "virtual_sol_reserves": "30000000000",  # 30 SOL virtual (not used for TVL)
+                "virtual_token_reserves": "900000000000000"
+            }
+            
+            tvl = await reader._calculate_pool_tvl(pool, sol_price)
+            
+            # TVL should be based on real reserves only: 0.042 SOL * 150 * 2 = $12.6
+            expected_tvl = Decimal("0.042") * sol_price * 2
+            assert abs(tvl - expected_tvl) < 1  # Within $1
+    
+    @pytest.mark.asyncio
+    async def test_price_calculation_with_virtual_reserves(self):
+        """Test price calculation includes virtual reserves"""
+        async with AMMPriceReader() as reader:
+            pool = {
+                "program": "pump_amm",
+                "token_a_mint": "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+                "token_b_mint": "So11111111111111111111111111111111111111112",
+                "token_a_amount": "100000000000",      # 100K tokens real
+                "token_b_amount": "42000000",          # 0.042 SOL real
+                "token_a_decimals": 6,
+                "token_b_decimals": 9,
+                "virtual_sol_reserves": "30000000000",  # 30 SOL virtual
+                "virtual_token_reserves": "900000000000000"  # 900M tokens virtual
+            }
+            
+            price = await reader._calculate_price_from_pool(
+                pool,
+                "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+                "So11111111111111111111111111111111111111112"
+            )
+            
+            # Price should use total reserves (real + virtual)
+            # Total SOL: 30.042, Total tokens: 900.1M
+            # Price = 30.042 / 900100000 = 0.0000000334 SOL per token
+            assert price is not None
+            assert price < Decimal("0.00001")  # Very small price as expected
+    
+    @pytest.mark.asyncio
+    async def test_low_tvl_fallback(self):
+        """Test fallback to low TVL pools"""
+        async with AMMPriceReader() as reader:
+            # Mock pool finding
+            reader._find_pools_for_token = AsyncMock(return_value=[{
+                "program": "pump_amm",
+                "token_a_mint": "test_token",
+                "token_b_mint": "So11111111111111111111111111111111111111112",
+                "token_a_amount": "10000000000",   # Small amounts
+                "token_b_amount": "1000000",       # 0.001 SOL
+                "token_a_decimals": 6,
+                "token_b_decimals": 9
+            }])
+            
+            # Mock SOL price
+            reader.get_sol_price_usd = AsyncMock(return_value=Decimal("150.0"))
+            
+            # Mock pool calculation methods
+            reader._calculate_pool_tvl = AsyncMock(return_value=Decimal("300"))  # $300 TVL (below MIN_TVL)
+            reader._calculate_price_from_pool = AsyncMock(return_value=Decimal("0.00001"))
+            
+            result = await reader.get_token_price("test_token")
+            
+            # Should still return a price with medium confidence
+            assert result is not None
+            price, source, tvl = result
+            assert "medium" in source or "low" in source  # Should indicate lower confidence
+            assert tvl == Decimal("300")
+    
+    @pytest.mark.asyncio
+    async def test_raydium_pool_for_rdmp(self):
+        """Test RDMP token gets Raydium pool with correct reserves"""
+        async with AMMPriceReader() as reader:
+            rdmp_mint = "1HE8MZKhpbJiNvjJTrXdV395qEmPEqJme6P5DLBboop"
+            pools = await reader._find_pools_for_token(rdmp_mint)
+            
+            assert len(pools) == 1
+            assert pools[0]["program"] == "raydium"
+            assert pools[0]["token_a_mint"] == rdmp_mint
+            
+            # Check reserves are substantial
+            sol_amount = Decimal(pools[0]["token_b_amount"]) / Decimal(10**9)
+            assert sol_amount > 1000  # More than 1000 SOL
+    
+    @pytest.mark.asyncio 
+    async def test_confidence_levels(self):
+        """Test different confidence levels based on TVL"""
+        async with AMMPriceReader() as reader:
+            reader.get_sol_price_usd = AsyncMock(return_value=Decimal("150.0"))
+            reader._calculate_price_from_pool = AsyncMock(return_value=Decimal("0.00001"))
+            
+            # Test high TVL pool (> $1000)
+            reader._find_pools_for_token = AsyncMock(return_value=[{
+                "program": "raydium",
+                "token_a_mint": "test",
+                "token_b_mint": "So11111111111111111111111111111111111111112",
+                "token_a_amount": "1000000000000",
+                "token_b_amount": "10000000000",  # 10 SOL = $1500 TVL
+                "token_a_decimals": 6,
+                "token_b_decimals": 9
+            }])
+            
+            result = await reader.get_token_price("test")
+            assert result is not None
+            _, source, _ = result
+            assert "medium" not in source and "low" not in source
+            
+            # Test medium TVL pool ($100-$1000)
+            reader._find_pools_for_token = AsyncMock(return_value=[{
+                "program": "pump_amm",
+                "token_a_mint": "test2",
+                "token_b_mint": "So11111111111111111111111111111111111111112",
+                "token_a_amount": "100000000000",
+                "token_b_amount": "300000000",  # 0.3 SOL = $45 * 2 = $90 TVL (below MIN)
+                "token_a_decimals": 6,
+                "token_b_decimals": 9
+            }])
+            reader._calculate_pool_tvl = AsyncMock(return_value=Decimal("200"))  # $200 TVL
+            
+            result = await reader.get_token_price("test2")
+            assert result is not None
+            _, source, _ = result
+            assert "medium" in source or "low" in source
+
 
 if __name__ == "__main__":
     # Run basic tests
@@ -268,6 +434,27 @@ if __name__ == "__main__":
         
         await test.test_tvl_calculation()
         print("✅ TVL calculation test passed")
+        
+        await test.test_pump_fun_token_detection()
+        print("✅ Pump.fun token detection test passed")
+        
+        await test.test_pump_pool_realistic_values()
+        print("✅ Pump.fun pool returns realistic values test passed")
+        
+        await test.test_tvl_calculation_pump_pool()
+        print("✅ TVL calculation for pump.fun pools uses only real reserves test passed")
+        
+        await test.test_price_calculation_with_virtual_reserves()
+        print("✅ Price calculation includes virtual reserves test passed")
+        
+        await test.test_low_tvl_fallback()
+        print("✅ Fallback to low TVL pools test passed")
+        
+        await test.test_raydium_pool_for_rdmp()
+        print("✅ RDMP token gets Raydium pool with correct reserves test passed")
+        
+        await test.test_confidence_levels()
+        print("✅ Different confidence levels based on TVL test passed")
     
     asyncio.run(run_tests())
     

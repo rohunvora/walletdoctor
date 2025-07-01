@@ -302,6 +302,62 @@ class TestMarketCapCache:
         # Stats should show in-memory
         stats = cache.get_stats()
         assert stats["backend"] == "in-memory"
+    
+    def test_fallback_to_memory_cache(self):
+        """Test explicit fallback when Redis URL is invalid"""
+        # Save original REDIS_URL
+        original_redis_url = os.environ.get("REDIS_URL")
+        
+        try:
+            # Set invalid Redis URL to force fallback
+            os.environ["REDIS_URL"] = "redis://invalid:6379"
+            
+            # Create cache - should automatically use in-memory
+            cache = MarketCapCache(use_redis=True)
+            
+            # Test data
+            mint = "So11111111111111111111111111111111111111112"
+            timestamp = int(time.time())
+            mc_data = MarketCapData(
+                value=15000000000.0,  # $15B SOL market cap
+                confidence=CONFIDENCE_HIGH,
+                timestamp=timestamp,
+                source="helius_raydium"
+            )
+            
+            # Should work seamlessly with in-memory fallback
+            assert cache.set(mint, timestamp, mc_data) is True
+            
+            # Retrieve
+            retrieved = cache.get(mint, timestamp)
+            assert retrieved is not None
+            assert retrieved.value == 15000000000.0
+            assert retrieved.confidence == CONFIDENCE_HIGH
+            assert retrieved.source == "helius_raydium"
+            
+            # Check stats confirm in-memory backend
+            stats = cache.get_stats()
+            assert stats["backend"] == "in-memory"
+            assert stats["lru_size"] == 1
+            
+            # Test batch operations also work
+            requests = [
+                (mint, timestamp),
+                ("unknown_mint", timestamp)
+            ]
+            batch_results = cache.batch_get(requests)
+            assert len(batch_results) == 2
+            assert batch_results[(mint, timestamp)] is not None
+            assert batch_results[("unknown_mint", timestamp)] is None
+            
+            print("✅ Redis-down fallback test passed")
+            
+        finally:
+            # Restore original REDIS_URL
+            if original_redis_url is not None:
+                os.environ["REDIS_URL"] = original_redis_url
+            else:
+                os.environ.pop("REDIS_URL", None)
 
 
 if __name__ == "__main__":
@@ -327,6 +383,8 @@ if __name__ == "__main__":
     test_cache.test_date_granularity()
     test_cache.test_batch_get()
     test_cache.test_get_stats()
+    test_cache.test_redis_fallback_on_error()
+    test_cache.test_fallback_to_memory_cache()
     print("✅ MarketCapCache tests passed")
     
     print("\n✅ All tests passed!") 
