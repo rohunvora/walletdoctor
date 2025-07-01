@@ -2,11 +2,10 @@
 """
 Blockchain Fetcher V3 Fast - Optimized for speed
 Key optimizations:
-1. Parallel API calls
-2. Batch price fetching
-3. Configurable limits for testing
+1. RPC endpoint with 1000-signature pages
+2. Parallel transaction batch fetching
+3. Smart price caching with batch fetching
 4. Memory-efficient streaming
-5. Smart caching
 """
 
 import os
@@ -24,25 +23,28 @@ import json
 
 # Environment variables
 HELIUS_KEY = os.getenv("HELIUS_KEY")
+if not HELIUS_KEY:
+    raise ValueError("HELIUS_KEY environment variable is required")
+
 BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY")
 
 # Constants
 HELIUS_BASE = "https://api.helius.xyz/v0"
-HELIUS_RPS = 10
+HELIUS_RPC_BASE = "https://mainnet.helius-rpc.com"
+HELIUS_RPS = 50  # Updated for paid plan
 BIRDEYE_RPS = 1
 DUST_THRESHOLD = Decimal("0.0000001")
 SOL_MINT = "So11111111111111111111111111111111111111112"
-
-# Optimization settings
-PARALLEL_PAGES = 5  # Fetch 5 pages simultaneously
-MAX_PAGES_TEST = 5  # Limit for testing (None for production)
-SKIP_PRICING_TEST = False  # Skip price fetching for tests
-CACHE_TTL = 3600  # Cache TTL in seconds
+SIGNATURE_PAGE_LIMIT = 1000  # RPC supports up to 1000 signatures per page
+TX_BATCH_SIZE = 100  # Batch size for transaction fetching
 
 logger = logging.getLogger(__name__)
 
 # Import base classes from V3
-from .blockchain_fetcher_v3 import Trade, Metrics, RateLimiter, PriceCache
+from .blockchain_fetcher_v3 import (
+    Trade, Metrics, RateLimiter, PriceCache, 
+    BlockchainFetcherV3, RateLimitedFetcher
+)
 
 
 class FastPriceCache(PriceCache):
@@ -94,26 +96,25 @@ class FastPriceCache(PriceCache):
 
 
 class BlockchainFetcherV3Fast:
-    """Optimized V3 fetcher"""
+    """Optimized V3 fetcher using RPC endpoint"""
 
     def __init__(
         self,
         progress_callback: Optional[Callable[[str], None]] = None,
-        max_pages: Optional[int] = MAX_PAGES_TEST,
-        skip_pricing: bool = SKIP_PRICING_TEST,
+        skip_pricing: bool = False,
     ):
         self.progress_callback = progress_callback or (lambda x: logger.info(x))
         self.helius_limiter = RateLimiter(HELIUS_RPS)
         self.birdeye_limiter = RateLimiter(BIRDEYE_RPS)
+        self.helius_rate_limited_fetcher = RateLimitedFetcher(max_concurrent=40)
         self.session: Optional[aiohttp.ClientSession] = None
         self.metrics = Metrics()
         self.price_cache = FastPriceCache()
-        self.max_pages = max_pages
         self.skip_pricing = skip_pricing
 
     async def __aenter__(self):
         # Use connection pooling
-        connector = aiohttp.TCPConnector(limit=100, limit_per_host=30)
+        connector = aiohttp.TCPConnector(limit=40, limit_per_host=40)
         self.session = aiohttp.ClientSession(connector=connector)
         return self
 
@@ -128,39 +129,40 @@ class BlockchainFetcherV3Fast:
         self.progress_callback(message)
 
     async def fetch_wallet_trades(self, wallet_address: str) -> Dict[str, Any]:
-        """Main entry point - optimized version"""
-        if not HELIUS_KEY:
-            raise ValueError("HELIUS_KEY environment variable not set")
-
+        """Main entry point - optimized version using RPC"""
         self._report_progress(f"Starting FAST fetch for wallet: {wallet_address}")
         start_time = time.time()
 
         # Reset metrics
         self.metrics = Metrics()
 
-        # Step 1: Fetch all SWAP transactions (with parallel fetching)
-        transactions = await self._fetch_swap_transactions_parallel(wallet_address)
-        self.metrics.signatures_fetched = len(transactions)
+        # Step 1: Fetch all signatures using RPC (1000 per page)
+        signatures = await self._fetch_all_signatures(wallet_address)
+        self.metrics.signatures_fetched = len(signatures)
+        self._report_progress(f"Fetched {len(signatures)} signatures")
+
+        # Step 2: Batch fetch full transactions
+        transactions = await self._fetch_transactions_batch(signatures)
         self._report_progress(f"Fetched {len(transactions)} SWAP transactions")
 
-        # Step 2: Extract trades (same as V3)
+        # Step 3: Extract trades
         trades = await self._extract_trades_with_dedup(transactions, wallet_address)
         self._report_progress(f"Extracted {len(trades)} unique trades")
 
-        # Step 3: Fetch token metadata (batch optimized)
+        # Step 4: Fetch token metadata (batch optimized)
         await self._fetch_token_metadata_batch(trades)
 
-        # Step 4: Apply dust filter
+        # Step 5: Apply dust filter
         filtered_trades = self._apply_dust_filter(trades)
         self._report_progress(f"After dust filter: {len(filtered_trades)} trades")
 
-        # Step 5: Fetch prices (batch optimized)
+        # Step 6: Fetch prices (batch optimized)
         if not self.skip_pricing:
             await self._fetch_prices_batch(filtered_trades)
         else:
-            self._report_progress("Skipping price fetching (test mode)")
+            self._report_progress("Skipping price fetching")
 
-        # Step 6: Calculate P&L
+        # Step 7: Calculate P&L
         final_trades = self._calculate_pnl(filtered_trades)
 
         # Log metrics
@@ -169,114 +171,141 @@ class BlockchainFetcherV3Fast:
         # Create response envelope
         return self._create_response_envelope(wallet_address, final_trades, time.time() - start_time)
 
-    async def _fetch_swap_transactions_parallel(self, wallet: str) -> List[Dict[str, Any]]:
-        """Fetch SWAP transactions with parallel page fetching"""
-        all_transactions = []
-
-        # First, get initial page to determine total count
-        first_page = await self._fetch_single_page(wallet, None, 1)
-        if not first_page:
-            return []
-
-        all_transactions.extend(first_page)
-
-        if len(first_page) < 100:
-            return all_transactions
-
-        # Now fetch remaining pages in parallel batches
-        before_sig = first_page[-1]["signature"]
-        page_num = 2
-        empty_pages = 0
-
+    async def _fetch_all_signatures(self, wallet: str) -> List[str]:
+        """Fetch all transaction signatures using RPC with 1000-sig pages"""
+        all_signatures = []
+        page = 0
+        before_sig = None
+        
+        self._report_progress(f"Fetching signatures with {SIGNATURE_PAGE_LIMIT}-sig pages...")
+        
         while True:
-            # Check max pages limit
-            if self.max_pages and page_num > self.max_pages:
-                self._report_progress(f"Reached max pages limit ({self.max_pages})")
+            page += 1
+            
+            # Fetch single page of signatures
+            signatures, next_before_sig = await self._fetch_signature_page(wallet, before_sig)
+            
+            if signatures:
+                all_signatures.extend(signatures)
+                self._report_progress(f"Page {page}: {len(signatures)} signatures (total: {len(all_signatures)})")
+            else:
                 break
-
-            # Prepare batch of pages to fetch
-            batch_tasks = []
-            batch_sigs = []
-
-            for i in range(PARALLEL_PAGES):
-                if self.max_pages and page_num + i > self.max_pages:
-                    break
-
-                batch_tasks.append(self._fetch_single_page(wallet, before_sig, page_num + i))
-                batch_sigs.append(before_sig)
-
-                # We need to estimate the next signature
-                # For now, we'll fetch sequentially within parallel batches
-                # In production, you could maintain a signature index
-
-            if not batch_tasks:
+            
+            # Update before_sig for next page
+            if next_before_sig:
+                before_sig = next_before_sig
+            else:
                 break
+        
+        self._report_progress(f"Signature fetch complete: {len(all_signatures)} total signatures in {page} pages")
+        return all_signatures
 
-            # Fetch pages in parallel
-            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
-
-            # Process results
-            got_data = False
-            for i, result in enumerate(batch_results):
-                if isinstance(result, Exception):
-                    logger.error(f"Error fetching page: {result}")
-                    continue
-
-                if result and isinstance(result, list):
-                    all_transactions.extend(result)
-                    before_sig = result[-1]["signature"]
-                    got_data = True
-
-            if not got_data:
-                # Critical fix from V4: Continue past empty pages
-                empty_pages += 1
-                if empty_pages > 3:
-                    self._report_progress(f"Hit {empty_pages} empty pages, stopping")
-                    break
-                self._report_progress(f"Empty page batch {empty_pages}/3, continuing...")
-                page_num += len(batch_tasks)
-                continue
-
-            # Reset empty pages counter on successful data
-            empty_pages = 0
-            page_num += len(batch_tasks)
-
-        return all_transactions
-
-    async def _fetch_single_page(self, wallet: str, before_sig: Optional[str], page_num: int) -> List[Dict[str, Any]]:
-        """Fetch a single page of transactions"""
-        await self.helius_limiter.acquire()
-
-        params = {"api-key": HELIUS_KEY, "limit": 100, "type": "SWAP", "maxSupportedTransactionVersion": "0"}
-
+    async def _fetch_signature_page(self, wallet: str, before_sig: Optional[str] = None) -> Tuple[List[str], Optional[str]]:
+        """Fetch a single page of signatures using RPC"""
+        url = f"{HELIUS_RPC_BASE}/?api-key={HELIUS_KEY}"
+        headers = {"Content-Type": "application/json"}
+        
+        params = {"limit": SIGNATURE_PAGE_LIMIT}
         if before_sig:
             params["before"] = before_sig
+            
+        body = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "getSignaturesForAddress",
+            "params": [wallet, params]
+        }
 
         try:
-            url = f"{HELIUS_BASE}/addresses/{wallet}/transactions"
-            if not self.session:
-                raise RuntimeError("Session not initialized")
+            async with self.helius_rate_limited_fetcher:
+                async with self.session.post(url, headers=headers, json=body, timeout=ClientTimeout(total=30)) as resp:
+                    if resp.status == 429:
+                        retry_after = int(resp.headers.get("Retry-After", "5"))
+                        await asyncio.sleep(retry_after)
+                        return await self._fetch_signature_page(wallet, before_sig)
 
-            async with self.session.get(url, params=params, timeout=ClientTimeout(total=30)) as resp:
-                if resp.status == 429:
-                    retry_after = int(resp.headers.get("Retry-After", "5"))
-                    await asyncio.sleep(retry_after)
-                    return await self._fetch_single_page(wallet, before_sig, page_num)
+                    resp.raise_for_status()
+                    json_data = await resp.json()
 
-                resp.raise_for_status()
-                data = await resp.json()
-
-                if isinstance(data, dict) and "error" in data:
-                    return []
-
-                if isinstance(data, list) and data:
-                    self._report_progress(f"Page {page_num}: {len(data)} transactions")
-                    return data
-
-                return []
-
+                    if "result" not in json_data:
+                        return [], None
+                    
+                    result = json_data["result"]
+                    if not result:
+                        return [], None
+                    
+                    # Extract signatures
+                    signatures = [item["signature"] for item in result if "signature" in item]
+                    
+                    # Get next before signature from last item
+                    next_before = result[-1]["signature"] if result else None
+                    return signatures, next_before
+                    
         except Exception as e:
-            logger.error(f"Error fetching page {page_num}: {e}")
+            logger.error(f"Error fetching signatures: {e}")
+            return [], None
+
+    async def _fetch_transactions_batch(self, signatures: List[str]) -> List[Dict[str, Any]]:
+        """Batch fetch full transactions in parallel"""
+        all_transactions = []
+        
+        # Create all batch tasks
+        batch_tasks = []
+        for batch_idx in range(0, len(signatures), TX_BATCH_SIZE):
+            batch_end = min(batch_idx + TX_BATCH_SIZE, len(signatures))
+            batch_sigs = signatures[batch_idx:batch_end]
+            batch_num = batch_idx // TX_BATCH_SIZE + 1
+            
+            task = self._fetch_single_batch(batch_sigs, batch_num)
+            batch_tasks.append(task)
+        
+        # Process batches in parallel with controlled concurrency
+        chunk_size = 40
+        total_batches = len(batch_tasks)
+        
+        for i in range(0, len(batch_tasks), chunk_size):
+            chunk = batch_tasks[i:i + chunk_size]
+            chunk_results = await asyncio.gather(*chunk)
+            
+            for transactions in chunk_results:
+                all_transactions.extend(transactions)
+            
+            processed = min(i + chunk_size, len(batch_tasks))
+            self._report_progress(f"Processed {processed}/{total_batches} transaction batches...")
+        
+        return all_transactions
+
+    async def _fetch_single_batch(self, batch_sigs: List[str], batch_num: int) -> List[Dict[str, Any]]:
+        """Fetch a single batch of transactions"""
+        try:
+            url = f"{HELIUS_BASE}/transactions"
+            params = {"api-key": HELIUS_KEY}
+            body = {"transactions": batch_sigs}
+            
+            async with self.helius_rate_limited_fetcher:
+                async with self.session.post(url, params=params, json=body, timeout=ClientTimeout(total=60)) as resp:
+                    if resp.status == 429:
+                        retry_after = int(resp.headers.get("Retry-After", "5"))
+                        await asyncio.sleep(retry_after)
+                        return await self._fetch_single_batch(batch_sigs, batch_num)
+                    
+                    resp.raise_for_status()
+                    batch_data = await resp.json()
+                    
+                    # Filter valid swap transactions
+                    valid_transactions = []
+                    for tx in batch_data:
+                        if tx and isinstance(tx, dict) and "signature" in tx:
+                            # Check if it's a SWAP transaction
+                            if "events" in tx and "swap" in tx.get("events", {}):
+                                valid_transactions.append(tx)
+                            elif "tokenTransfers" in tx and len(tx.get("tokenTransfers", [])) >= 2:
+                                valid_transactions.append(tx)
+                    
+                    return valid_transactions
+                    
+        except Exception as e:
+            logger.error(f"Error fetching transaction batch {batch_num}: {e}")
             return []
 
     async def _fetch_token_metadata_batch(self, trades: List[Trade]):
@@ -318,21 +347,17 @@ class BlockchainFetcherV3Fast:
 
     async def _fetch_metadata_batch(self, mints: List[str]) -> Dict[str, Dict]:
         """Fetch metadata for a batch of mints"""
-        await self.helius_limiter.acquire()
-
         try:
             url = f"{HELIUS_BASE}/token-metadata"
             params = {"api-key": HELIUS_KEY}
 
-            if not self.session:
-                raise RuntimeError("Session not initialized")
-
-            async with self.session.post(
-                url, params=params, json={"mintAccounts": mints}, timeout=ClientTimeout(total=30)
-            ) as resp:
-                if resp.status == 200:
-                    metadata_list = await resp.json()
-                    return {m["account"]: m for m in metadata_list if m}
+            async with self.helius_rate_limited_fetcher:
+                async with self.session.post(
+                    url, params=params, json={"mintAccounts": mints}, timeout=ClientTimeout(total=30)
+                ) as resp:
+                    if resp.status == 200:
+                        metadata_list = await resp.json()
+                        return {m["account"]: m for m in metadata_list if m}
 
         except Exception as e:
             logger.error(f"Error fetching metadata batch: {e}")
@@ -402,36 +427,26 @@ class BlockchainFetcherV3Fast:
 
     # Copy remaining methods from V3 (unchanged)
     async def _extract_trades_with_dedup(self, transactions, wallet):
-        from .blockchain_fetcher_v3 import BlockchainFetcherV3
-
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics
         return await v3._extract_trades_with_dedup(transactions, wallet)
 
     def _apply_dust_filter(self, trades):
-        from .blockchain_fetcher_v3 import BlockchainFetcherV3
-
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics
         return v3._apply_dust_filter(trades)
 
     async def _apply_cached_prices(self, trade):
-        from .blockchain_fetcher_v3 import BlockchainFetcherV3
-
         v3 = BlockchainFetcherV3()
         v3.price_cache = self.price_cache
         v3.metrics = self.metrics
         return await v3._apply_cached_prices(trade)
 
     def _calculate_pnl(self, trades):
-        from .blockchain_fetcher_v3 import BlockchainFetcherV3
-
         v3 = BlockchainFetcherV3()
         return v3._calculate_pnl(trades)
 
     def _create_response_envelope(self, wallet, trades, elapsed):
-        from .blockchain_fetcher_v3 import BlockchainFetcherV3
-
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics
         return v3._create_response_envelope(wallet, trades, elapsed)
@@ -439,13 +454,14 @@ class BlockchainFetcherV3Fast:
 
 # Fast convenience functions
 def fetch_wallet_trades_fast(
-    wallet_address: str, progress_callback: Optional[Callable[[str], None]] = None, test_mode: bool = True
+    wallet_address: str, progress_callback: Optional[Callable[[str], None]] = None
 ) -> Dict[str, Any]:
     """Fast synchronous wrapper"""
 
     async def _fetch():
         async with BlockchainFetcherV3Fast(
-            progress_callback=progress_callback, max_pages=5 if test_mode else None, skip_pricing=test_mode
+            progress_callback=progress_callback,
+            skip_pricing=False
         ) as fetcher:
             return await fetcher.fetch_wallet_trades(wallet_address)
 
@@ -455,10 +471,9 @@ def fetch_wallet_trades_fast(
 if __name__ == "__main__":
     # Quick test
     wallet = "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"
-    print("Testing FAST fetcher...")
+    print("Testing FAST fetcher with RPC endpoint...")
 
-    # Test mode: limited pages, no pricing
-    result = fetch_wallet_trades_fast(wallet, print, test_mode=True)
+    result = fetch_wallet_trades_fast(wallet, print)
 
-    print(f"\nTest completed in {result['elapsed_seconds']}s")
+    print(f"\nCompleted in {result['elapsed_seconds']}s")
     print(f"Fetched {result['summary']['total_trades']} trades")

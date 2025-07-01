@@ -1,4 +1,95 @@
-# WalletDoctor V3 Deployment Guide
+# V3 Deployment Guide
+
+## Prerequisites
+- Python 3.8+
+- Helius API key (paid plan recommended - 50 RPS)
+- Birdeye API key
+- Railway account (for deployment)
+
+## Local Development
+
+1. **Clone and setup**:
+```bash
+git clone <repo>
+cd walletdoctor
+pip install -r requirements.txt
+```
+
+2. **Environment variables**:
+```bash
+export HELIUS_KEY=your-helius-key
+export BIRDEYE_API_KEY=your-birdeye-key
+```
+
+3. **Run locally**:
+```bash
+python src/api/wallet_analytics_api_v3.py
+```
+
+4. **Test the API**:
+```bash
+# Basic test
+curl -X POST http://localhost:8080/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"wallet": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"}'
+
+# Performance test
+pytest tests/test_perf_ci.py
+```
+
+## Production Deployment (Railway)
+
+1. **Install Railway CLI**:
+```bash
+brew install railway
+```
+
+2. **Deploy**:
+```bash
+railway login
+railway link
+railway up
+```
+
+3. **Set environment variables**:
+```bash
+railway variables set HELIUS_KEY=xxx
+railway variables set BIRDEYE_API_KEY=xxx
+```
+
+4. **Monitor deployment**:
+```bash
+railway logs
+```
+
+## API Features
+
+- **RPC Endpoint**: Uses `getSignaturesForAddress` for 1000-sig pages
+- **Batch Processing**: Fetches transactions in 100-tx batches
+- **Parallel Execution**: Up to 40 concurrent requests
+- **Smart Caching**: Reuses price data across requests
+- **Progress Tracking**: Optional progress tokens for long-running requests
+
+## Performance Expectations
+
+- 5,000 trades: ~20 seconds
+- 10,000 trades: ~35 seconds
+- 20,000 trades: ~60 seconds
+
+## Troubleshooting
+
+1. **Rate limiting**: Ensure HELIUS_KEY is for paid plan (50 RPS)
+2. **Timeouts**: Large wallets (>100 pages) may need client timeout adjustments
+3. **Memory**: Monitor Railway metrics for wallets with >50k trades
+
+## Health Checks
+
+Railway will automatically monitor `/health` endpoint.
+
+Custom health check:
+```bash
+curl https://your-app.up.railway.app/health
+```
 
 ## 🚀 Quick Deploy to Railway
 
@@ -44,8 +135,8 @@ In Railway dashboard or via CLI:
 
 ```bash
 # Required API keys
-railway variables set HELIUS_API_KEY="09cd02b2-f35d-4d54-ac9b-a9033919d6ee"
-railway variables set BIRDEYE_API_KEY="1d7f7108958246ad92fbb5b3241cc3d8"
+railway variables set HELIUS_API_KEY="<YOUR_HELIUS_KEY>"
+railway variables set BIRDEYE_API_KEY="<YOUR_BIRDEYE_KEY>"
 
 # Optional: Set port (Railway provides $PORT automatically)
 # railway variables set PORT=8080
@@ -113,32 +204,6 @@ Extend `calculate_simple_analytics()` function to add:
 - Win rate
 - Trading patterns
 - Risk metrics
-
-## 🐛 Troubleshooting
-
-### If deployment fails:
-1. Check Python version in `runtime.txt` (should be python-3.11.x)
-2. Verify all dependencies in `requirements.txt`
-3. Check Railway logs: `railway logs`
-
-### If API is slow:
-1. Reduce `max_pages` to 5
-2. Enable `skip_pricing=True` for testing
-3. Use `blockchain_fetcher_v3_fast.py` (already configured)
-
-### If parse rate is low:
-This should not happen with V3! If it does:
-1. Check Helius API key is valid
-2. Verify `maxSupportedTransactionVersion=0` is set
-3. Check fallback parser is working
-
-## 📊 Performance Expectations
-
-- **Small wallet (<1000 trades)**: 3-5 seconds
-- **Medium wallet (1000-5000 trades)**: 5-15 seconds  
-- **Large wallet (5000+ trades)**: 15-30 seconds
-
-With `max_pages=10`, most requests complete in <10 seconds.
 
 ## 🎯 CustomGPT Integration
 
