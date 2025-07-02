@@ -139,6 +139,9 @@ class PositionBuilder:
             positions.append(sol_position)
         
         # Build positions for other tokens
+        raw_positions_count = len(token_groups)
+        logger.info(f"[FILTER-BEFORE] positions={raw_positions_count}")
+        
         for token_mint, group in token_groups.items():
             position = self._build_position_for_token(wallet, group)
             if position and not position.is_closed:
@@ -149,6 +152,7 @@ class PositionBuilder:
                     continue
                 positions.append(position)
         
+        logger.info(f"[FILTER-AFTER] positions={len(positions)} filtered={spam_filtered}")
         logger.info(f"Built {len(positions)} open positions from {len(trades)} trades (filtered {spam_filtered} spam tokens)")
         return positions
     
