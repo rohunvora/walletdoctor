@@ -14,8 +14,7 @@ In Railway dashboard → Variables tab, add:
 
 ```bash
 # REQUIRED - Core Config
-HELIUS_API_KEY=<your_helius_key>
-HELIUS_CLUSTER_URL=<your_helius_cluster_url>
+HELIUS_KEY=<your_helius_api_key_from_helius.xyz>
 
 # REQUIRED - Feature Flags
 UNREALIZED_PNL_ENABLED=true

@@ -34,7 +34,6 @@ Required variables in Railway dashboard:
 
 ```bash
 # Core API Configuration
-REDIS_PASSWORD=your_redis_password
 POSITION_CACHE_TTL=300
 POSITION_UPDATE_TTL=600
 
@@ -45,9 +44,8 @@ FEATURE_FLAGS_POSITION_LIMITS=true
 FEATURE_FLAGS_PRICE_CONFIDENCE_MIN=0.0
 
 # API Keys
-HELIUS_API_KEY=your_helius_key
-HELIUS_CLUSTER_URL=your_helius_cluster_url
-API_KEY_SECRET=your_api_key_secret
+HELIUS_KEY=your_helius_api_key_from_helius.xyz
+BIRDEYE_API_KEY=your_birdeye_api_key_optional
 
 # Optional Performance Settings
 MEMORY_GUARDRAIL_MB=512
