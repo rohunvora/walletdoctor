@@ -8,6 +8,7 @@ and calculates unrealized gains/losses.
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import List, Dict, Optional, Tuple, Any
@@ -17,6 +18,7 @@ from src.lib.position_models import Position, PositionPnL, PriceConfidence
 from src.lib.mc_calculator import MarketCapCalculator, MarketCapResult, calculate_market_cap
 from src.lib.mc_calculator import CONFIDENCE_HIGH, CONFIDENCE_EST, CONFIDENCE_UNAVAILABLE
 from src.config.feature_flags import should_calculate_unrealized_pnl
+from src.lib.helius_price_extractor import get_helius_price_extractor
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,9 @@ class UnrealizedPnLCalculator:
             market_cap_calculator: Optional MC calculator instance
         """
         self.mc_calculator = market_cap_calculator or MarketCapCalculator()
+        self.helius_extractor = get_helius_price_extractor()
+        self.transactions = []  # Will be set by the API
+        self.trades = []  # Will be set by the API
         
     async def calculate_unrealized_pnl(
         self, 
@@ -183,7 +188,58 @@ class UnrealizedPnLCalculator:
                 ))
             return results
         
-        # Process in batches to avoid overwhelming the API
+        # Check if we should use Helius-only pricing
+        if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+            # Extract all prices at once from transactions
+            start_time = asyncio.get_event_loop().time()
+            helius_prices = self.helius_extractor.extract_prices_from_trades(
+                self.trades, 
+                self.transactions
+            )
+            elapsed = asyncio.get_event_loop().time() - start_time
+            logger.info(f"[PRICE] Helius price extraction completed in {elapsed:.2f}s")
+            
+            # Process each position with Helius prices
+            for position in positions:
+                price = helius_prices.get(position.token_mint)
+                if price:
+                    # Calculate PnL with Helius price
+                    current_value_usd = position.balance * price
+                    unrealized_pnl_usd = current_value_usd - position.cost_basis_usd
+                    
+                    if position.cost_basis_usd > 0:
+                        unrealized_pnl_pct = (unrealized_pnl_usd / position.cost_basis_usd) * Decimal("100")
+                    else:
+                        unrealized_pnl_pct = Decimal("100") if unrealized_pnl_usd > 0 else ZERO
+                    
+                    results.append(UnrealizedPnLResult(
+                        position=position,
+                        current_price_usd=price,
+                        current_value_usd=current_value_usd,
+                        unrealized_pnl_usd=unrealized_pnl_usd,
+                        unrealized_pnl_pct=unrealized_pnl_pct,
+                        price_confidence=PriceConfidence.HIGH,
+                        price_source="helius_swap",
+                        last_price_update=datetime.now(timezone.utc),
+                        error=None
+                    ))
+                else:
+                    # No price available
+                    results.append(UnrealizedPnLResult(
+                        position=position,
+                        current_price_usd=None,
+                        current_value_usd=None,
+                        unrealized_pnl_usd=None,
+                        unrealized_pnl_pct=None,
+                        price_confidence=PriceConfidence.UNAVAILABLE,
+                        price_source=None,
+                        last_price_update=datetime.now(timezone.utc),
+                        error=None
+                    ))
+            
+            return results
+        
+        # Process in batches using existing logic
         for i in range(0, len(positions), batch_size):
             batch = positions[i:i + batch_size]
             
@@ -220,7 +276,45 @@ class UnrealizedPnLCalculator:
             Tuple of (price, confidence, source, timestamp) or None
         """
         try:
-            # Use market cap calculator to get price
+            # Check if we should use Helius-only pricing
+            if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+                logger.info(f"[PRICE] Using Helius-only pricing for {token_mint[:8]}...")
+                
+                # First check cache
+                cached = self.helius_extractor.get_cached_price(token_mint)
+                if cached:
+                    price, source, timestamp = cached
+                    return (
+                        price,
+                        PriceConfidence.ESTIMATED,  # Cached prices are estimated
+                        source,
+                        timestamp
+                    )
+                
+                # Try to find price from transactions
+                for trade in self.trades:
+                    if trade.get("token_in_mint") == token_mint or trade.get("token_out_mint") == token_mint:
+                        sig = trade.get("signature")
+                        if sig:
+                            # Find transaction
+                            for tx in self.transactions:
+                                if tx.get("signature") == sig:
+                                    result = self.helius_extractor.extract_price_from_transaction(tx, token_mint)
+                                    if result:
+                                        price, source = result
+                                        return (
+                                            price,
+                                            PriceConfidence.HIGH,
+                                            source,
+                                            datetime.now(timezone.utc)
+                                        )
+                                    break
+                
+                # No price found
+                logger.info(f"[PRICE] No Helius price found for {token_mint[:8]}")
+                return None
+            
+            # Use market cap calculator (existing logic)
             mc_result = await self.mc_calculator.calculate_market_cap(
                 token_mint,
                 slot=None,  # Current slot

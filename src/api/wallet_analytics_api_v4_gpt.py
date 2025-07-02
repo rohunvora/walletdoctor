@@ -257,6 +257,13 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
         phase_start = time.time()
         logger.info(f"Starting price fetch for {len(positions)} positions (skip_pricing={skip_pricing})...")
         calculator = UnrealizedPnLCalculator()
+        
+        # Pass transactions and trades for Helius price extraction
+        if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+            calculator.trades = trades
+            calculator.transactions = result.get("transactions", [])
+            logger.info(f"[PRICE] Helius-only mode: {len(calculator.transactions)} transactions available")
+        
         position_pnls = await calculator.create_position_pnl_list(positions, skip_pricing=skip_pricing)
         phases["price_fetch"] = time.time() - phase_start
         logger.info(f"phase=price_fetch took={phases['price_fetch']:.2f}s")
@@ -498,6 +505,13 @@ def warm_cache(wallet_address: str):
                 # Calculate unrealized P&L
                 if positions and should_calculate_unrealized_pnl():
                     calculator = UnrealizedPnLCalculator()
+                    
+                    # Pass transactions and trades for Helius price extraction
+                    if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+                        calculator.trades = trades
+                        calculator.transactions = result.get("transactions", [])
+                        logger.info(f"[PRICE] Helius-only mode (warm cache): {len(calculator.transactions)} transactions")
+                    
                     position_pnls = await calculator.create_position_pnl_list(positions)
                     
                     # Create snapshot

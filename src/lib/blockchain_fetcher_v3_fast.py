@@ -180,8 +180,15 @@ class BlockchainFetcherV3Fast:
         # Log metrics
         self.metrics.log_summary(self._report_progress)
 
-        # Create response envelope
-        return self._create_response_envelope(wallet_address, final_trades, time.time() - start_time)
+        # Create response envelope with transactions
+        response = self._create_response_envelope(wallet_address, final_trades, time.time() - start_time)
+        
+        # Add transactions for Helius price extraction
+        if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+            response['transactions'] = transactions
+            logger.info(f"[PRICE] Including {len(transactions)} transactions for Helius price extraction")
+        
+        return response
 
     async def _fetch_all_signatures(self, wallet: str) -> List[str]:
         """Fetch all transaction signatures using RPC with 1000-sig pages"""
