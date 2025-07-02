@@ -35,11 +35,27 @@ from src.lib.position_models import Position, PositionPnL, PositionSnapshot, Cos
 from src.config.feature_flags import positions_enabled, should_calculate_unrealized_pnl, get_cost_basis_method
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG if os.getenv('FLASK_DEBUG', '').lower() == 'true' else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+
+# Global error handler for debugging
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Log exceptions before returning 500"""
+    import traceback
+    logger.error(f"Unhandled exception: {e}")
+    logger.error(traceback.format_exc())
+    return jsonify({
+        "error": "Internal server error",
+        "message": str(e),
+        "traceback": traceback.format_exc() if os.getenv('FLASK_DEBUG', '').lower() == 'true' else None
+    }), 500
 
 # Configuration
 API_KEY_HEADER = os.getenv('API_KEY_HEADER', 'X-Api-Key')
@@ -204,27 +220,52 @@ async def get_positions_with_staleness(wallet_address: str) -> tuple[Optional[Po
     # No cached data, need to fetch
     logger.info(f"No cached data for {wallet_address}, fetching fresh")
     
+    # Phase timing for debugging
+    phases = {}
+    
     # Fetch trades
-    async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
-        result = await fetcher.fetch_wallet_trades(wallet_address)
+    phase_start = time.time()
+    try:
+        async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+            result = await fetcher.fetch_wallet_trades(wallet_address)
+        phases["helius_fetch"] = time.time() - phase_start
+        logger.debug(f"phase=helius_fetch took={phases['helius_fetch']:.2f}s")
+    except Exception as e:
+        logger.error(f"Helius fetch failed after {time.time() - phase_start:.2f}s: {e}")
+        raise
     
     trades = result.get("trades", [])
+    logger.info(f"Fetched {len(trades)} trades")
     
     # Calculate positions
+    phase_start = time.time()
     method = CostBasisMethod(get_cost_basis_method())
     builder = PositionBuilder(method)
     positions = builder.build_positions_from_trades(trades, wallet_address)
+    phases["position_build"] = time.time() - phase_start
+    logger.debug(f"phase=position_build took={phases['position_build']:.2f}s")
     
     # Calculate unrealized P&L
     if positions and should_calculate_unrealized_pnl():
+        phase_start = time.time()
         calculator = UnrealizedPnLCalculator()
         position_pnls = await calculator.create_position_pnl_list(positions)
+        phases["price_fetch"] = time.time() - phase_start
+        logger.debug(f"phase=price_fetch took={phases['price_fetch']:.2f}s")
         
         # Create snapshot
+        phase_start = time.time()
         snapshot = PositionSnapshot.from_positions(wallet_address, position_pnls)
+        phases["create_snapshot"] = time.time() - phase_start
         
         # Cache it
+        phase_start = time.time()
         await cache.set_portfolio_snapshot(snapshot)
+        phases["cache_set"] = time.time() - phase_start
+        
+        # Log total time
+        total_time = sum(phases.values())
+        logger.info(f"Total fetch time={total_time:.2f}s, phases={phases}")
         
         return snapshot, False, 0  # Fresh data
     
@@ -290,10 +331,16 @@ def export_positions_for_gpt(wallet_address: str):
         
         logger.info(f"GPT export request for wallet: {wallet_address}")
         
+        # Phase timing
+        phase_timings = {}
+        
         # Get positions with staleness info
+        phase_start = time.time()
         snapshot, is_stale, age_seconds = run_async(
             get_positions_with_staleness(wallet_address)
         )
+        phase_timings["fetch_positions"] = time.time() - phase_start
+        logger.debug(f"phase=fetch_positions took={phase_timings['fetch_positions']:.2f}s")
         
         if not snapshot or (not snapshot.positions and age_seconds == 0):
             # No data found
@@ -303,10 +350,14 @@ def export_positions_for_gpt(wallet_address: str):
                 "message": f"No trading data found for wallet {wallet_address}"
             })
             error_response.headers['X-Response-Time-Ms'] = f"{duration_ms:.2f}"
+            error_response.headers['X-Phase-Timings'] = json.dumps(phase_timings)
             return error_response, 404
         
         # Format response
+        phase_start = time.time()
         response_data = format_gpt_schema_v1_1(snapshot)
+        phase_timings["format_response"] = time.time() - phase_start
+        logger.debug(f"phase=format_response took={phase_timings['format_response']:.2f}s")
         
         # Add staleness info if applicable
         if is_stale:
@@ -324,10 +375,15 @@ def export_positions_for_gpt(wallet_address: str):
             f"duration_ms={duration_ms:.2f}"
         )
         
-        # Create response with performance header
+        # Create response with performance headers
         response = make_response(jsonify(response_data))
         response.headers['X-Response-Time-Ms'] = f"{duration_ms:.2f}"
         response.headers['X-Cache-Status'] = 'HIT' if is_stale else 'MISS'
+        response.headers['X-Phase-Timings'] = json.dumps(phase_timings)
+        
+        # Add individual phase timing headers for easier parsing
+        for phase, timing in phase_timings.items():
+            response.headers[f'X-Phase-{phase}-Ms'] = f"{timing * 1000:.2f}"
         
         return response
         
@@ -467,6 +523,59 @@ def warm_cache(wallet_address: str):
             "error": "Internal server error",
             "message": "Failed to start cache warming"
         }), 500
+
+
+@app.route("/v4/diagnostics", methods=["GET"])
+def diagnostics():
+    """Diagnostics endpoint for debugging deployment issues"""
+    import redis
+    
+    # Check environment variables
+    env_vars = {
+        "HELIUS_KEY": bool(os.getenv("HELIUS_KEY")),
+        "BIRDEYE_API_KEY": bool(os.getenv("BIRDEYE_API_KEY")),
+        "POSITIONS_ENABLED": os.getenv("POSITIONS_ENABLED", "false"),
+        "UNREALIZED_PNL_ENABLED": os.getenv("UNREALIZED_PNL_ENABLED", "false"),
+        "WEB_CONCURRENCY": os.getenv("WEB_CONCURRENCY", "1"),
+        "HELIUS_PARALLEL_REQUESTS": os.getenv("HELIUS_PARALLEL_REQUESTS", "1"),
+        "HELIUS_TIMEOUT": os.getenv("HELIUS_TIMEOUT", "30"),
+        "POSITION_CACHE_TTL": os.getenv("POSITION_CACHE_TTL", "300"),
+        "ENABLE_CACHE_WARMING": os.getenv("ENABLE_CACHE_WARMING", "false"),
+        "FLASK_DEBUG": os.getenv("FLASK_DEBUG", "false"),
+        "GUNICORN_CMD_ARGS": os.getenv("GUNICORN_CMD_ARGS", "")
+    }
+    
+    # Test Redis connection
+    redis_status = "unknown"
+    cache_entries = 0
+    try:
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        r = redis.from_url(redis_url, decode_responses=True)
+        redis_status = r.ping()
+        if redis_status:
+            redis_status = "PONG"
+            cache_entries = r.dbsize()
+    except Exception as e:
+        redis_status = f"error: {str(e)}"
+    
+    # Check feature flags
+    features = {
+        "positions_enabled": positions_enabled(),
+        "unrealized_pnl_enabled": should_calculate_unrealized_pnl(),
+        "cost_basis_method": get_cost_basis_method()
+    }
+    
+    return jsonify({
+        "status": "ok",
+        "helius_key_present": env_vars["HELIUS_KEY"],
+        "birdeye_key_present": env_vars["BIRDEYE_API_KEY"],
+        "env": env_vars,
+        "features": features,
+        "redis_ping": redis_status,
+        "cache_entries": cache_entries,
+        "python_version": sys.version,
+        "process_id": os.getpid()
+    })
 
 
 @app.route("/health", methods=["GET"])

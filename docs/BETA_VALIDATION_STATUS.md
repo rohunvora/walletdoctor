@@ -1,10 +1,23 @@
 # Beta Validation Status
 
 ## Railway Performance Update (2025-07-02)
-- Small wallet (145 trades): 502 timeout @ 5.1s
-- Railway proxy timing out before app responds
-- Need to set RAILWAY_PROXY_TIMEOUT=30 and optimize Helius fetching
-- See tmp/railway_timing_summary.md for details
+
+### Issue Identified: App Startup Failure
+- **Root Cause**: Missing HELIUS_KEY environment variable prevents app startup
+- **Error**: `blockchain_fetcher_v3_fast.py` raises ValueError at import time
+- **Impact**: All endpoints return 502 (even /health)
+
+### Solution
+Railway admin must set:
+```
+HELIUS_KEY=<actual_key_value>
+```
+
+Once fixed, expected performance:
+- Cold cache: 5-30s depending on wallet size  
+- Warm cache: <0.2s
+
+See tmp/railway_error_analysis.md for full details
 
 ## Date: January 2, 2025
 
