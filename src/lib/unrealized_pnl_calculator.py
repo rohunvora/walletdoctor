@@ -148,7 +148,8 @@ class UnrealizedPnLCalculator:
     async def calculate_batch_unrealized_pnl(
         self,
         positions: List[Position],
-        batch_size: int = DEFAULT_BATCH_SIZE
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        skip_pricing: bool = False
     ) -> List[UnrealizedPnLResult]:
         """
         Calculate unrealized P&L for multiple positions in batch
@@ -156,6 +157,7 @@ class UnrealizedPnLCalculator:
         Args:
             positions: List of positions
             batch_size: Number of positions per batch
+            skip_pricing: If True, skip price fetching (beta mode)
             
         Returns:
             List of UnrealizedPnLResult objects
@@ -164,6 +166,22 @@ class UnrealizedPnLCalculator:
             return []
         
         results = []
+        
+        # If skip_pricing, return positions without prices
+        if skip_pricing:
+            for position in positions:
+                results.append(UnrealizedPnLResult(
+                    position=position,
+                    current_price_usd=None,
+                    current_value_usd=None,
+                    unrealized_pnl_usd=None,
+                    unrealized_pnl_pct=None,
+                    price_confidence=PriceConfidence.UNAVAILABLE,
+                    price_source=None,
+                    last_price_update=datetime.now(timezone.utc),
+                    error=None
+                ))
+            return results
         
         # Process in batches to avoid overwhelming the API
         for i in range(0, len(positions), batch_size):
@@ -381,26 +399,28 @@ class UnrealizedPnLCalculator:
     
     async def create_position_pnl_list(
         self,
-        positions: List[Position]
+        positions: List[Position],
+        skip_pricing: bool = False
     ) -> List[PositionPnL]:
         """
         Create PositionPnL objects for a list of positions
         
         Args:
             positions: List of Position objects
+            skip_pricing: If True, skip price fetching (beta mode)
             
         Returns:
             List of PositionPnL objects
         """
         # Log for RCA validation
-        logger.info(f"[RCA] Starting price fetch for {len(positions)} positions")
+        logger.info(f"[RCA] Starting price fetch for {len(positions)} positions (skip_pricing={skip_pricing})")
         
         # Count unique tokens
         unique_tokens = set(p.token_mint for p in positions)
         logger.info(f"[RCA] Unique tokens to price: {len(unique_tokens)}")
         
         start_time = asyncio.get_event_loop().time()
-        results = await self.calculate_batch_unrealized_pnl(positions)
+        results = await self.calculate_batch_unrealized_pnl(positions, skip_pricing=skip_pricing)
         elapsed = asyncio.get_event_loop().time() - start_time
         
         logger.info(f"[RCA] Price fetch completed in {elapsed:.2f}s")

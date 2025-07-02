@@ -142,7 +142,9 @@ def format_gpt_schema_v1_1(snapshot: PositionSnapshot, base_url: Optional[str] =
         position = position_pnl.position
         
         # Determine price confidence
-        if position_pnl.price_confidence.value == "high":
+        if position_pnl.current_price_usd is None:
+            price_confidence = "unpriced"
+        elif position_pnl.price_confidence.value == "high":
             price_confidence = "high"
         elif position_pnl.price_confidence.value == "est":
             price_confidence = "est"
@@ -157,12 +159,12 @@ def format_gpt_schema_v1_1(snapshot: PositionSnapshot, base_url: Optional[str] =
             "balance": str(position.balance),  # String for precision
             "decimals": position.decimals,
             "cost_basis_usd": str(position.cost_basis_usd),
-            "current_price_usd": str(position_pnl.current_price_usd),
-            "current_value_usd": str(position_pnl.current_value_usd),
-            "unrealized_pnl_usd": str(position_pnl.unrealized_pnl_usd),
-            "unrealized_pnl_pct": f"{position_pnl.unrealized_pnl_pct:.2f}",
+            "current_price_usd": str(position_pnl.current_price_usd) if position_pnl.current_price_usd is not None else None,
+            "current_value_usd": str(position_pnl.current_value_usd) if position_pnl.current_value_usd is not None else None,
+            "unrealized_pnl_usd": str(position_pnl.unrealized_pnl_usd) if position_pnl.unrealized_pnl_usd is not None else None,
+            "unrealized_pnl_pct": f"{position_pnl.unrealized_pnl_pct:.2f}" if position_pnl.unrealized_pnl_pct is not None else None,
             "price_confidence": price_confidence,
-            "price_age_seconds": position_pnl.price_age_seconds,
+            "price_age_seconds": position_pnl.price_age_seconds if position_pnl.current_price_usd is not None else None,
             "opened_at": position.opened_at.isoformat() + "Z",
             "last_trade_at": position.last_trade_at.isoformat() + "Z"
         }
@@ -253,9 +255,9 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     # Calculate unrealized P&L
     if positions and should_calculate_unrealized_pnl():
         phase_start = time.time()
-        logger.info(f"Starting price fetch for {len(positions)} positions...")
+        logger.info(f"Starting price fetch for {len(positions)} positions (skip_pricing={skip_pricing})...")
         calculator = UnrealizedPnLCalculator()
-        position_pnls = await calculator.create_position_pnl_list(positions)
+        position_pnls = await calculator.create_position_pnl_list(positions, skip_pricing=skip_pricing)
         phases["price_fetch"] = time.time() - phase_start
         logger.info(f"phase=price_fetch took={phases['price_fetch']:.2f}s")
         
@@ -344,10 +346,14 @@ def export_positions_for_gpt(wallet_address: str):
         # Phase timing
         phase_timings = {}
         
-        # Check if we should skip pricing (for debugging)
+        # Check if we should skip pricing (for debugging or beta mode)
         skip_pricing = request.args.get('skip_pricing', '').lower() == 'true'
-        if skip_pricing:
-            logger.info("SKIP_PRICING mode enabled - prices will not be fetched")
+        beta_mode = request.args.get('beta_mode', '').lower() == 'true'
+        skip_birdeye = request.args.get('skip_birdeye', '').lower() == 'true'
+        
+        if skip_pricing or beta_mode or skip_birdeye:
+            skip_pricing = True
+            logger.info(f"Price fetching disabled - skip_pricing={request.args.get('skip_pricing')}, beta_mode={beta_mode}, skip_birdeye={skip_birdeye}")
         
         # Get positions with staleness info
         phase_start = time.time()
