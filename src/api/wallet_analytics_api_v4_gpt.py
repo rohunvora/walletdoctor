@@ -233,7 +233,7 @@ async def get_positions_with_staleness(wallet_address: str) -> tuple[Optional[Po
         async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
             result = await fetcher.fetch_wallet_trades(wallet_address)
         phases["helius_fetch"] = time.time() - phase_start
-        logger.debug(f"phase=helius_fetch took={phases['helius_fetch']:.2f}s")
+        logger.info(f"phase=helius_fetch took={phases['helius_fetch']:.2f}s")
     except Exception as e:
         logger.error(f"Helius fetch failed after {time.time() - phase_start:.2f}s: {e}")
         raise
@@ -247,15 +247,16 @@ async def get_positions_with_staleness(wallet_address: str) -> tuple[Optional[Po
     builder = PositionBuilder(method)
     positions = builder.build_positions_from_trades(trades, wallet_address)
     phases["position_build"] = time.time() - phase_start
-    logger.debug(f"phase=position_build took={phases['position_build']:.2f}s")
+    logger.info(f"phase=position_build took={phases['position_build']:.2f}s, positions={len(positions)}")
     
     # Calculate unrealized P&L
     if positions and should_calculate_unrealized_pnl():
         phase_start = time.time()
+        logger.info(f"Starting price fetch for {len(positions)} positions...")
         calculator = UnrealizedPnLCalculator()
         position_pnls = await calculator.create_position_pnl_list(positions)
         phases["price_fetch"] = time.time() - phase_start
-        logger.debug(f"phase=price_fetch took={phases['price_fetch']:.2f}s")
+        logger.info(f"phase=price_fetch took={phases['price_fetch']:.2f}s")
         
         # Create snapshot
         phase_start = time.time()
@@ -344,11 +345,12 @@ def export_positions_for_gpt(wallet_address: str):
         
         # Get positions with staleness info
         phase_start = time.time()
+        logger.info(f"Starting fetch_positions for wallet={wallet_address[:8]}...")
         snapshot, is_stale, age_seconds = run_async(
             get_positions_with_staleness(wallet_address)
         )
         phase_timings["fetch_positions"] = time.time() - phase_start
-        logger.debug(f"phase=fetch_positions took={phase_timings['fetch_positions']:.2f}s")
+        logger.info(f"phase=fetch_positions took={phase_timings['fetch_positions']:.2f}s")
         
         if not snapshot or (not snapshot.positions and age_seconds == 0):
             # No data found
@@ -365,7 +367,7 @@ def export_positions_for_gpt(wallet_address: str):
         phase_start = time.time()
         response_data = format_gpt_schema_v1_1(snapshot)
         phase_timings["format_response"] = time.time() - phase_start
-        logger.debug(f"phase=format_response took={phase_timings['format_response']:.2f}s")
+        logger.info(f"phase=format_response took={phase_timings['format_response']:.2f}s")
         
         # Add staleness info if applicable
         if is_stale:
