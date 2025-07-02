@@ -285,16 +285,17 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
             result = await fetcher.fetch_wallet_trades(wallet_address)
         phases["helius_fetch"] = time.time() - phase_start
         logger.info(f"[PHASE-{request_id}] helius_fetch completed in {phases['helius_fetch']:.2f}s")
-        logger.info(f"[PHASE-{request_id}] Got {len(result.get('trades', []))} trades")
+        trades = result.get("trades", [])
+        logger.info(f"Fetched {len(trades)} trades")
+        
+        # [CHECK] Log to track trades found
+        logger.info(f"[CHECK] trades_found={len(trades)}")
     except Exception as e:
         elapsed = time.time() - phase_start
         logger.error(f"[PHASE-{request_id}] helius_fetch failed after {elapsed:.2f}s: {str(e)}")
         logger.error(f"[PHASE-{request_id}] Exception type: {type(e).__name__}")
         logger.error(f"[PHASE-{request_id}] Traceback:\n{traceback.format_exc()}")
         raise
-    
-    trades = result.get("trades", [])
-    logger.info(f"Fetched {len(trades)} trades")
     
     # Calculate positions
     phase_start = time.time()
@@ -462,6 +463,10 @@ def export_positions_for_gpt(wallet_address: str):
         
         # Format response
         phase_start = time.time()
+        
+        # [CHECK] Log to track positions built
+        logger.info(f"[CHECK] positions_built={len(snapshot.positions)}")
+        
         response_data = format_gpt_schema_v1_1(snapshot)
         phase_timings["format_response"] = time.time() - phase_start
         logger.info(f"phase=format_response took={phase_timings['format_response']:.2f}s")
