@@ -203,7 +203,7 @@ def format_gpt_schema_v1_1(snapshot: PositionSnapshot, base_url: Optional[str] =
     }
 
 
-async def get_positions_with_staleness(wallet_address: str) -> tuple[Optional[PositionSnapshot], bool, int]:
+async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool = False) -> tuple[Optional[PositionSnapshot], bool, int]:
     """
     Get positions with staleness info
     
@@ -212,17 +212,18 @@ async def get_positions_with_staleness(wallet_address: str) -> tuple[Optional[Po
     """
     cache = get_position_cache_v2()
     
-    # Check cache
-    cached_result = await cache.get_portfolio_snapshot(wallet_address)
-    
-    if cached_result:
-        snapshot, is_stale = cached_result
-        # Calculate age from snapshot timestamp
-        age_seconds = int((datetime.now(timezone.utc) - snapshot.timestamp).total_seconds())
-        return snapshot, is_stale, age_seconds
+    # Check cache (unless we're skipping pricing, then always fetch fresh)
+    if not skip_pricing:
+        cached_result = await cache.get_portfolio_snapshot(wallet_address)
+        
+        if cached_result:
+            snapshot, is_stale = cached_result
+            # Calculate age from snapshot timestamp
+            age_seconds = int((datetime.now(timezone.utc) - snapshot.timestamp).total_seconds())
+            return snapshot, is_stale, age_seconds
     
     # No cached data, need to fetch
-    logger.info(f"No cached data for {wallet_address}, fetching fresh")
+    logger.info(f"No cached data for {wallet_address}, fetching fresh (skip_pricing={skip_pricing})")
     
     # Phase timing for debugging
     phases = {}
@@ -230,7 +231,7 @@ async def get_positions_with_staleness(wallet_address: str) -> tuple[Optional[Po
     # Fetch trades
     phase_start = time.time()
     try:
-        async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+        async with BlockchainFetcherV3Fast(skip_pricing=skip_pricing) as fetcher:
             result = await fetcher.fetch_wallet_trades(wallet_address)
         phases["helius_fetch"] = time.time() - phase_start
         logger.info(f"phase=helius_fetch took={phases['helius_fetch']:.2f}s")
@@ -343,11 +344,16 @@ def export_positions_for_gpt(wallet_address: str):
         # Phase timing
         phase_timings = {}
         
+        # Check if we should skip pricing (for debugging)
+        skip_pricing = request.args.get('skip_pricing', '').lower() == 'true'
+        if skip_pricing:
+            logger.info("SKIP_PRICING mode enabled - prices will not be fetched")
+        
         # Get positions with staleness info
         phase_start = time.time()
         logger.info(f"Starting fetch_positions for wallet={wallet_address[:8]}...")
         snapshot, is_stale, age_seconds = run_async(
-            get_positions_with_staleness(wallet_address)
+            get_positions_with_staleness(wallet_address, skip_pricing=skip_pricing)
         )
         phase_timings["fetch_positions"] = time.time() - phase_start
         logger.info(f"phase=fetch_positions took={phase_timings['fetch_positions']:.2f}s")
