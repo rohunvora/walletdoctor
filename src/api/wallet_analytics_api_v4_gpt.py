@@ -260,7 +260,10 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
             snapshot, is_stale = cached_result
             # Calculate age from snapshot timestamp
             age_seconds = int((datetime.now(timezone.utc) - snapshot.timestamp).total_seconds())
+            logger.info(f"[CACHE] Cache HIT for {wallet_address[:8]}..., age={age_seconds}s, stale={is_stale}")
             return snapshot, is_stale, age_seconds
+        else:
+            logger.info(f"[CACHE] Cache MISS for {wallet_address[:8]}..., fetching fresh data")
     
     # No cached data, need to fetch
     logger.info(f"No cached data for {wallet_address}, fetching fresh (skip_pricing={skip_pricing})")
