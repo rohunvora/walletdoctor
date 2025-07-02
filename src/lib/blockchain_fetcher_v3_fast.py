@@ -169,7 +169,9 @@ class BlockchainFetcherV3Fast:
         self._report_progress(f"After dust filter: {len(filtered_trades)} trades")
 
         # Step 6: Fetch prices (batch optimized)
-        if not self.skip_pricing:
+        if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+            self._report_progress("Skipping Birdeye - using Helius-only pricing")
+        elif not self.skip_pricing:
             await self._fetch_prices_batch(filtered_trades)
         else:
             self._report_progress("Skipping price fetching")
@@ -480,6 +482,11 @@ class BlockchainFetcherV3Fast:
                     retry_after = resp.headers.get("Retry-After", "unknown")
                     logger.warning(f"[RCA] Batch {batch_num}: Rate limited! Retry-After: {retry_after}")
                 else:
+                    # Log sample mint for debugging 404s
+                    if resp.status == 404 and mints:
+                        logger.warning(f"[RCA] Batch {batch_num}: 404 for mint: {mints[0][:16]}... (timestamp={timestamp})")
+                        response_text = await resp.text()
+                        logger.debug(f"[RCA] 404 response: {response_text[:200]}")
                     logger.warning(f"[RCA] Batch {batch_num}: Unexpected status {resp.status}")
 
         except asyncio.TimeoutError:

@@ -47,6 +47,7 @@ logger.info("WalletDoctor GPT API Starting...")
 logger.info(f"HELIUS_KEY present: {bool(os.getenv('HELIUS_KEY'))}")
 logger.info(f"BIRDEYE_API_KEY present: {bool(os.getenv('BIRDEYE_API_KEY'))}")
 logger.info(f"POSITIONS_ENABLED: {os.getenv('POSITIONS_ENABLED', 'false')}")
+logger.info(f"[BOOT] PRICE_HELIUS_ONLY: {os.getenv('PRICE_HELIUS_ONLY', 'false')}")
 logger.info(f"Python version: {sys.version}")
 logger.info("="*60)
 
@@ -230,15 +231,21 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     # Phase timing for debugging
     phases = {}
     
+    # Log request start
+    logger.info(f"[PHASE] Starting position fetch for {wallet_address}, skip_pricing={skip_pricing}")
+    logger.info(f"[PHASE] PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY', 'false')}")
+    
     # Fetch trades
     phase_start = time.time()
     try:
+        logger.info(f"[PHASE] Starting trade fetch...")
         async with BlockchainFetcherV3Fast(skip_pricing=skip_pricing) as fetcher:
             result = await fetcher.fetch_wallet_trades(wallet_address)
         phases["helius_fetch"] = time.time() - phase_start
-        logger.info(f"phase=helius_fetch took={phases['helius_fetch']:.2f}s")
+        logger.info(f"[PHASE] helius_fetch completed in {phases['helius_fetch']:.2f}s")
     except Exception as e:
-        logger.error(f"Helius fetch failed after {time.time() - phase_start:.2f}s: {e}")
+        elapsed = time.time() - phase_start
+        logger.error(f"[PHASE] helius_fetch failed after {elapsed:.2f}s: {e}")
         raise
     
     trades = result.get("trades", [])
@@ -246,16 +253,17 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     
     # Calculate positions
     phase_start = time.time()
+    logger.info(f"[PHASE] Starting position build...")
     method = CostBasisMethod(get_cost_basis_method())
     builder = PositionBuilder(method)
     positions = builder.build_positions_from_trades(trades, wallet_address)
     phases["position_build"] = time.time() - phase_start
-    logger.info(f"phase=position_build took={phases['position_build']:.2f}s, positions={len(positions)}")
+    logger.info(f"[PHASE] position_build completed in {phases['position_build']:.2f}s, positions={len(positions)}")
     
     # Calculate unrealized P&L
     if positions and should_calculate_unrealized_pnl():
         phase_start = time.time()
-        logger.info(f"Starting price fetch for {len(positions)} positions (skip_pricing={skip_pricing})...")
+        logger.info(f"[PHASE] Starting price fetch for {len(positions)} positions (skip_pricing={skip_pricing})...")
         calculator = UnrealizedPnLCalculator()
         
         # Pass transactions and trades for Helius price extraction
@@ -266,7 +274,7 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
         
         position_pnls = await calculator.create_position_pnl_list(positions, skip_pricing=skip_pricing)
         phases["price_fetch"] = time.time() - phase_start
-        logger.info(f"phase=price_fetch took={phases['price_fetch']:.2f}s")
+        logger.info(f"[PHASE] price_fetch completed in {phases['price_fetch']:.2f}s")
         
         # Create snapshot
         phase_start = time.time()
@@ -324,6 +332,10 @@ def export_positions_for_gpt(wallet_address: str):
         return jsonify({"ok": True, "wallet": wallet_address, "debug": "Fixed response enabled"})
     
     start_time = time.time()
+    
+    # Log request details immediately
+    logger.info(f"[REQUEST] export-gpt called for {wallet_address[:8]}...")
+    logger.info(f"[REQUEST] PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY', 'false')}")
     
     try:
         # Validate wallet address
