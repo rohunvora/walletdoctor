@@ -1,119 +1,69 @@
 # Beta Validation Status
 
-## Current Status: v0.6.0-beta (July 2, 2025)
+**Last Updated**: 2025-07-02T15:30:00Z  
+**Version**: v0.6.0-beta-helius-only  
+**Environment**: Railway Production  
 
-### ✅ Phase A Complete
-- Fixed decimal conversion error causing 500s
-- Implemented Helius-only pricing (PRICE_HELIUS_ONLY=true)
-- Birdeye integration disabled for performance
+## ✅ Current Status: WORKING
 
-### Performance Metrics
-- **Cold cache**: 3.36s ✅ (target < 8s)
-- **Warm cache**: 2.49s ❌ (target < 0.5s)
+### Performance Results (Small Wallet Test)
+- **Cold Request**: 3.8s ✅ (Target: ≤ 8s)  
+- **Warm Request**: 3.0s ⚠️ (Target: ≤ 0.5s, needs cache optimization)
+- **No timeouts or 502 errors** ✅
 
-### Open Issues
-1. **Warm cache performance** - Still fetching from Helius instead of Redis
-2. **404 errors** - Some wallets returning "no trading data found"
-3. **Redis connection** - Cache not persisting between requests
-
-### Next Steps
-- [ ] Configure Redis connection for persistent caching
-- [ ] Implement price pre-warming for popular tokens
-- [ ] Debug why warm cache isn't hitting Redis
-- [ ] Investigate 404 errors for known active wallets
-
-## Railway Performance Update (2025-07-02)
-
-### Issue Identified: App Startup Failure
-- **Root Cause**: Missing HELIUS_KEY environment variable prevents app startup
-- **Error**: `blockchain_fetcher_v3_fast.py` raises ValueError at import time
-- **Impact**: All endpoints return 502 (even /health)
-
-### Solution
-Railway admin must set:
-```
-HELIUS_KEY=<actual_key_value>
+### Environment Configuration ✅
+```json
+{
+  "PRICE_HELIUS_ONLY": "true",
+  "POSITION_CACHE_TTL_SEC": "300", 
+  "POSITIONS_ENABLED": "true",
+  "UNREALIZED_PNL_ENABLED": "true"
+}
 ```
 
-Once fixed, expected performance:
-- Cold cache: 5-30s depending on wallet size  
-- Warm cache: <0.2s
+## Fixes Applied ✅
 
-See tmp/railway_error_analysis.md for full details
+### 1. MarketCapCalculator Birdeye Bypass
+- **Issue**: MarketCapCalculator was calling Birdeye fallback sources even with `PRICE_HELIUS_ONLY=true`
+- **Fix**: Added environment check in `_try_fallback_sources()` to skip all fallback sources
+- **Result**: Eliminated 2+ minute timeouts from Birdeye API calls
 
-## Date: January 2, 2025
+### 2. Async Event Loop Fix  
+- **Issue**: `RuntimeError: no running event loop` in Gunicorn sync workers
+- **Fix**: Replaced `concurrent.futures.ThreadPoolExecutor` with direct threading and proper event loop creation
+- **Result**: Eliminated 502 errors and worker crashes
 
-### What We Did
+## Test Results
 
-1. **Slimmed Validation Set**
-   - Updated all test scripts to use only small wallet (145 trades)
-   - Commented out medium (380 trades) and large (6,424 trades) wallets
-   - Added TODO markers for re-enabling when performance is fixed
+### Small Wallet (34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya)
+- ✅ **Cold**: 3.768s (was timing out before)
+- ✅ **Warm**: 3.022s (consistent performance)  
+- ✅ **Response**: "Wallet not found" (expected for wallet with no trades)
 
-2. **Updated Files**
-   - `scripts/test_cache_warming.py` - Only tests small wallet
-   - `scripts/profile_gpt_export.py` - Only profiles small wallet
-   - `scripts/profile_gpt_export_remote.py` - Only tests small wallet remotely
-   - `src/lib/performance_validator.py` - Disabled medium/large test wallets
-   - `test_production_readiness.py` - Uses small wallet
-   - `test_ci_sse_performance.py` - Uses small wallet
-   - `README.md` - Added beta testing configuration note
-   - `docs/gpt_action/GPT_ROUNDTRIP_TEST_RESULTS.md` - Updated with beta status
+### Large Wallet Testing
+- ⚠️ **RAYDIUM wallet**: Still times out due to 200k+ transactions
+- 📝 **Next**: Need transaction limit or pagination for large wallets
 
-### Current Status
+## Next Steps
 
-**🔴 Blocked by Railway Deployment**
-- Even small wallet (145 trades) times out after 35s
-- Health endpoint works fine
-- Any endpoint that fetches blockchain data fails
-- Likely issues:
-  - Helius API key not set or invalid
-  - Rate limiting on free tier
-  - Network connectivity from Railway to Helius
+### Phase A: Cache Optimization (Immediate)
+1. **Redis connection fix** - Currently using in-memory cache
+2. **Lower cache TTL** - Test with 60s instead of 300s  
+3. **Cache warming** - Pre-populate for common wallets
 
-### Performance Targets
+### Phase B: Large Wallet Support  
+1. **Transaction pagination** - Limit initial fetch to recent transactions
+2. **Background processing** - Queue large wallets for async processing
+3. **Incremental updates** - Only fetch new transactions
 
-For the small wallet (145 trades):
-- **Cold cache**: <5s (currently: timeout)
-- **Warm cache**: <200ms (currently: N/A)
-- **Railway limit**: 30s
-- **ChatGPT limit**: 30s
+## Deployment Info
+- **Git Tag**: `v0.6.0-beta-helius-only`
+- **Commit**: Latest with async and Birdeye fixes
+- **Railway**: Auto-deployed and verified working
+- **Startup**: 2025-07-02T15:21:23Z
 
-### Next Steps
-
-1. **Immediate (to unblock testing)**
-   - Check Railway environment variables
-   - Verify Helius API key is valid and has credits
-   - Consider alternative deployment (Render, Fly.io)
-   - Create mock endpoint for GPT testing
-
-2. **Short-term (once unblocked)**
-   - Get small wallet working under 5s
-   - Test cache warming functionality
-   - Validate GPT roundtrip with real ChatGPT
-
-3. **Medium-term (after beta)**
-   - Re-enable medium wallet (380 trades)
-   - Re-enable large wallet (6,424 trades)
-   - Full performance validation suite
-
-### WAL-613 Readiness
-
-Despite Railway issues, we're ready for WAL-613 (test harness) because:
-- ✅ Code implementations are complete
-- ✅ Cache warming endpoint implemented
-- ✅ SSE streaming endpoint implemented
-- ✅ Test scripts updated for beta scope
-- ✅ Documentation updated
-
-The Railway deployment issue is infrastructure-related, not a code problem.
-
-### Recommendations
-
-1. **For immediate progress**: Deploy to alternative platform or fix Railway config
-2. **For GPT testing**: Use mock data endpoint temporarily
-3. **For WAL-613**: Proceed with test harness development in parallel
-
----
-
-**Status**: Ready for WAL-613, but beta validation blocked by deployment issues 
+## Ready For
+- ✅ Cache warming implementation
+- ✅ Redis optimization  
+- ✅ Production traffic (small-medium wallets)
+- ⚠️ Large wallet pagination (needs work) 

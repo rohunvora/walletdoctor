@@ -1,0 +1,990 @@
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 191: 1000 signatures (total: 191000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 167: 1000 signatures (total: 167000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 192: 1000 signatures (total: 192000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 193: 1000 signatures (total: 193000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 168: 1000 signatures (total: 168000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 194: 1000 signatures (total: 194000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 169: 1000 signatures (total: 169000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 195: 1000 signatures (total: 195000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 170: 1000 signatures (total: 170000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 196: 1000 signatures (total: 196000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 197: 1000 signatures (total: 197000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 171: 1000 signatures (total: 171000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 198: 1000 signatures (total: 198000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 172: 1000 signatures (total: 172000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 199: 1000 signatures (total: 199000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 173: 1000 signatures (total: 173000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 200: 1000 signatures (total: 200000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 174: 1000 signatures (total: 174000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 201: 1000 signatures (total: 201000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 175: 1000 signatures (total: 175000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 202: 1000 signatures (total: 202000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 176: 1000 signatures (total: 176000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 203: 1000 signatures (total: 203000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 177: 1000 signatures (total: 177000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 204: 1000 signatures (total: 204000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 178: 1000 signatures (total: 178000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 205: 1000 signatures (total: 205000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 206: 1000 signatures (total: 206000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 207: 1000 signatures (total: 207000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 208: 1000 signatures (total: 208000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 179: 1000 signatures (total: 179000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 209: 1000 signatures (total: 209000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 180: 1000 signatures (total: 180000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 181: 1000 signatures (total: 181000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 210: 1000 signatures (total: 210000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 182: 1000 signatures (total: 182000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 183: 1000 signatures (total: 183000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 211: 1000 signatures (total: 211000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 184: 1000 signatures (total: 184000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 212: 1000 signatures (total: 212000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 185: 1000 signatures (total: 185000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 186: 1000 signatures (total: 186000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 213: 1000 signatures (total: 213000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 187: 1000 signatures (total: 187000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 214: 1000 signatures (total: 214000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 188: 1000 signatures (total: 188000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 215: 1000 signatures (total: 215000)
+[2025-07-02 14:51:11 +0000] [1] [CRITICAL] WORKER TIMEOUT (pid:4)
+[2025-07-02 14:51:11 +0000] [4] [ERROR] Error handling request /v4/positions/export-gpt/675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+Traceback (most recent call last):
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 99, in run_async
+    loop = asyncio.get_running_loop()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: no running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1498, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 641, in run_until_complete
+    self.run_forever()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 608, in run_forever
+    self._run_once()
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 1898, in _run_once
+         ^^^^^^^^^^^^^^^^^^^^^^^
+    event_list = self._selector.select(timeout)
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/root/.nix-profile/lib/python3.11/selectors.py", line 468, in select
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 142, in decorated_function
+    fd_event_list = self._selector.poll(timeout, max_ev)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 418, in export_positions_for_gpt
+    sys.exit(1)
+    snapshot, is_stale, age_seconds = run_async(
+SystemExit: 1
+                                      ^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 109, in run_async
+[2025-07-02 14:51:11 +0000] [4] [INFO] Worker exiting (pid: 4)
+    return asyncio.run(coro)
+           ^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 189: 1000 signatures (total: 189000)
+[2025-07-02 14:51:11 +0000] [16] [INFO] Booting worker with pid: 16
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker 9e5daa10
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T14:51:11.629443+00:00
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] HELIUS_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] BIRDEYE_API_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITIONS_ENABLED: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] PRICE_HELIUS_ONLY: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITION_CACHE_TTL_SEC: 300
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Python version: 3.11.10 (main, Sep  7 2024, 01:03:31) [GCC 13.3.0]
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 190: 1000 signatures (total: 190000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 191: 1000 signatures (total: 191000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 192: 1000 signatures (total: 192000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 193: 1000 signatures (total: 193000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 194: 1000 signatures (total: 194000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 195: 1000 signatures (total: 195000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 196: 1000 signatures (total: 196000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 197: 1000 signatures (total: 197000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 198: 1000 signatures (total: 198000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 199: 1000 signatures (total: 199000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 200: 1000 signatures (total: 200000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 201: 1000 signatures (total: 201000)
+INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.4 with key wd_1234567...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-a41d119e] Worker 9e5daa10 handling export-gpt for 675kPX9M...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-a41d119e] Query params: {}
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-a41d119e] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-a41d119e] Starting request validation...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-a41d119e] Validation complete in 0.000s
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-a41d119e] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-a41d119e] Starting position fetch...
+WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
+INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, fetching fresh (skip_pricing=False)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-64b76bd3] Starting position fetch for 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, skip_pricing=False
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-64b76bd3] Environment: PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-64b76bd3] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-64b76bd3] Creating BlockchainFetcherV3Fast...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-64b76bd3] Fetcher created, calling fetch_wallet_trades...
+INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 202: 1000 signatures (total: 202000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 203: 1000 signatures (total: 203000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 1000 signatures (total: 2000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 3: 1000 signatures (total: 3000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 204: 1000 signatures (total: 204000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 4: 1000 signatures (total: 4000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 5: 1000 signatures (total: 5000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 205: 1000 signatures (total: 205000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 206: 1000 signatures (total: 206000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 6: 1000 signatures (total: 6000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 207: 1000 signatures (total: 207000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 7: 1000 signatures (total: 7000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 208: 1000 signatures (total: 208000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 8: 1000 signatures (total: 8000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 209: 1000 signatures (total: 209000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 9: 1000 signatures (total: 9000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 210: 1000 signatures (total: 210000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 10: 1000 signatures (total: 10000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 11: 1000 signatures (total: 11000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 211: 1000 signatures (total: 211000)
+[2025-07-02 14:51:26 +0000] [1] [CRITICAL] WORKER TIMEOUT (pid:13)
+[2025-07-02 14:51:26 +0000] [13] [ERROR] Error handling request /v4/positions/export-gpt/675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+Traceback (most recent call last):
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 99, in run_async
+    loop = asyncio.get_running_loop()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: no running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1498, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 142, in decorated_function
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 418, in export_positions_for_gpt
+    snapshot, is_stale, age_seconds = run_async(
+                                      ^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 109, in run_async
+    return asyncio.run(coro)
+           ^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 641, in run_until_complete
+    self.run_forever()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 608, in run_forever
+    self._run_once()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 1898, in _run_once
+    event_list = self._selector.select(timeout)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/selectors.py", line 468, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-07-02 14:51:26 +0000] [13] [INFO] Worker exiting (pid: 13)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 12: 1000 signatures (total: 12000)
+[2025-07-02 14:51:26 +0000] [19] [INFO] Booting worker with pid: 19
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker 0a3e054d
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T14:51:26.770657+00:00
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] HELIUS_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] BIRDEYE_API_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITIONS_ENABLED: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] PRICE_HELIUS_ONLY: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITION_CACHE_TTL_SEC: 300
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Python version: 3.11.10 (main, Sep  7 2024, 01:03:31) [GCC 13.3.0]
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 13: 1000 signatures (total: 13000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 14: 1000 signatures (total: 14000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 15: 1000 signatures (total: 15000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 16: 1000 signatures (total: 16000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 17: 1000 signatures (total: 17000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 18: 1000 signatures (total: 18000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 19: 1000 signatures (total: 19000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 20: 1000 signatures (total: 20000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 21: 1000 signatures (total: 21000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 22: 1000 signatures (total: 22000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 23: 1000 signatures (total: 23000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 24: 1000 signatures (total: 24000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 25: 1000 signatures (total: 25000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 26: 1000 signatures (total: 26000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 27: 1000 signatures (total: 27000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 28: 1000 signatures (total: 28000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 29: 1000 signatures (total: 29000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 30: 1000 signatures (total: 30000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 31: 1000 signatures (total: 31000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 32: 1000 signatures (total: 32000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 33: 1000 signatures (total: 33000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 34: 1000 signatures (total: 34000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 35: 1000 signatures (total: 35000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 36: 1000 signatures (total: 36000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 37: 1000 signatures (total: 37000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 38: 1000 signatures (total: 38000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 39: 1000 signatures (total: 39000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 40: 1000 signatures (total: 40000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 41: 1000 signatures (total: 41000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 42: 1000 signatures (total: 42000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 43: 1000 signatures (total: 43000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 44: 1000 signatures (total: 44000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 45: 1000 signatures (total: 45000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 46: 1000 signatures (total: 46000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 47: 1000 signatures (total: 47000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 48: 1000 signatures (total: 48000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 49: 1000 signatures (total: 49000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 50: 1000 signatures (total: 50000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 51: 1000 signatures (total: 51000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 52: 1000 signatures (total: 52000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 53: 1000 signatures (total: 53000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 54: 1000 signatures (total: 54000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 55: 1000 signatures (total: 55000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 56: 1000 signatures (total: 56000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 57: 1000 signatures (total: 57000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 58: 1000 signatures (total: 58000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 59: 1000 signatures (total: 59000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 60: 1000 signatures (total: 60000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 61: 1000 signatures (total: 61000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 62: 1000 signatures (total: 62000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 63: 1000 signatures (total: 63000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 64: 1000 signatures (total: 64000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 65: 1000 signatures (total: 65000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 66: 1000 signatures (total: 66000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 67: 1000 signatures (total: 67000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 68: 1000 signatures (total: 68000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 69: 1000 signatures (total: 69000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 70: 1000 signatures (total: 70000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 71: 1000 signatures (total: 71000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 72: 1000 signatures (total: 72000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 73: 1000 signatures (total: 73000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 74: 1000 signatures (total: 74000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 75: 1000 signatures (total: 75000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 76: 1000 signatures (total: 76000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 77: 1000 signatures (total: 77000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 78: 1000 signatures (total: 78000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 79: 1000 signatures (total: 79000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 80: 1000 signatures (total: 80000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 81: 1000 signatures (total: 81000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 82: 1000 signatures (total: 82000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 83: 1000 signatures (total: 83000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 84: 1000 signatures (total: 84000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 85: 1000 signatures (total: 85000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 86: 1000 signatures (total: 86000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 87: 1000 signatures (total: 87000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 88: 1000 signatures (total: 88000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 89: 1000 signatures (total: 89000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 90: 1000 signatures (total: 90000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 91: 1000 signatures (total: 91000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 92: 1000 signatures (total: 92000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 93: 1000 signatures (total: 93000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 94: 1000 signatures (total: 94000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 95: 1000 signatures (total: 95000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 96: 1000 signatures (total: 96000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 97: 1000 signatures (total: 97000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 98: 1000 signatures (total: 98000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 99: 1000 signatures (total: 99000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 100: 1000 signatures (total: 100000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 101: 1000 signatures (total: 101000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 102: 1000 signatures (total: 102000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 103: 1000 signatures (total: 103000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 104: 1000 signatures (total: 104000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 105: 1000 signatures (total: 105000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 106: 1000 signatures (total: 106000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 107: 1000 signatures (total: 107000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 108: 1000 signatures (total: 108000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 109: 1000 signatures (total: 109000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 110: 1000 signatures (total: 110000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 111: 1000 signatures (total: 111000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 112: 1000 signatures (total: 112000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 113: 1000 signatures (total: 113000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 114: 1000 signatures (total: 114000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 115: 1000 signatures (total: 115000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 116: 1000 signatures (total: 116000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 117: 1000 signatures (total: 117000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 118: 1000 signatures (total: 118000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 119: 1000 signatures (total: 119000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 120: 1000 signatures (total: 120000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 121: 1000 signatures (total: 121000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 122: 1000 signatures (total: 122000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 123: 1000 signatures (total: 123000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 124: 1000 signatures (total: 124000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 125: 1000 signatures (total: 125000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 126: 1000 signatures (total: 126000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 127: 1000 signatures (total: 127000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 128: 1000 signatures (total: 128000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 129: 1000 signatures (total: 129000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 130: 1000 signatures (total: 130000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 131: 1000 signatures (total: 131000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 132: 1000 signatures (total: 132000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 133: 1000 signatures (total: 133000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 134: 1000 signatures (total: 134000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 135: 1000 signatures (total: 135000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 136: 1000 signatures (total: 136000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 137: 1000 signatures (total: 137000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 138: 1000 signatures (total: 138000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 139: 1000 signatures (total: 139000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 140: 1000 signatures (total: 140000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 141: 1000 signatures (total: 141000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 142: 1000 signatures (total: 142000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 143: 1000 signatures (total: 143000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 144: 1000 signatures (total: 144000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 145: 1000 signatures (total: 145000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 146: 1000 signatures (total: 146000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 147: 1000 signatures (total: 147000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 148: 1000 signatures (total: 148000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 149: 1000 signatures (total: 149000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 150: 1000 signatures (total: 150000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 151: 1000 signatures (total: 151000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 152: 1000 signatures (total: 152000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 153: 1000 signatures (total: 153000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 154: 1000 signatures (total: 154000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 155: 1000 signatures (total: 155000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 156: 1000 signatures (total: 156000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 157: 1000 signatures (total: 157000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 158: 1000 signatures (total: 158000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 159: 1000 signatures (total: 159000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 160: 1000 signatures (total: 160000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 161: 1000 signatures (total: 161000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 162: 1000 signatures (total: 162000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 163: 1000 signatures (total: 163000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 164: 1000 signatures (total: 164000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 165: 1000 signatures (total: 165000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 166: 1000 signatures (total: 166000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 167: 1000 signatures (total: 167000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 168: 1000 signatures (total: 168000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 169: 1000 signatures (total: 169000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 170: 1000 signatures (total: 170000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 171: 1000 signatures (total: 171000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 172: 1000 signatures (total: 172000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 173: 1000 signatures (total: 173000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 174: 1000 signatures (total: 174000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 175: 1000 signatures (total: 175000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 176: 1000 signatures (total: 176000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 177: 1000 signatures (total: 177000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 178: 1000 signatures (total: 178000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 179: 1000 signatures (total: 179000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 180: 1000 signatures (total: 180000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 181: 1000 signatures (total: 181000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 182: 1000 signatures (total: 182000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 183: 1000 signatures (total: 183000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 184: 1000 signatures (total: 184000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 185: 1000 signatures (total: 185000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 186: 1000 signatures (total: 186000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 187: 1000 signatures (total: 187000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 188: 1000 signatures (total: 188000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 189: 1000 signatures (total: 189000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 190: 1000 signatures (total: 190000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 191: 1000 signatures (total: 191000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 192: 1000 signatures (total: 192000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 193: 1000 signatures (total: 193000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 194: 1000 signatures (total: 194000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 195: 1000 signatures (total: 195000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 196: 1000 signatures (total: 196000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 197: 1000 signatures (total: 197000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 198: 1000 signatures (total: 198000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 199: 1000 signatures (total: 199000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 200: 1000 signatures (total: 200000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 201: 1000 signatures (total: 201000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 202: 1000 signatures (total: 202000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 203: 1000 signatures (total: 203000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 204: 1000 signatures (total: 204000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 205: 1000 signatures (total: 205000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 206: 1000 signatures (total: 206000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 207: 1000 signatures (total: 207000)
+[2025-07-02 14:53:20 +0000] [1] [CRITICAL] WORKER TIMEOUT (pid:16)
+[2025-07-02 14:53:20 +0000] [16] [ERROR] Error handling request /v4/positions/export-gpt/675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+Traceback (most recent call last):
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 99, in run_async
+    loop = asyncio.get_running_loop()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: no running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1498, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 142, in decorated_function
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 418, in export_positions_for_gpt
+    snapshot, is_stale, age_seconds = run_async(
+                                      ^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 109, in run_async
+    return asyncio.run(coro)
+           ^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 641, in run_until_complete
+    self.run_forever()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 608, in run_forever
+    self._run_once()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 1898, in _run_once
+    event_list = self._selector.select(timeout)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/selectors.py", line 468, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-07-02 14:53:20 +0000] [16] [INFO] Worker exiting (pid: 16)
+[2025-07-02 14:53:20 +0000] [21] [INFO] Booting worker with pid: 21
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker 2156d9be
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T14:53:21.120484+00:00
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] HELIUS_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] BIRDEYE_API_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITIONS_ENABLED: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] PRICE_HELIUS_ONLY: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITION_CACHE_TTL_SEC: 300
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Python version: 3.11.10 (main, Sep  7 2024, 01:03:31) [GCC 13.3.0]
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.4 with key wd_1234567...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-23f24a3a] Worker 2156d9be handling export-gpt for 675kPX9M...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-23f24a3a] Query params: {}
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-23f24a3a] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-23f24a3a] Starting request validation...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-23f24a3a] Validation complete in 0.000s
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8a8642be] Fetcher created, calling fetch_wallet_trades...
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-23f24a3a] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-23f24a3a] Starting position fetch...
+INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
+INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, fetching fresh (skip_pricing=False)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 1000 signatures (total: 2000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 3: 1000 signatures (total: 3000)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8a8642be] Starting position fetch for 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, skip_pricing=False
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 4: 1000 signatures (total: 4000)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8a8642be] Environment: PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-8a8642be] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8a8642be] Creating BlockchainFetcherV3Fast...
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 5: 1000 signatures (total: 5000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 6: 1000 signatures (total: 6000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 7: 1000 signatures (total: 7000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 8: 1000 signatures (total: 8000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 9: 1000 signatures (total: 9000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 10: 1000 signatures (total: 10000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 11: 1000 signatures (total: 11000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 12: 1000 signatures (total: 12000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 13: 1000 signatures (total: 13000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 14: 1000 signatures (total: 14000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 15: 1000 signatures (total: 15000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 16: 1000 signatures (total: 16000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 17: 1000 signatures (total: 17000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 18: 1000 signatures (total: 18000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 19: 1000 signatures (total: 19000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 20: 1000 signatures (total: 20000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 21: 1000 signatures (total: 21000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 22: 1000 signatures (total: 22000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 23: 1000 signatures (total: 23000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 24: 1000 signatures (total: 24000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 25: 1000 signatures (total: 25000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 26: 1000 signatures (total: 26000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 27: 1000 signatures (total: 27000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 28: 1000 signatures (total: 28000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 29: 1000 signatures (total: 29000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 30: 1000 signatures (total: 30000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 31: 1000 signatures (total: 31000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 32: 1000 signatures (total: 32000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 33: 1000 signatures (total: 33000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 34: 1000 signatures (total: 34000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 35: 1000 signatures (total: 35000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 36: 1000 signatures (total: 36000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 37: 1000 signatures (total: 37000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 38: 1000 signatures (total: 38000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 39: 1000 signatures (total: 39000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 40: 1000 signatures (total: 40000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 41: 1000 signatures (total: 41000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 42: 1000 signatures (total: 42000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 43: 1000 signatures (total: 43000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 44: 1000 signatures (total: 44000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 45: 1000 signatures (total: 45000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 46: 1000 signatures (total: 46000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 47: 1000 signatures (total: 47000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 48: 1000 signatures (total: 48000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 49: 1000 signatures (total: 49000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 50: 1000 signatures (total: 50000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 51: 1000 signatures (total: 51000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 52: 1000 signatures (total: 52000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 53: 1000 signatures (total: 53000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 54: 1000 signatures (total: 54000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 55: 1000 signatures (total: 55000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 56: 1000 signatures (total: 56000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 57: 1000 signatures (total: 57000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 58: 1000 signatures (total: 58000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 59: 1000 signatures (total: 59000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 61: 1000 signatures (total: 61000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 62: 1000 signatures (total: 62000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 63: 1000 signatures (total: 63000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 64: 1000 signatures (total: 64000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 65: 1000 signatures (total: 65000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 66: 1000 signatures (total: 66000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 67: 1000 signatures (total: 67000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 68: 1000 signatures (total: 68000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 69: 1000 signatures (total: 69000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 70: 1000 signatures (total: 70000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 71: 1000 signatures (total: 71000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 72: 1000 signatures (total: 72000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 73: 1000 signatures (total: 73000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 74: 1000 signatures (total: 74000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 75: 1000 signatures (total: 75000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 76: 1000 signatures (total: 76000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 77: 1000 signatures (total: 77000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 78: 1000 signatures (total: 78000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 79: 1000 signatures (total: 79000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 80: 1000 signatures (total: 80000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 81: 1000 signatures (total: 81000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 82: 1000 signatures (total: 82000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 83: 1000 signatures (total: 83000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 84: 1000 signatures (total: 84000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 85: 1000 signatures (total: 85000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 86: 1000 signatures (total: 86000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 87: 1000 signatures (total: 87000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 88: 1000 signatures (total: 88000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 89: 1000 signatures (total: 89000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 90: 1000 signatures (total: 90000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 91: 1000 signatures (total: 91000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 92: 1000 signatures (total: 92000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 93: 1000 signatures (total: 93000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 94: 1000 signatures (total: 94000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 95: 1000 signatures (total: 95000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 96: 1000 signatures (total: 96000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 97: 1000 signatures (total: 97000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 98: 1000 signatures (total: 98000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 99: 1000 signatures (total: 99000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 100: 1000 signatures (total: 100000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 101: 1000 signatures (total: 101000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 102: 1000 signatures (total: 102000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 103: 1000 signatures (total: 103000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 104: 1000 signatures (total: 104000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 105: 1000 signatures (total: 105000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 106: 1000 signatures (total: 106000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 107: 1000 signatures (total: 107000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 108: 1000 signatures (total: 108000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 109: 1000 signatures (total: 109000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 110: 1000 signatures (total: 110000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 111: 1000 signatures (total: 111000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 112: 1000 signatures (total: 112000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 113: 1000 signatures (total: 113000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 114: 1000 signatures (total: 114000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 115: 1000 signatures (total: 115000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 116: 1000 signatures (total: 116000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 117: 1000 signatures (total: 117000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 118: 1000 signatures (total: 118000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 119: 1000 signatures (total: 119000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 120: 1000 signatures (total: 120000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 121: 1000 signatures (total: 121000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 122: 1000 signatures (total: 122000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 123: 1000 signatures (total: 123000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 124: 1000 signatures (total: 124000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 125: 1000 signatures (total: 125000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 126: 1000 signatures (total: 126000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 127: 1000 signatures (total: 127000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 128: 1000 signatures (total: 128000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 129: 1000 signatures (total: 129000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 130: 1000 signatures (total: 130000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 131: 1000 signatures (total: 131000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 132: 1000 signatures (total: 132000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 133: 1000 signatures (total: 133000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 134: 1000 signatures (total: 134000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 135: 1000 signatures (total: 135000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 136: 1000 signatures (total: 136000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 137: 1000 signatures (total: 137000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 138: 1000 signatures (total: 138000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 139: 1000 signatures (total: 139000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 140: 1000 signatures (total: 140000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 141: 1000 signatures (total: 141000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 142: 1000 signatures (total: 142000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 143: 1000 signatures (total: 143000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 144: 1000 signatures (total: 144000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 145: 1000 signatures (total: 145000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 146: 1000 signatures (total: 146000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 147: 1000 signatures (total: 147000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 148: 1000 signatures (total: 148000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 149: 1000 signatures (total: 149000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 150: 1000 signatures (total: 150000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 151: 1000 signatures (total: 151000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 152: 1000 signatures (total: 152000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 153: 1000 signatures (total: 153000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 154: 1000 signatures (total: 154000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 155: 1000 signatures (total: 155000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 156: 1000 signatures (total: 156000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 157: 1000 signatures (total: 157000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 158: 1000 signatures (total: 158000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 159: 1000 signatures (total: 159000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 160: 1000 signatures (total: 160000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 161: 1000 signatures (total: 161000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 162: 1000 signatures (total: 162000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 163: 1000 signatures (total: 163000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 164: 1000 signatures (total: 164000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 165: 1000 signatures (total: 165000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 166: 1000 signatures (total: 166000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 167: 1000 signatures (total: 167000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 168: 1000 signatures (total: 168000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 169: 1000 signatures (total: 169000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 170: 1000 signatures (total: 170000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 171: 1000 signatures (total: 171000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 172: 1000 signatures (total: 172000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 173: 1000 signatures (total: 173000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 174: 1000 signatures (total: 174000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 175: 1000 signatures (total: 175000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 176: 1000 signatures (total: 176000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 177: 1000 signatures (total: 177000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 178: 1000 signatures (total: 178000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 179: 1000 signatures (total: 179000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 180: 1000 signatures (total: 180000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 181: 1000 signatures (total: 181000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 182: 1000 signatures (total: 182000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 183: 1000 signatures (total: 183000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 184: 1000 signatures (total: 184000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 185: 1000 signatures (total: 185000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 186: 1000 signatures (total: 186000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 187: 1000 signatures (total: 187000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 188: 1000 signatures (total: 188000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 189: 1000 signatures (total: 189000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 190: 1000 signatures (total: 190000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 191: 1000 signatures (total: 191000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 192: 1000 signatures (total: 192000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 194: 1000 signatures (total: 194000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 195: 1000 signatures (total: 195000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 196: 1000 signatures (total: 196000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 197: 1000 signatures (total: 197000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 198: 1000 signatures (total: 198000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 199: 1000 signatures (total: 199000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 200: 1000 signatures (total: 200000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 201: 1000 signatures (total: 201000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 202: 1000 signatures (total: 202000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 203: 1000 signatures (total: 203000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 204: 1000 signatures (total: 204000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 205: 1000 signatures (total: 205000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 206: 1000 signatures (total: 206000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 207: 1000 signatures (total: 207000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 208: 1000 signatures (total: 208000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 209: 1000 signatures (total: 209000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 210: 1000 signatures (total: 210000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 211: 1000 signatures (total: 211000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 212: 1000 signatures (total: 212000)
+[2025-07-02 14:59:10 +0000] [1] [CRITICAL] WORKER TIMEOUT (pid:21)
+[2025-07-02 14:59:10 +0000] [21] [ERROR] Error handling request /v4/positions/export-gpt/675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+Traceback (most recent call last):
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 99, in run_async
+    loop = asyncio.get_running_loop()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: no running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1498, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 142, in decorated_function
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 418, in export_positions_for_gpt
+    snapshot, is_stale, age_seconds = run_async(
+                                      ^^^^^^^^^^
+  File "/app/src/api/wallet_analytics_api_v4_gpt.py", line 109, in run_async
+    return asyncio.run(coro)
+           ^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 641, in run_until_complete
+    self.run_forever()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 608, in run_forever
+    self._run_once()
+  File "/root/.nix-profile/lib/python3.11/asyncio/base_events.py", line 1898, in _run_once
+    event_list = self._selector.select(timeout)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.11/selectors.py", line 468, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-07-02 14:59:10 +0000] [21] [INFO] Worker exiting (pid: 21)
+[2025-07-02 14:59:10 +0000] [24] [INFO] Booting worker with pid: 24
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T14:59:10.697511+00:00
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] HELIUS_KEY present: True
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] PRICE_HELIUS_ONLY: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-4c7423d5] Diagnostics called, worker=04a802af
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-4c7423d5] Diagnostics complete in 1ms
+INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.4 with key wd_1234567...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-68ecdb11] Worker 04a802af handling export-gpt for 34zYDgjy...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-68ecdb11] Query params: {}
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-68ecdb11] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-68ecdb11] Starting request validation...
+=== METRICS ===
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-68ecdb11] Validation complete in 0.000s
+INFO:src.lib.blockchain_fetcher_v3_fast:signatures_fetched: 1684
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-68ecdb11] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-68ecdb11] Starting position fetch...
+WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
+INFO:src.lib.blockchain_fetcher_v3_fast:signatures_parsed: 1076
+INFO:src.lib.blockchain_fetcher_v3_fast:events_swap_rows: 97
+INFO:src.lib.blockchain_fetcher_v3_fast:fallback_rows: 979
+INFO:src.lib.blockchain_fetcher_v3_fast:dup_rows: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
+INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-351d572c] helius_fetch completed in 2.82s
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-351d572c] Got 1076 trades
+INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
+INFO:src.lib.position_builder:Built 0 open positions from 1076 trades (filtered 17 spam tokens)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] position_build completed in 0.01s, positions=0
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-68ecdb11] Position fetch complete in 2.844s
+INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, fetching fresh (skip_pricing=False)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-351d572c] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-351d572c] Environment: PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-351d572c] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-351d572c] Creating BlockchainFetcherV3Fast...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-351d572c] Fetcher created, calling fetch_wallet_trades...
+INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 684 signatures (total: 1684)
+INFO:src.lib.blockchain_fetcher_v3_fast:Signature fetch complete: 1684 total signatures in 3 pages
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1684 signatures
+INFO:src.lib.blockchain_fetcher_v3_fast:Processed 17/17 transaction batches...
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1119 SWAP transactions
+INFO:src.lib.blockchain_fetcher_v3_fast:Extracted 1076 unique trades
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetching metadata for 139 tokens...
+INFO:src.lib.blockchain_fetcher_v3_fast:After dust filter: 1076 trades
+INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] PRICE_HELIUS_ONLY=true (evaluated as True), skip_pricing=False
+INFO:src.lib.blockchain_fetcher_v3_fast:Skipping Birdeye - using Helius-only pricing
+INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] Taking Helius-only path - NOT calling _fetch_prices_batch
+INFO:src.lib.blockchain_fetcher_v3_fast:
+INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.2 with key wd_1234567...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-61db7bca] Worker 0a3e054d handling export-gpt for 675kPX9M...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-61db7bca] Query params: {}
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-723de9d6] Fetcher created, calling fetch_wallet_trades...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-61db7bca] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
+INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-61db7bca] Starting request validation...
+INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-61db7bca] Validation complete in 0.000s
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 1000 signatures (total: 2000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 3: 1000 signatures (total: 3000)
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-61db7bca] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 4: 1000 signatures (total: 4000)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-61db7bca] Starting position fetch...
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 5: 1000 signatures (total: 5000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 6: 1000 signatures (total: 6000)
+WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 7: 1000 signatures (total: 7000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 8: 1000 signatures (total: 8000)
+INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, fetching fresh (skip_pricing=False)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-723de9d6] Starting position fetch for 675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8, skip_pricing=False
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-723de9d6] Environment: PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-723de9d6] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-723de9d6] Creating BlockchainFetcherV3Fast...
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 9: 1000 signatures (total: 9000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 10: 1000 signatures (total: 10000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 11: 1000 signatures (total: 11000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 12: 1000 signatures (total: 12000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 13: 1000 signatures (total: 13000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 14: 1000 signatures (total: 14000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 15: 1000 signatures (total: 15000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 16: 1000 signatures (total: 16000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 17: 1000 signatures (total: 17000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 18: 1000 signatures (total: 18000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 19: 1000 signatures (total: 19000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 20: 1000 signatures (total: 20000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 21: 1000 signatures (total: 21000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 22: 1000 signatures (total: 22000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 23: 1000 signatures (total: 23000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 24: 1000 signatures (total: 24000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 25: 1000 signatures (total: 25000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 26: 1000 signatures (total: 26000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 27: 1000 signatures (total: 27000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 28: 1000 signatures (total: 28000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 29: 1000 signatures (total: 29000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 30: 1000 signatures (total: 30000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 31: 1000 signatures (total: 31000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 32: 1000 signatures (total: 32000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 33: 1000 signatures (total: 33000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 34: 1000 signatures (total: 34000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 35: 1000 signatures (total: 35000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 36: 1000 signatures (total: 36000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 37: 1000 signatures (total: 37000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 38: 1000 signatures (total: 38000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 39: 1000 signatures (total: 39000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 40: 1000 signatures (total: 40000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 41: 1000 signatures (total: 41000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 42: 1000 signatures (total: 42000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 43: 1000 signatures (total: 43000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 44: 1000 signatures (total: 44000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 45: 1000 signatures (total: 45000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 46: 1000 signatures (total: 46000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 47: 1000 signatures (total: 47000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 48: 1000 signatures (total: 48000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 49: 1000 signatures (total: 49000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 50: 1000 signatures (total: 50000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 51: 1000 signatures (total: 51000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 52: 1000 signatures (total: 52000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 53: 1000 signatures (total: 53000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 54: 1000 signatures (total: 54000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 55: 1000 signatures (total: 55000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 56: 1000 signatures (total: 56000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 57: 1000 signatures (total: 57000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 58: 1000 signatures (total: 58000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 59: 1000 signatures (total: 59000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 60: 1000 signatures (total: 60000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 61: 1000 signatures (total: 61000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 62: 1000 signatures (total: 62000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 63: 1000 signatures (total: 63000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 64: 1000 signatures (total: 64000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 65: 1000 signatures (total: 65000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 66: 1000 signatures (total: 66000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 67: 1000 signatures (total: 67000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 68: 1000 signatures (total: 68000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 69: 1000 signatures (total: 69000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 70: 1000 signatures (total: 70000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 71: 1000 signatures (total: 71000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 72: 1000 signatures (total: 72000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 73: 1000 signatures (total: 73000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 74: 1000 signatures (total: 74000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 75: 1000 signatures (total: 75000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 76: 1000 signatures (total: 76000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 77: 1000 signatures (total: 77000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 78: 1000 signatures (total: 78000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 79: 1000 signatures (total: 79000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 80: 1000 signatures (total: 80000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 81: 1000 signatures (total: 81000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 82: 1000 signatures (total: 82000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 83: 1000 signatures (total: 83000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 84: 1000 signatures (total: 84000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 85: 1000 signatures (total: 85000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 86: 1000 signatures (total: 86000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 87: 1000 signatures (total: 87000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 88: 1000 signatures (total: 88000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 89: 1000 signatures (total: 89000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 90: 1000 signatures (total: 90000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 91: 1000 signatures (total: 91000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 92: 1000 signatures (total: 92000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 93: 1000 signatures (total: 93000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 95: 1000 signatures (total: 95000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 96: 1000 signatures (total: 96000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 97: 1000 signatures (total: 97000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 98: 1000 signatures (total: 98000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 99: 1000 signatures (total: 99000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 100: 1000 signatures (total: 100000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 101: 1000 signatures (total: 101000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 102: 1000 signatures (total: 102000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 103: 1000 signatures (total: 103000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 104: 1000 signatures (total: 104000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 105: 1000 signatures (total: 105000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 106: 1000 signatures (total: 106000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 107: 1000 signatures (total: 107000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 108: 1000 signatures (total: 108000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 109: 1000 signatures (total: 109000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 110: 1000 signatures (total: 110000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 111: 1000 signatures (total: 111000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 112: 1000 signatures (total: 112000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 113: 1000 signatures (total: 113000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 114: 1000 signatures (total: 114000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 115: 1000 signatures (total: 115000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 116: 1000 signatures (total: 116000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 117: 1000 signatures (total: 117000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 118: 1000 signatures (total: 118000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 119: 1000 signatures (total: 119000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 120: 1000 signatures (total: 120000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 121: 1000 signatures (total: 121000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 122: 1000 signatures (total: 122000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 123: 1000 signatures (total: 123000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 124: 1000 signatures (total: 124000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 125: 1000 signatures (total: 125000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 126: 1000 signatures (total: 126000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 127: 1000 signatures (total: 127000)
+[2025-07-02 15:01:55 +0000] [1] [INFO] Handling signal: term
+[2025-07-02 15:01:55 +0000] [24] [INFO] Worker exiting (pid: 24)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 128: 1000 signatures (total: 128000)
+INFO:src.lib.blockchain_fetcher_v3_fast:Page 129: 1000 signatures (total: 129000)
+Stopping Container
