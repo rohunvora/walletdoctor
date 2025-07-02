@@ -151,6 +151,10 @@ class PositionBuilder:
                     logger.debug(f"Filtered spam token {group.token_symbol}: no buys or low TVL")
                     continue
                 positions.append(position)
+            elif position is None:
+                logger.debug(f"Token {group.token_symbol} returned None position (likely balance <= 0)")
+            else:
+                logger.debug(f"Token {group.token_symbol} position is closed")
         
         logger.info(f"[FILTER-AFTER] positions={len(positions)} filtered={spam_filtered}")
         logger.info(f"Built {len(positions)} open positions from {len(trades)} trades (filtered {spam_filtered} spam tokens)")
@@ -255,7 +259,7 @@ class PositionBuilder:
         
         # Check if position is closed or dust
         if group.current_balance <= 0:
-            logger.debug(f"Position for {group.token_symbol} is closed: {group.current_balance}")
+            logger.debug(f"Position for {group.token_symbol} is closed: balance={group.current_balance}, buys={len(group.buys)}, trades={len(group.trades)}")
             return None
         
         # Calculate cost basis for remaining balance
