@@ -14,15 +14,13 @@ In Railway dashboard → Variables tab, add:
 
 ```bash
 # REQUIRED - Core Config
-REDIS_PASSWORD=<your_redis_password>
 HELIUS_API_KEY=<your_helius_key>
 HELIUS_CLUSTER_URL=<your_helius_cluster_url>
-API_KEY_SECRET=<your_api_key_secret>
 
 # REQUIRED - Feature Flags
 UNREALIZED_PNL_ENABLED=true
 GPT_EXPORT_ENABLED=true
-FEATURE_FLAGS_POSITIONS=true
+FEATURE_FLAGS_POSITION_LIMITS=true
 FEATURE_FLAGS_PRICE_CONFIDENCE_MIN=0.0
 
 # OPTIONAL - Performance
