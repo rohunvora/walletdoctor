@@ -17,7 +17,7 @@ ENABLE_CACHE_WARMING=true
 FLASK_DEBUG=true
 RAILWAY_PROXY_TIMEOUT=30
 LOG_LEVEL=debug
-DEBUG_FIXED_RESPONSE=true
+# DEBUG_FIXED_RESPONSE=true  # Remove this - was for debugging only
 ```
 
 **Important**: 

@@ -1,7 +1,8 @@
 {
-  "timestamp": "2025-07-02T01:52:32.185842",
+  "timestamp": "2025-07-02T01:52:32.185289",
   "base_url": "https://web-production-2bb2f.up.railway.app",
   "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "hard_timeout": 10.0,
   "targets": {
     "cold_cache": 30.0,
     "warm_cache": 5.0
@@ -59,5 +60,6 @@
       "age_seconds": 0
     }
   ],
-  "all_passed": true
+  "all_passed": true,
+  "aborted": false
 }

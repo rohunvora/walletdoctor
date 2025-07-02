@@ -325,10 +325,27 @@ class TestGPTExportValidation:
         "--large" not in sys.argv,
         reason="Large wallet tests disabled by default"
     )
+    @pytest.mark.requires_network
     def test_medium_wallet(self):
-        """Test medium wallet (disabled by default)"""
-        # TODO: Implement when Railway performance is resolved
-        pytest.skip("Medium wallet tests not implemented yet")
+        """Test medium wallet (380 trades)"""
+        MEDIUM_WALLET = "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"
+        
+        headers = {"X-Api-Key": self.API_KEY}
+        url = f"{self.API_BASE_URL}/v4/positions/export-gpt/{MEDIUM_WALLET}"
+        
+        logger.info(f"Testing medium wallet: {MEDIUM_WALLET}")
+        response = requests.get(url, headers=headers, timeout=60)  # 60s timeout for larger wallet
+        
+        assert response.status_code == 200, f"Failed: {response.status_code}"
+        data = response.json()
+        
+        # Validate response
+        is_valid, errors, warnings = self.validator.validate(data)
+        assert is_valid, f"Validation failed: {errors}"
+        
+        # Log performance
+        response_time = float(response.headers.get("X-Response-Time-Ms", 0))
+        logger.info(f"Medium wallet response time: {response_time}ms")
     
     @pytest.mark.skipif(
         "--large" not in sys.argv,
