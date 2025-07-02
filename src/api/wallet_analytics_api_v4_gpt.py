@@ -316,6 +316,131 @@ def export_positions_for_gpt(wallet_address: str):
         return error_response, 500
 
 
+@app.route("/v4/positions/warm-cache/<wallet_address>", methods=["POST"])
+@simple_auth_required  
+async def warm_cache(wallet_address: str):
+    """
+    Pre-warm the cache for a wallet
+    
+    POST /v4/positions/warm-cache/{wallet}
+    
+    This endpoint triggers a background cache population for the wallet,
+    allowing subsequent GPT export calls to return instantly.
+    
+    Returns immediately with a status indicating warming has started.
+    """
+    try:
+        # Validate wallet address
+        if not wallet_address or len(wallet_address) < 32:
+            return jsonify({
+                "error": "Invalid wallet address",
+                "message": "Wallet address must be at least 32 characters"
+            }), 400
+        
+        logger.info(f"Cache warming request for wallet: {wallet_address}")
+        
+        # Check if already cached
+        cache = get_position_cache_v2()
+        cached_result = await cache.get_portfolio_snapshot(wallet_address)
+        
+        if cached_result:
+            snapshot, is_stale = cached_result
+            age_seconds = int((datetime.now(timezone.utc) - snapshot.timestamp).total_seconds())
+            
+            # If data is fresh (< 5 minutes), no need to warm
+            if age_seconds < 300:
+                return jsonify({
+                    "status": "already_cached",
+                    "age_seconds": age_seconds,
+                    "positions": len(snapshot.positions),
+                    "message": "Cache is already warm"
+                })
+        
+        # Start warming in background
+        # For now, do it synchronously but return quickly
+        # In production, this would be a background task
+        
+        # Create a simple progress token for tracking
+        tracker = get_progress_tracker()
+        progress_token = tracker.create_progress()
+        
+        # Initialize progress
+        tracker.update_progress(
+            progress_token,
+            status="warming",
+            trades_found=0
+        )
+        
+        # Run the warming process
+        async def warm_cache_task():
+            try:
+                logger.info(f"Starting cache warm for {wallet_address}")
+                start_time = time.time()
+                
+                # Fetch trades
+                async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+                    result = await fetcher.fetch_wallet_trades(wallet_address)
+                
+                trades = result.get("trades", [])
+                logger.info(f"Fetched {len(trades)} trades in {time.time() - start_time:.1f}s")
+                
+                # Calculate positions
+                method = CostBasisMethod(get_cost_basis_method())
+                builder = PositionBuilder(method)
+                positions = builder.build_positions_from_trades(trades, wallet_address)
+                
+                # Calculate unrealized P&L
+                if positions and should_calculate_unrealized_pnl():
+                    calculator = UnrealizedPnLCalculator()
+                    position_pnls = await calculator.create_position_pnl_list(positions)
+                    
+                    # Create snapshot
+                    snapshot = PositionSnapshot.from_positions(wallet_address, position_pnls)
+                    
+                    # Cache it
+                    await cache.set_portfolio_snapshot(snapshot)
+                    
+                    duration = time.time() - start_time
+                    logger.info(f"Cache warmed for {wallet_address} in {duration:.1f}s")
+                    
+                    # Update progress
+                    tracker.update_progress(
+                        progress_token,
+                        status="complete",
+                        trades_found=len(trades)
+                    )
+                else:
+                    tracker.update_progress(
+                        progress_token,
+                        status="complete"
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Error warming cache: {e}")
+                tracker.update_progress(
+                    progress_token,
+                    status="error",
+                    error=str(e)
+                )
+        
+        # Start the task (in production, use proper background task queue)
+        asyncio.create_task(warm_cache_task())
+        
+        return jsonify({
+            "status": "warming_started",
+            "progress_token": progress_token,
+            "message": "Cache warming initiated",
+            "check_progress_url": f"/v4/progress/{progress_token}"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in cache warming: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": "Failed to start cache warming"
+        }), 500
+
+
 @app.route("/health", methods=["GET"])
 def health_check():
     """Health check endpoint"""
