@@ -291,7 +291,7 @@
         "properties": {
           "primary": {
             "type": "string",
-            "example": "https://walletdoctor.app/v4/prices"
+            "example": "https://web-production-2bb2f.up.railway.app/v4/prices"
           },
           "primary_hint": {
             "type": "string",
