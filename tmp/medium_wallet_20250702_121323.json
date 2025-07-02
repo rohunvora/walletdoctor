@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-07-02T12:13:42.135163",
+  "wallet": "AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8",
+  "results": [
+    {
+      "test": "cold_cache_medium",
+      "status": 502,
+      "time": 6.901061773300171,
+      "success": false
+    },
+    {
+      "test": "warm_cache_medium",
+      "error": "HTTPSConnectionPool(host='web-production-2bb2f.up.railway.app', port=443): Read timed out. (read timeout=10)",
+      "time": 10.067727088928223
+    }
+  ],
+  "overall_success": false
+}
