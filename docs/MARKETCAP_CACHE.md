@@ -106,3 +106,151 @@ python3 -m pytest tests/test_mc_cache.py::test_fallback_to_memory_cache
 ### Issue: No Price Data
 **Cause**: No AMM pools found and all fallbacks failed
 **Fix**: Returns confidence="unavailable" with null market cap 
+
+## Position Cache Documentation (WAL-607)
+
+### Overview
+The position cache provides fast access to wallet positions and unrealized P&L data using:
+1. **Redis cache** (primary) with configurable TTL
+2. **In-memory LRU cache** (fallback) with size-based eviction
+3. **Staleness marking** for cache freshness management
+4. **Lazy refresh** for background data updates
+
+### Configuration
+
+#### Environment Variables
+```bash
+# Enable/disable position caching (default: true)
+POSITION_CACHE_ENABLED=true
+
+# Cache time-to-live in seconds (default: 900 = 15 minutes)
+POSITION_CACHE_TTL_SEC=900
+
+# Maximum number of wallets in LRU cache (default: 2000)
+POSITION_CACHE_MAX=2000
+```
+
+### Cache Key Structure
+```
+pos:v1:position:{wallet}:{token_mint}  # Individual positions
+pos:v1:snapshot:{wallet}               # Portfolio snapshots
+pos:v1:pnl:{wallet}:{token_mint}      # Position P&L data
+```
+
+### Eviction Policy
+
+#### Time-Based (TTL)
+- Default: 15 minutes for positions
+- 1 minute for P&L data (price-sensitive)
+- 30 minutes for portfolio snapshots
+
+#### Size-Based (LRU)
+- Max 2,000 wallets in memory cache
+- Least Recently Used eviction
+- Access moves items to end of queue
+
+### Staleness & Refresh
+
+#### Staleness Detection
+Data is marked stale when:
+- Age > POSITION_CACHE_TTL_SEC
+- Redis TTL < 50% of original
+
+#### Lazy Refresh Pattern
+```
+1. Client requests /v4/positions/{wallet}
+2. Cache returns stale data with {"stale": true}
+3. Background refresh triggered automatically
+4. Next request gets fresh data
+```
+
+#### API Response Example
+```json
+{
+  "wallet": "34zYDgjy...",
+  "positions": [{
+    "token_mint": "...",
+    "balance": "100",
+    "stale": true  // Added when data is stale
+  }],
+  "cached": true,
+  "stale": true,
+  "age_seconds": 1200  // Age of cached data
+}
+```
+
+### Metrics (Prometheus-Ready)
+
+Available at `/metrics` endpoint:
+- `position_cache_hits` - Successful cache retrievals
+- `position_cache_misses` - Cache misses requiring calculation
+- `position_cache_evictions` - LRU evictions due to size limit
+- `position_cache_refresh_errors` - Failed refresh attempts
+- `position_cache_stale_serves` - Stale data served to clients
+- `position_cache_refresh_triggers` - Background refreshes initiated
+
+### Cache Invalidation
+
+#### Automatic Triggers
+- New trades detected for wallet
+- Manual refresh via `?refresh=true` parameter
+- Position updates via API
+
+#### Pattern-Based Invalidation
+```python
+# Invalidates all cached data for a wallet
+await cache.invalidate_wallet("wallet_address")
+```
+
+### Performance Targets
+
+#### Latency Requirements
+- Cache reads: < 0.1ms (in-memory)
+- Cache writes: < 0.5ms
+- P95 API response: < 120ms with cache
+- Fresh calculation: < 500ms for 50 positions
+
+#### Capacity Planning
+- 2,000 wallets × ~10 positions each
+- ~100KB per wallet snapshot
+- ~200MB total memory footprint
+
+### Monitoring & Debugging
+
+#### Health Check
+```bash
+curl http://localhost:8080/health
+```
+
+Returns cache statistics:
+```json
+{
+  "cache_stats": {
+    "enabled": true,
+    "backend": "redis",
+    "hit_rate_pct": 85.5,
+    "lru_size": 1523,
+    "active_refresh_tasks": 3
+  }
+}
+```
+
+#### Force Refresh
+```bash
+# Force fresh data (bypasses cache)
+curl http://localhost:8080/v4/positions/{wallet}?refresh=true
+```
+
+### Common Issues
+
+#### Issue: High Memory Usage
+**Cause**: Too many wallets cached
+**Fix**: Reduce POSITION_CACHE_MAX or decrease TTL
+
+#### Issue: Stale Data Complaints
+**Cause**: TTL too high for volatile tokens
+**Fix**: Lower POSITION_CACHE_TTL_SEC or use refresh parameter
+
+#### Issue: Slow Initial Requests
+**Cause**: Cache misses requiring full calculation
+**Fix**: Pre-warm cache for active wallets or implement predictive caching 
