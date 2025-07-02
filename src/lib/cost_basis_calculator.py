@@ -6,7 +6,7 @@ Supports FIFO and Weighted Average methods for calculating
 the cost basis of token positions.
 """
 
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, InvalidOperation
 from typing import List, Tuple, Optional, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -36,7 +36,18 @@ class BuyRecord:
     def from_trade(cls, trade: Dict[str, Any]) -> "BuyRecord":
         """Create BuyRecord from a trade dict"""
         amount = Decimal(str(trade["amount"]))
-        total_cost = Decimal(str(trade.get("value_usd", 0)))
+        
+        # Handle None or invalid value_usd
+        value_usd = trade.get("value_usd", 0)
+        if value_usd is None or value_usd == "":
+            total_cost = Decimal("0")
+        else:
+            try:
+                total_cost = Decimal(str(value_usd))
+            except (ValueError, InvalidOperation):
+                # If conversion fails, default to 0
+                total_cost = Decimal("0")
+                
         price_per_token = total_cost / amount if amount > 0 else Decimal("0")
         
         return cls(
