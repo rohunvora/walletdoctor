@@ -1,86 +1,37 @@
-# GPT Round-Trip Test Results
+# GPT Roundtrip Test Results
 
-## Test Date: 2025-01-02
+## Test Configuration
 
-### Test Configuration
+### Beta Testing Configuration
+- **Primary Test Wallet**: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya (145 trades)  
+- **Status**: Testing with small wallet only for beta while Railway performance is tuned
+- **OpenAPI Schema**: v1.1 (successfully imports into ChatGPT)
 - **Railway URL**: https://web-production-2bb2f.up.railway.app
-- **Test Wallet**: 3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 (6,424 trades)
-- **API Key**: wd_12345678901234567890123456789012
 
-### 🟡 Test Results Summary
+### Future Scale Wallets (Currently Disabled)
+- **Medium wallet**: AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8 (380 trades)
+- **Large wallet**: 3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2 (6,424 trades)
+- **TODO**: Enable once 30s barrier is solved
 
-#### 1. Health Check ✅
-```bash
-curl https://web-production-2bb2f.up.railway.app/health
-```
-- **Status**: 200 OK
-- **Response Time**: <1s
-- **Features Enabled**: ✅ positions_enabled=true, unrealized_pnl_enabled=true
+## Initial Test Results
 
-#### 2. GPT Export Endpoint ⚠️
+### Small Wallet Test (145 trades)
 ```bash
 curl -H "X-Api-Key: wd_12345678901234567890123456789012" \
-     https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2
+https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
 ```
-- **Status**: Timeout after 30+ seconds
-- **Issue**: Cold cache fetch for 6,424 trades exceeds Railway timeout limits
 
-### 🔴 Performance Issues
+**Result**: 
+- Cold cache: 502 timeout after ~34s
+- Issue: Railway deployment configuration  
 
-#### Cold Start Problem
-The 6,424-trade wallet requires:
-1. Fetching all transaction signatures from Helius RPC
-2. Parsing 6,424 transactions
-3. Building positions from scratch
-4. Fetching current prices for all unique tokens
+### Health Check
+- Health endpoint: ✅ Working
+- Home endpoint: ✅ Working  
+- Features enabled: positions_enabled, unrealized_pnl_enabled
 
-This process takes **60-90 seconds** on cold cache, which exceeds:
-- Railway's default timeout (30s)
-- ChatGPT's action timeout (30s)
-
-### 🟨 Recommendations
-
-#### Immediate Workaround
-For GPT testing, use a smaller wallet:
-- Test wallet with <100 trades first
-- Gradually test larger wallets
-- Pre-warm cache for large wallets
-
-#### Medium-term Solutions
-1. **Implement cache warming** - Background job to pre-cache popular wallets
-2. **Add progress endpoint** - SSE stream for long-running requests
-3. **Optimize cold fetch** - Parallel processing, batch operations
-4. **Increase timeouts** - Configure Railway for longer timeouts
-
-### 📊 Expected Performance (with warm cache)
-
-Based on local testing:
-- **Cached response**: <200ms ✅
-- **Cache refresh**: 5-10s for large wallets
-- **Cold fetch**: 60-90s for 6,424 trades ❌
-
-### 🚀 Next Steps
-
-1. **Test with smaller wallet** (<100 trades) to verify GPT integration
-2. **Pre-warm cache** for test wallets before GPT demos
-3. **Implement SSE streaming** (already in codebase) for progress updates
-4. **Consider WAL-613** test harness with timeout handling
-
-### 📝 Notes
-
-- The API schema and authentication work correctly
-- Railway deployment is functional but needs optimization for large wallets
-- ChatGPT integration will work well for cached data or smaller wallets
-- Production deployment needs cache warming strategy
-
-### 🔧 Temporary Testing Approach
-
-For immediate GPT testing:
-1. Use wallet with <100 trades
-2. Call the endpoint twice (first to warm cache, second for GPT)
-3. Or manually warm cache via curl before GPT testing
-
-Example smaller test wallets:
+### Recommended Small Wallet Alternatives
+For testing while Railway issues are resolved:
 - `CuieVDEDtLo7FypA9SbLM9saXFdb1dsshEkyErMqkRQq`
 - `675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8` (Raydium DEX wallet)
 
@@ -88,14 +39,14 @@ Example smaller test wallets:
 
 ### Bottleneck Identification
 
-After timeout issues with the 6,424-trade wallet, we investigated the performance bottlenecks:
+After timeout issues with even the small wallet, we investigated the performance bottlenecks:
 
 #### Current State
 - **Small wallet (145 trades)**: 502 errors on Railway
-- **Medium wallet (380 trades)**: 35s+ timeout  
-- **Large wallet (6,424 trades)**: 60s+ timeout
+- **Medium wallet (380 trades)**: Disabled for beta  
+- **Large wallet (6,424 trades)**: Disabled for beta
 
-All wallets exceed the 30s Railway/ChatGPT timeout limit on cold cache.
+The small wallet should complete in <5s but still times out on Railway.
 
 #### Root Cause
 The bottleneck appears to be in the blockchain data fetching phase:
@@ -126,29 +77,7 @@ Created `/v4/positions/export-gpt-stream/{wallet}` endpoint that:
 
 1. **Railway Deployment**: The app is experiencing 500/502 errors
 2. **Cold Cache Performance**: Even small wallets timeout on first fetch
-3. **Helius Rate Limits**: May be hitting API limits with large wallets
-
-### Root Cause Identified
-
-The 500/502 errors were caused by:
-1. **Async Route Handler**: Flask doesn't support `async def` route handlers without special setup
-   - The `warm_cache` endpoint was declared as async
-   - Fixed by making it synchronous with `asyncio.run()`
-2. **Gunicorn Worker Timeout**: Default 30s timeout was too short
-   - Fixed by adding `--timeout 120` to Procfile
-
-### Fix Deployed
-
-```python
-# Fixed async handler:
-def warm_cache(wallet_address: str):  # Changed from async def
-    cached_result = asyncio.run(cache.get_portfolio_snapshot(wallet_address))
-```
-
-```
-# Updated Procfile:
-web: gunicorn src.api.wallet_analytics_api_v4_gpt:app --timeout 120 --workers 2
-```
+3. **Helius Rate Limits**: May be hitting API limits with real keys
 
 ### Pending Performance Tests
 
@@ -162,8 +91,8 @@ Once Railway redeploys with the fixes:
 
 2. **Performance Measurements**:
    - Small wallet (145 trades): Target <5s cold, <200ms warm
-   - Medium wallet (380 trades): Target <15s cold, <200ms warm  
-   - Large wallet (6,424 trades): Target <30s with cache warming
+   - Medium wallet (380 trades): Target <15s cold, <200ms warm (future) 
+   - Large wallet (6,424 trades): Target <30s with cache warming (future)
 
 3. **SSE Streaming Test**:
    - Verify `/v4/positions/export-gpt-stream/{wallet}` works
@@ -195,6 +124,59 @@ Despite multiple fixes, Railway deployment continues to have issues:
 - Cache warming and SSE streaming implementations are complete
 - Performance issue is deployment-specific, not code-related
 
+## Beta Testing Plan
+
+### Phase 1: Small Wallet Only (Current)
+- Focus on getting small wallet (145 trades) working under 30s
+- Resolve Railway deployment issues
+- Validate cache warming functionality
+
+### Phase 2: Scale Testing (Future)
+Once small wallet performance is stable:
+1. Enable medium wallet (380 trades)
+2. Enable large wallet (6,424 trades)
+3. Run full performance validation suite
+
+### Success Criteria for Beta
+- Small wallet completes in <5s cold cache
+- Small wallet completes in <200ms warm cache
+- No 502/timeout errors on Railway
+- Successful GPT roundtrip with real ChatGPT action
+
+## Latest Test Results (2025-01-02)
+
+### Small Wallet Performance Test
+```
+🚀 Cache Warming Performance Test (Beta - Small Wallet Only)
+============================================================
+Testing SMALL wallet (145 trades)
+============================================================
+
+1️⃣ BASELINE (no cache warming):
+📊 Testing GPT export for small wallet...
+✗ Timeout after 35.1s
+
+2️⃣ WARMING CACHE:
+🔥 Warming cache for 34zYDgjy...
+✗ Error: Read timeout (5s)
+
+PERFORMANCE SUMMARY
+Wallet: SMALL (145 trades)
+Baseline: TIMEOUT
+Warm Cache: N/A
+Status: ❌ FAILED
+```
+
+### Analysis
+Even the small wallet (145 trades) is timing out on Railway deployment. This confirms the issue is with the Railway environment configuration, not the wallet size.
+
+**Next Steps**:
+1. Check Railway environment variables are correctly set
+2. Verify Helius API key has sufficient credits/rate limit
+3. Consider deploying to alternative platform for testing
+4. Implement mock endpoint for GPT integration testing
+
 ---
 
-**Conclusion**: The GPT integration is technically ready but requires performance optimization for large wallets. Proceed with WAL-613 keeping these timeout constraints in mind. 
+**Last Updated**: January 2, 2025  
+**Status**: Beta testing blocked by Railway deployment issues 

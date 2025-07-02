@@ -113,3 +113,37 @@ railway variables set BIRDEYE_API_KEY=xxx
 ## License
 
 MIT
+
+## API Example
+
+### Analyze a Wallet
+```bash
+curl -X POST https://walletdoctor.app/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+  }'
+```
+
+Response:
+```json
+{
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "summary": {
+    "total_trades": 145,
+    "tokens_traded": 23,
+    "pnl_usd": 5678.90,
+    "success_rate": 65.5
+  },
+  "trades": [...]
+}
+```
+
+## Beta Testing Configuration
+
+Currently testing with small wallets only while Railway performance is being tuned:
+- **Small wallet** (145 trades): `34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya` ✅ Active
+- **Medium wallet** (380 trades): `AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8` 🚧 Disabled
+- **Large wallet** (6,424 trades): `3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2` 🚧 Disabled
+
+**TODO**: Enable medium/large wallets once 30s performance barrier is solved.

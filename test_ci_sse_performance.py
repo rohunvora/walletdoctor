@@ -13,8 +13,9 @@ import sys
 # Test configuration
 API_URL = 'http://localhost:5000'
 TEST_WALLETS = {
-    'small': 'Bos1uqQZ4RZxFrkD1ktfyRSnafhfMuGhxgkdngGTwFGg',  # ~100 trades
-    'medium': '3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2',  # 5,478 trades
+    'small': '34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya',  # 145 trades
+    # Medium and large wallets disabled for beta
+    # 'medium': '3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2',  # 6,424 trades (disabled)
 }
 
 

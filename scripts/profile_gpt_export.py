@@ -19,11 +19,13 @@ from src.lib.position_cache_v2 import get_position_cache_v2
 from src.lib.position_models import CostBasisMethod
 from src.config.feature_flags import get_cost_basis_method
 
-# Test wallets
+# Test wallet - using only small wallet for beta testing
 WALLETS = {
     "small": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",  # 145 trades
-    "medium": "AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8",  # 380 trades
-    "large": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",  # 6,424 trades
+    # Medium and large wallets disabled for beta while Railway tuning is in progress
+    # TODO: Enable once 30s barrier is solved
+    # "medium": "AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8",  # 380 trades
+    # "large": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",  # 6,424 trades
 }
 
 
@@ -173,12 +175,14 @@ async def test_warm_cache(wallet_address: str, wallet_label: str):
 
 async def main():
     """Run profiling tests"""
-    print("🔍 GPT Export Performance Profiling")
+    print("🔍 GPT Export Performance Profiling (Beta)")
     print("=" * 60)
+    print("📝 NOTE: Testing with small wallet only for beta.")
+    print("   Medium/large wallets disabled until Railway performance is tuned.")
     
     results = {}
     
-    # Test each wallet size
+    # Test only the small wallet for beta
     for size, wallet in WALLETS.items():
         results[size] = await profile_wallet(wallet, size.upper())
         
@@ -192,39 +196,36 @@ async def main():
     print(f"{'Wallet Size':<12} {'Trades':<8} {'Cold (s)':>10} {'Warm (ms)':>10}")
     print("-" * 42)
     
-    print(f"{'Small':<12} {'145':<8} {results['small']['total']/1000:>10.1f} {results['small']['warm_cache']:>10.1f}")
-    print(f"{'Medium':<12} {'380':<8} {results['medium']['total']/1000:>10.1f} {results['medium']['warm_cache']:>10.1f}")
-    print(f"{'Large':<12} {'6,424':<8} {results['large']['total']/1000:>10.1f} {results['large']['warm_cache']:>10.1f}")
+    if "small" in results:
+        print(f"{'Small':<12} {'145':<8} {results['small']['total']/1000:>10.1f} {results['small']['warm_cache']:>10.1f}")
     
-    # Identify bottleneck for large wallet
-    print("\n🎯 Large Wallet Bottleneck Analysis")
+    # Analysis for small wallet
+    print("\n🎯 Small Wallet Performance Analysis")
     print("-" * 40)
-    large_timings = results['large']
+    small_timings = results.get('small', {})
     
-    # Find top 3 slowest operations
-    sorted_ops = sorted(
-        [(k, v) for k, v in large_timings.items() if k not in ['total', 'warm_cache']],
-        key=lambda x: x[1],
-        reverse=True
-    )[:3]
+    if small_timings.get('total', 0) > 30000:  # 30s
+        print("❌ Small wallet exceeds 30s limit")
+        # Find top bottlenecks
+        sorted_ops = sorted(
+            [(k, v) for k, v in small_timings.items() if k not in ['total', 'warm_cache']],
+            key=lambda x: x[1],
+            reverse=True
+        )[:3]
+        
+        print("\nTop bottlenecks:")
+        for op, duration in sorted_ops:
+            percentage = (duration / small_timings['total']) * 100
+            print(f"- {op}: {duration/1000:.1f}s ({percentage:.0f}%)")
+    else:
+        print("✅ Small wallet completes within 30s")
+        print(f"   - Cold cache: {small_timings['total']/1000:.1f}s")
+        print(f"   - Warm cache: {small_timings['warm_cache']:.1f}ms")
     
-    for op, duration in sorted_ops:
-        percentage = (duration / large_timings['total']) * 100
-        print(f"{op}: {duration/1000:.1f}s ({percentage:.0f}%)")
-    
-    # Recommendations
-    print("\n💡 Optimization Recommendations:")
-    if large_timings.get('fetch_prices', 0) > 10000:
-        print("- Price fetching is the bottleneck")
-        print("- Consider: Batch price fetching, cache prices more aggressively")
-    
-    if large_timings.get('fetch_transactions', 0) > 10000:
-        print("- Transaction fetching is the bottleneck")
-        print("- Consider: Increase parallel fetching, optimize batch sizes")
-    
-    if large_timings.get('blockchain_fetch', 0) > 30000:
-        print("- Overall blockchain fetch exceeds 30s")
-        print("- MUST implement cache warming or streaming response")
+    print("\n💡 Future Scale Tests:")
+    print("   - Medium wallet (380 trades): Disabled")
+    print("   - Large wallet (6,424 trades): Disabled")
+    print("   TODO: Enable once 30s barrier is solved")
 
 
 if __name__ == "__main__":

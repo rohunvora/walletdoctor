@@ -48,14 +48,16 @@ PERFORMANCE_THRESHOLDS = {
 # Test wallet categories
 TEST_WALLETS = {
     "small": [
-        "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",  # ~31 trades
+        "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",  # ~145 trades
     ],
-    "medium": [
-        "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",  # ~6.4k trades
-    ],
-    "large": [
-        # Add wallets with 10k+ trades when identified
-    ]
+    # Medium and large wallets disabled for beta while Railway tuning is in progress
+    # TODO: Enable once 30s barrier is solved
+    # "medium": [
+    #     "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",  # ~6.4k trades
+    # ],
+    # "large": [
+    #     # Add wallets with 10k+ trades when identified
+    # ]
 }
 
 

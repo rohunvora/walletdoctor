@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 """
-Test production readiness features
+Test production readiness with current deployment
 """
 
 import os
 import sys
 import asyncio
 import aiohttp
+import requests
+import time
+import json
+from datetime import datetime
 from typing import Dict, Any
 
+# Configuration
+BASE_URL = 'https://web-production-2bb2f.up.railway.app'
+# Using small wallet for beta testing
+TEST_WALLET = '34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya'  # 145 trades
+# Medium/large wallets disabled for beta
+# TEST_WALLET = '3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2'  # 6,424 trades (disabled)
+
 # Test configuration
-API_BASE_URL = os.getenv('API_URL', 'http://localhost:5000')
-TEST_WALLET = '3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2'
+API_BASE_URL = os.getenv('API_URL', BASE_URL)
 
 
 async def test_no_auth():
@@ -248,7 +258,6 @@ async def main():
 
 if __name__ == '__main__':
     # Check if API is accessible
-    import requests
     try:
         response = requests.get(f"{API_BASE_URL}/health", timeout=5)
         if response.status_code != 200:

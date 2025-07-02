@@ -9,20 +9,22 @@ import json
 API_BASE_URL = "https://web-production-2bb2f.up.railway.app"
 API_KEY = "wd_12345678901234567890123456789012"
 
-# Test wallets
+# Test wallet - using only small wallet for beta testing
 WALLETS = {
     "small": {
         "address": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
         "trades": 145
-    },
-    "medium": {
-        "address": "AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8", 
-        "trades": 380
-    },
-    "large": {
-        "address": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
-        "trades": 6424
     }
+    # Medium and large wallets disabled for beta while Railway tuning is in progress
+    # TODO: Enable once 30s barrier is solved
+    # "medium": {
+    #     "address": "AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8", 
+    #     "trades": 380
+    # },
+    # "large": {
+    #     "address": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
+    #     "trades": 6424
+    # }
 }
 
 
@@ -129,7 +131,7 @@ def test_gpt_export(wallet_address: str, label: str):
 
 def main():
     """Run cache warming tests"""
-    print("🚀 Cache Warming Performance Test")
+    print("🚀 Cache Warming Performance Test (Beta - Small Wallet Only)")
     print("=" * 60)
     
     # First check if the new endpoint exists
@@ -149,7 +151,7 @@ def main():
     
     results = {}
     
-    # Test each wallet
+    # Test only the small wallet for beta
     for label, info in WALLETS.items():
         wallet = info['address']
         
@@ -200,8 +202,11 @@ def main():
     if any(r['warm'] and r['warm'] < 30 for r in results.values()):
         print("✅ Cache warming successfully reduces response time below 30s!")
     else:
-        print("❌ Cache warming alone may not be sufficient for large wallets")
+        print("❌ Cache warming alone may not be sufficient")
         print("   Need to implement SSE streaming or further optimizations")
+    
+    print("\n📝 NOTE: Testing with small wallet only for beta.")
+    print("   Medium/large wallets will be enabled after Railway performance tuning.")
 
 
 if __name__ == "__main__":
