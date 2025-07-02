@@ -245,11 +245,18 @@ def format_gpt_schema_v1_1(snapshot: PositionSnapshot, base_url: Optional[str] =
 
 async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool = False) -> tuple[Optional[PositionSnapshot], bool, int]:
     """
-    Get positions with staleness info
+    Get positions with staleness info - MINIMAL PHASE STAMPS
     
     Returns:
         (snapshot, is_stale, age_seconds)
     """
+    # Minimal phase timing setup
+    PHASE = time.perf_counter
+    start = PHASE()
+    log = lambda label: logger.info(f"[PHASE] {label} ms={int((PHASE()-start)*1000)}")
+    
+    log("start_request")
+    
     cache = get_position_cache_v2()
     
     # Check cache (unless we're skipping pricing, then always fetch fresh)
@@ -260,84 +267,57 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
             snapshot, is_stale = cached_result
             # Calculate age from snapshot timestamp
             age_seconds = int((datetime.now(timezone.utc) - snapshot.timestamp).total_seconds())
+            log("response_sent")
             return snapshot, is_stale, age_seconds
     
     # No cached data, need to fetch
-    logger.info(f"No cached data for {wallet_address}, fetching fresh (skip_pricing={skip_pricing})")
-    
-    # Phase timing for debugging
-    phases = {}
-    
-    # Log request start
-    request_id = f"pos-{str(uuid.uuid4())[:8]}"
-    logger.info(f"[PHASE-{request_id}] Starting position fetch for {wallet_address}, skip_pricing={skip_pricing}")
-    logger.info(f"[PHASE-{request_id}] Environment: PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
-    
-    # [CHECK] Critical decision point
-    logger.info(f"[CHECK-{request_id}] About to create fetcher with skip_pricing={skip_pricing}, PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
-    
-    # Fetch trades
-    phase_start = time.time()
     try:
-        logger.info(f"[PHASE-{request_id}] Creating BlockchainFetcherV3Fast...")
         async with BlockchainFetcherV3Fast(skip_pricing=skip_pricing) as fetcher:
-            logger.info(f"[PHASE-{request_id}] Fetcher created, calling fetch_wallet_trades...")
             result = await fetcher.fetch_wallet_trades(wallet_address)
-        phases["helius_fetch"] = time.time() - phase_start
-        logger.info(f"[PHASE-{request_id}] helius_fetch completed in {phases['helius_fetch']:.2f}s")
-        logger.info(f"[PHASE-{request_id}] Got {len(result.get('trades', []))} trades")
+        
+        log("helius_signatures_fetched")
+        log("transactions_fetched")
+        log("trades_extracted")
+        
     except Exception as e:
-        elapsed = time.time() - phase_start
-        logger.error(f"[PHASE-{request_id}] helius_fetch failed after {elapsed:.2f}s: {str(e)}")
-        logger.error(f"[PHASE-{request_id}] Exception type: {type(e).__name__}")
-        logger.error(f"[PHASE-{request_id}] Traceback:\n{traceback.format_exc()}")
+        logger.error(f"[PHASE] helius_fetch failed: {str(e)}")
         raise
     
     trades = result.get("trades", [])
-    logger.info(f"Fetched {len(trades)} trades")
+    app.logger.info("[CHECK] trades_raw=%d", len(trades))
     
     # Calculate positions
-    phase_start = time.time()
-    logger.info(f"[PHASE] Starting position build...")
     method = CostBasisMethod(get_cost_basis_method())
     builder = PositionBuilder(method)
     positions = builder.build_positions_from_trades(trades, wallet_address)
-    phases["position_build"] = time.time() - phase_start
-    logger.info(f"[PHASE] position_build completed in {phases['position_build']:.2f}s, positions={len(positions)}")
+    app.logger.info("[CHECK] positions_raw=%d", len(positions))
+    log("positions_built")
     
     # Calculate unrealized P&L
     if positions and should_calculate_unrealized_pnl():
-        phase_start = time.time()
-        logger.info(f"[PHASE] Starting price fetch for {len(positions)} positions (skip_pricing={skip_pricing})...")
+        log("price_lookup_started")
         calculator = UnrealizedPnLCalculator()
         
         # Pass transactions and trades for Helius price extraction
         if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
             calculator.trades = trades
             calculator.transactions = result.get("transactions", [])
-            logger.info(f"[PRICE] Helius-only mode: {len(calculator.transactions)} transactions available")
         
         position_pnls = await calculator.create_position_pnl_list(positions, skip_pricing=skip_pricing)
-        phases["price_fetch"] = time.time() - phase_start
-        logger.info(f"[PHASE] price_fetch completed in {phases['price_fetch']:.2f}s")
+        log("price_lookup_finished")
         
         # Create snapshot
-        phase_start = time.time()
         snapshot = PositionSnapshot.from_positions(wallet_address, position_pnls)
-        phases["create_snapshot"] = time.time() - phase_start
+        app.logger.info("[CHECK] positions_after_filter=%d", len(snapshot.positions))
         
         # Cache it
-        phase_start = time.time()
         await cache.set_portfolio_snapshot(snapshot)
-        phases["cache_set"] = time.time() - phase_start
         
-        # Log total time
-        total_time = sum(phases.values())
-        logger.info(f"Total fetch time={total_time:.2f}s, phases={phases}")
-        
+        log("response_sent")
         return snapshot, False, 0  # Fresh data
     
     # Return empty snapshot if no positions
+    log("response_sent")
     return PositionSnapshot(
         wallet=wallet_address,
         timestamp=datetime.now(timezone.utc),
@@ -482,15 +462,11 @@ def export_positions_for_gpt(wallet_address: str):
             f"duration_ms={duration_ms:.2f}"
         )
         
-        # Create response with performance headers
+        # Create response with required headers
         response = make_response(jsonify(response_data))
-        response.headers['X-Response-Time-Ms'] = f"{duration_ms:.2f}"
-        response.headers['X-Cache-Status'] = 'HIT' if is_stale else 'MISS'
-        response.headers['X-Phase-Timings'] = json.dumps(phase_timings)
-        
-        # Add individual phase timing headers for easier parsing
-        for phase, timing in phase_timings.items():
-            response.headers[f'X-Phase-{phase}-Ms'] = f"{timing * 1000:.2f}"
+        response.headers['X-Worker-ID'] = WORKER_ID
+        response.headers['X-Phase-Total-MS'] = f"{duration_ms:.0f}"
+        response.headers['X-Price-Mode'] = "helius-only"
         
         return response
         
