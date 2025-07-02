@@ -1,7 +1,8 @@
 {
-  "timestamp": "2025-07-02T01:23:23.655097",
+  "timestamp": "2025-07-02T01:23:23.654512",
   "base_url": "https://web-production-2bb2f.up.railway.app",
   "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "hard_timeout": 10.0,
   "targets": {
     "cold_cache": 30.0,
     "warm_cache": 5.0
@@ -50,5 +51,6 @@
       "error": "{\"status\":\"error\",\"code\":502,\"message\":\"Application failed to respond\",\"request_id\":\"-S3XiDAIScC4364eAax-fw\"}"
     }
   ],
-  "all_passed": false
+  "all_passed": false,
+  "aborted": false
 }

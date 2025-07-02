@@ -36,10 +36,19 @@ from src.config.feature_flags import positions_enabled, should_calculate_unreali
 
 # Set up logging
 logging.basicConfig(
-    level=logging.DEBUG if os.getenv('FLASK_DEBUG', '').lower() == 'true' else logging.INFO,
+    level=logging.DEBUG if os.getenv('FLASK_DEBUG', '').lower() == 'true' or os.getenv('LOG_LEVEL', '').lower() == 'debug' else logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Log startup info immediately
+logger.info("="*60)
+logger.info("WalletDoctor GPT API Starting...")
+logger.info(f"HELIUS_KEY present: {bool(os.getenv('HELIUS_KEY'))}")
+logger.info(f"BIRDEYE_API_KEY present: {bool(os.getenv('BIRDEYE_API_KEY'))}")
+logger.info(f"POSITIONS_ENABLED: {os.getenv('POSITIONS_ENABLED', 'false')}")
+logger.info(f"Python version: {sys.version}")
+logger.info("="*60)
 
 app = Flask(__name__)
 CORS(app)
@@ -73,21 +82,16 @@ def run_async(coro):
     try:
         # Try to get the running loop
         loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # No loop running, create a new one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(coro)
-        finally:
-            loop.close()
-            asyncio.set_event_loop(None)
-    else:
-        # Loop is already running (shouldn't happen in sync Flask)
-        # Create a new loop in a thread
+        # If we're in a running loop (UvicornWorker), we can't use run_until_complete
+        # Use asyncio.run in a thread instead
+        logger.debug("Running async code in thread due to existing event loop")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(asyncio.run, coro)
             return future.result()
+    except RuntimeError:
+        # No loop running, safe to use asyncio.run
+        logger.debug("No event loop running, using asyncio.run directly")
+        return asyncio.run(coro)
 
 
 def simple_auth_required(f):
@@ -304,6 +308,10 @@ def export_positions_for_gpt(wallet_address: str):
     - <200ms for cached data
     - <1.5s for cold fetch
     """
+    # TEMPORARY: Return fixed response to isolate the issue
+    if os.getenv("DEBUG_FIXED_RESPONSE", "false").lower() == "true":
+        return jsonify({"ok": True, "wallet": wallet_address, "debug": "Fixed response enabled"})
+    
     start_time = time.time()
     
     try:
