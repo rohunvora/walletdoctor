@@ -318,7 +318,7 @@ def export_positions_for_gpt(wallet_address: str):
 
 @app.route("/v4/positions/warm-cache/<wallet_address>", methods=["POST"])
 @simple_auth_required  
-async def warm_cache(wallet_address: str):
+def warm_cache(wallet_address: str):
     """
     Pre-warm the cache for a wallet
     
@@ -341,7 +341,7 @@ async def warm_cache(wallet_address: str):
         
         # Check if already cached
         cache = get_position_cache_v2()
-        cached_result = await cache.get_portfolio_snapshot(wallet_address)
+        cached_result = asyncio.run(cache.get_portfolio_snapshot(wallet_address))
         
         if cached_result:
             snapshot, is_stale = cached_result
