@@ -1,12 +1,12 @@
 Starting Container
-[2025-07-02 15:27:58 +0000] [1] [INFO] Starting gunicorn 23.0.0
-[2025-07-02 15:27:58 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
-[2025-07-02 15:27:58 +0000] [1] [INFO] Using worker: sync
-[2025-07-02 15:27:58 +0000] [4] [INFO] Booting worker with pid: 4
-[2025-07-02 15:27:58 +0000] [5] [INFO] Booting worker with pid: 5
+[2025-07-02 15:36:35 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2025-07-02 15:36:35 +0000] [1] [INFO] Listening at: http://0.0.0.0:8080 (1)
+[2025-07-02 15:36:35 +0000] [1] [INFO] Using worker: sync
+[2025-07-02 15:36:35 +0000] [4] [INFO] Booting worker with pid: 4
+[2025-07-02 15:36:35 +0000] [5] [INFO] Booting worker with pid: 5
 INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
-INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker df1fd4f2
-INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T15:27:58.620016+00:00
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker ab1a4226
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T15:36:36.153892+00:00
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] HELIUS_KEY present: True
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] BIRDEYE_API_KEY present: True
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITIONS_ENABLED: true
@@ -16,8 +16,8 @@ INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Python version: 3.11.10 (main, S
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
 INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
 INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
-INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker 8d22a7d3
-INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T15:27:58.711858+00:00
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] WalletDoctor GPT API Starting - Worker 22190805
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Startup time: 2025-07-02T15:36:36.192167+00:00
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] HELIUS_KEY present: True
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] BIRDEYE_API_KEY present: True
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITIONS_ENABLED: true
@@ -27,21 +27,36 @@ INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Python version: 3.11.10 (main, S
 INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
 INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
 INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.2 with key wd_1234567...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-c1cb872e] Worker df1fd4f2 handling export-gpt for 34zYDgjy...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-c1cb872e] Query params: {}
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-c1cb872e] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-c1cb872e] Starting request validation...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-c1cb872e] Validation complete in 0.000s
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-c1cb872e] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-c1cb872e] Starting position fetch...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-e42f967f] Worker 22190805 handling export-gpt for 34zYDgjy...
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-e42f967f] Query params: {}
+INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-e42f967f] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e42f967f] Starting request validation...
+=== METRICS ===
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e42f967f] Validation complete in 0.000s
+INFO:src.lib.blockchain_fetcher_v3_fast:signatures_fetched: 1684
+INFO:src.lib.blockchain_fetcher_v3_fast:signatures_parsed: 1076
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-e42f967f] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
+INFO:src.lib.blockchain_fetcher_v3_fast:events_swap_rows: 97
+INFO:src.lib.blockchain_fetcher_v3_fast:fallback_rows: 979
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e42f967f] Starting position fetch...
+INFO:src.lib.blockchain_fetcher_v3_fast:dup_rows: 0
 WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
+INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
 INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, fetching fresh (skip_pricing=False)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-af3e2126] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-af3e2126] Environment: PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-af3e2126] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-af3e2126] Creating BlockchainFetcherV3Fast...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-af3e2126] Fetcher created, calling fetch_wallet_trades...
+INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-0ba1d5e4] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
+INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-0ba1d5e4] Environment: PRICE_HELIUS_ONLY=true
+INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
+INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-0ba1d5e4] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-0ba1d5e4] helius_fetch completed in 2.68s
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-0ba1d5e4] Creating BlockchainFetcherV3Fast...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-0ba1d5e4] Got 1076 trades
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-0ba1d5e4] Fetcher created, calling fetch_wallet_trades...
+INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
 INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
 INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
 INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
 INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 684 signatures (total: 1684)
@@ -56,174 +71,13 @@ INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] PRICE_HELIUS_ONLY=true (
 INFO:src.lib.blockchain_fetcher_v3_fast:Skipping Birdeye - using Helius-only pricing
 INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] Taking Helius-only path - NOT calling _fetch_prices_batch
 INFO:src.lib.blockchain_fetcher_v3_fast:
-=== METRICS ===
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_fetched: 1684
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_parsed: 1076
-INFO:src.lib.blockchain_fetcher_v3_fast:events_swap_rows: 97
-INFO:src.lib.blockchain_fetcher_v3_fast:fallback_rows: 979
-INFO:src.lib.blockchain_fetcher_v3_fast:dup_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
-INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-af3e2126] helius_fetch completed in 2.60s
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-af3e2126] Got 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
+INFO:src.lib.position_builder:[FILTER-BEFORE] positions=137
+INFO:src.lib.position_builder:[FILTER-AFTER] positions=0 filtered=17
 INFO:src.lib.position_builder:Built 0 open positions from 1076 trades (filtered 17 spam tokens)
 INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] position_build completed in 0.01s, positions=0
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-c1cb872e] Position fetch complete in 2.626s
-INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-9573a35c] Diagnostics called, worker=8d22a7d3
-INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-9573a35c] Diagnostics complete in 1ms
-INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.3 with key wd_1234567...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-53b3c9bd] Worker 8d22a7d3 handling export-gpt for 34zYDgjy...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-53b3c9bd] Query params: {'debug_trades': 'true'}
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-53b3c9bd] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-53b3c9bd] Starting request validation...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-53b3c9bd] Validation complete in 0.000s
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-53b3c9bd] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-53b3c9bd] Starting position fetch...
-WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
-INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, fetching fresh (skip_pricing=False)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-21d40604] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-21d40604] Environment: PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-21d40604] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-21d40604] Creating BlockchainFetcherV3Fast...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-21d40604] Fetcher created, calling fetch_wallet_trades...
-INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
-INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
-INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 684 signatures (total: 1684)
-INFO:src.lib.blockchain_fetcher_v3_fast:Signature fetch complete: 1684 total signatures in 3 pages
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1684 signatures
-INFO:src.lib.blockchain_fetcher_v3_fast:Processed 17/17 transaction batches...
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1119 SWAP transactions
-INFO:src.lib.blockchain_fetcher_v3_fast:Extracted 1076 unique trades
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetching metadata for 139 tokens...
-INFO:src.lib.blockchain_fetcher_v3_fast:After dust filter: 1076 trades
-INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] PRICE_HELIUS_ONLY=true (evaluated as True), skip_pricing=False
-INFO:src.lib.blockchain_fetcher_v3_fast:Skipping Birdeye - using Helius-only pricing
-INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] Taking Helius-only path - NOT calling _fetch_prices_batch
-INFO:src.lib.blockchain_fetcher_v3_fast:
-=== METRICS ===
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_fetched: 1684
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_parsed: 1076
-INFO:src.lib.blockchain_fetcher_v3_fast:events_swap_rows: 97
-INFO:src.lib.blockchain_fetcher_v3_fast:fallback_rows: 979
-INFO:src.lib.blockchain_fetcher_v3_fast:dup_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
-INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-21d40604] helius_fetch completed in 3.15s
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-21d40604] Got 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
-INFO:src.lib.position_builder:Built 0 open positions from 1076 trades (filtered 17 spam tokens)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] position_build completed in 0.01s, positions=0
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-53b3c9bd] Position fetch complete in 3.172s
-INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-36417d26] Diagnostics called, worker=df1fd4f2
-INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-36417d26] Diagnostics complete in 1ms
-INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.2 with key wd_1234567...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-0a04c2dc] Worker df1fd4f2 handling export-gpt for 34zYDgjy...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-0a04c2dc] Query params: {}
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-0a04c2dc] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-0a04c2dc] Starting request validation...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-0a04c2dc] Validation complete in 0.000s
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-0a04c2dc] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-0a04c2dc] Starting position fetch...
-INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, fetching fresh (skip_pricing=False)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-43d5264a] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-43d5264a] Environment: PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-43d5264a] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-43d5264a] Creating BlockchainFetcherV3Fast...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-43d5264a] Fetcher created, calling fetch_wallet_trades...
-INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
-INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
-INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 684 signatures (total: 1684)
-INFO:src.lib.blockchain_fetcher_v3_fast:Signature fetch complete: 1684 total signatures in 3 pages
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1684 signatures
-INFO:src.lib.blockchain_fetcher_v3_fast:Processed 17/17 transaction batches...
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1119 SWAP transactions
-INFO:src.lib.blockchain_fetcher_v3_fast:Extracted 1076 unique trades
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetching metadata for 139 tokens...
-INFO:src.lib.blockchain_fetcher_v3_fast:After dust filter: 1076 trades
-INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] PRICE_HELIUS_ONLY=true (evaluated as True), skip_pricing=False
-INFO:src.lib.blockchain_fetcher_v3_fast:Skipping Birdeye - using Helius-only pricing
-INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] Taking Helius-only path - NOT calling _fetch_prices_batch
-INFO:src.lib.blockchain_fetcher_v3_fast:
-=== METRICS ===
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_fetched: 1684
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_parsed: 1076
-INFO:src.lib.blockchain_fetcher_v3_fast:events_swap_rows: 97
-INFO:src.lib.blockchain_fetcher_v3_fast:fallback_rows: 979
-INFO:src.lib.blockchain_fetcher_v3_fast:dup_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
-INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-43d5264a] helius_fetch completed in 2.49s
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-43d5264a] Got 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
-INFO:src.lib.position_builder:Built 0 open positions from 1076 trades (filtered 17 spam tokens)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] position_build completed in 0.01s, positions=0
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-0a04c2dc] Position fetch complete in 2.521s
-INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-bdf7d29c] Diagnostics called, worker=8d22a7d3
-INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-bdf7d29c] Diagnostics complete in 1ms
-INFO:src.api.wallet_analytics_api_v4_gpt:Authenticated request from 100.64.0.4 with key wd_1234567...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-e75b70bd] Worker df1fd4f2 handling export-gpt for 34zYDgjy...
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-e75b70bd] Query params: {'skip_filter': 'true'}
-INFO:src.api.wallet_analytics_api_v4_gpt:[REQUEST-e75b70bd] Env check: PRICE_HELIUS_ONLY=true, checksum=61a72284
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e75b70bd] Starting request validation...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e75b70bd] Validation complete in 0.000s
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-e75b70bd] env PRICE_HELIUS_ONLY=true skip_pricing=False beta_mode=False skip_birdeye=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e75b70bd] Starting position fetch...
-INFO:src.api.wallet_analytics_api_v4_gpt:No cached data for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, fetching fresh (skip_pricing=False)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8ae82210] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8ae82210] Environment: PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[CHECK-pos-8ae82210] About to create fetcher with skip_pricing=False, PRICE_HELIUS_ONLY=true
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8ae82210] Creating BlockchainFetcherV3Fast...
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8ae82210] Fetcher created, calling fetch_wallet_trades...
-INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetching signatures with 1000-sig pages...
-INFO:src.lib.blockchain_fetcher_v3_fast:Page 1: 1000 signatures (total: 1000)
-INFO:src.lib.blockchain_fetcher_v3_fast:Page 2: 684 signatures (total: 1684)
-INFO:src.lib.blockchain_fetcher_v3_fast:Signature fetch complete: 1684 total signatures in 3 pages
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1684 signatures
-INFO:src.lib.blockchain_fetcher_v3_fast:Processed 17/17 transaction batches...
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetched 1119 SWAP transactions
-INFO:src.lib.blockchain_fetcher_v3_fast:Extracted 1076 unique trades
-INFO:src.lib.blockchain_fetcher_v3_fast:Fetching metadata for 139 tokens...
-INFO:src.lib.blockchain_fetcher_v3_fast:After dust filter: 1076 trades
-INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] PRICE_HELIUS_ONLY=true (evaluated as True), skip_pricing=False
-INFO:src.lib.blockchain_fetcher_v3_fast:Skipping Birdeye - using Helius-only pricing
-INFO:src.lib.blockchain_fetcher_v3_fast:[CHECK-FETCHER] Taking Helius-only path - NOT calling _fetch_prices_batch
-INFO:src.lib.blockchain_fetcher_v3_fast:
-=== METRICS ===
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_fetched: 1684
-INFO:src.lib.blockchain_fetcher_v3_fast:signatures_parsed: 1076
-INFO:src.lib.blockchain_fetcher_v3_fast:events_swap_rows: 97
-INFO:src.lib.blockchain_fetcher_v3_fast:fallback_rows: 979
-INFO:src.lib.blockchain_fetcher_v3_fast:dup_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
-INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
-INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8ae82210] helius_fetch completed in 2.58s
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-8ae82210] Got 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
-INFO:src.lib.position_builder:Built 0 open positions from 1076 trades (filtered 17 spam tokens)
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] position_build completed in 0.01s, positions=0
-INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e75b70bd] Position fetch complete in 2.602s
-[2025-07-02 15:36:40 +0000] [1] [INFO] Handling signal: term
-[2025-07-02 15:36:40 +0000] [4] [INFO] Worker exiting (pid: 4)
-[2025-07-02 15:36:40 +0000] [5] [INFO] Worker exiting (pid: 5)
-[2025-07-02 15:36:41 +0000] [1] [INFO] Shutting down: Master
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-e42f967f] Position fetch complete in 2.726s
 Stopping Container
+[2025-07-02 15:38:20 +0000] [1] [INFO] Handling signal: term
+[2025-07-02 15:38:20 +0000] [5] [INFO] Worker exiting (pid: 5)
+[2025-07-02 15:38:20 +0000] [4] [INFO] Worker exiting (pid: 4)
+[2025-07-02 15:38:21 +0000] [1] [INFO] Shutting down: Master

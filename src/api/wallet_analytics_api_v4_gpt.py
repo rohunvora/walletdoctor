@@ -449,8 +449,8 @@ def export_positions_for_gpt(wallet_address: str):
             logger.error(f"[PHASE-{request_id}] Traceback: {traceback.format_exc()}")
             raise
         
-        if not snapshot or (not snapshot.positions and age_seconds == 0):
-            # No data found
+        if not snapshot:
+            # Truly no data found (no trades at all)
             duration_ms = (time.time() - start_time) * 1000
             error_response = jsonify({
                 "error": "Wallet not found",
