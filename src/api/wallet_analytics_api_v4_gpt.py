@@ -283,6 +283,10 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
         logger.error(f"[PHASE] helius_fetch failed: {str(e)}")
         raise
     
+    # Extract data and log counts
+    signatures = result.get("signatures", [])
+    app.logger.info("[CHECK] helius_signatures=%d", len(signatures))
+    
     trades = result.get("trades", [])
     app.logger.info("[CHECK] trades_raw=%d", len(trades))
     
@@ -291,6 +295,11 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     builder = PositionBuilder(method)
     positions = builder.build_positions_from_trades(trades, wallet_address)
     app.logger.info("[CHECK] positions_raw=%d", len(positions))
+    
+    # Hard-flush logs
+    for h in app.logger.handlers:
+        h.flush()
+    
     log("positions_built")
     
     # Calculate unrealized P&L
