@@ -169,12 +169,18 @@ class BlockchainFetcherV3Fast:
         self._report_progress(f"After dust filter: {len(filtered_trades)} trades")
 
         # Step 6: Fetch prices (batch optimized)
-        if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+        price_helius_only = os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true'
+        logger.info(f"[CHECK-FETCHER] PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')} (evaluated as {price_helius_only}), skip_pricing={self.skip_pricing}")
+        
+        if price_helius_only:
             self._report_progress("Skipping Birdeye - using Helius-only pricing")
+            logger.info("[CHECK-FETCHER] Taking Helius-only path - NOT calling _fetch_prices_batch")
         elif not self.skip_pricing:
+            logger.info("[CHECK-FETCHER] Taking Birdeye path - calling _fetch_prices_batch")
             await self._fetch_prices_batch(filtered_trades)
         else:
             self._report_progress("Skipping price fetching")
+            logger.info("[CHECK-FETCHER] Taking skip pricing path")
 
         # Step 7: Calculate P&L
         final_trades = self._calculate_pnl(filtered_trades)

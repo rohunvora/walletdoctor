@@ -167,6 +167,8 @@ class UnrealizedPnLCalculator:
         Returns:
             List of UnrealizedPnLResult objects
         """
+        logger.info(f"[CHECK-PNL-BATCH] Called with {len(positions)} positions, skip_pricing={skip_pricing}, PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
+        
         if not positions:
             return []
         
@@ -315,6 +317,7 @@ class UnrealizedPnLCalculator:
                 return None
             
             # Use market cap calculator (existing logic)
+            logger.info(f"[CHECK-PNL] Using MarketCapCalculator for {token_mint[:8]}... (PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')})")
             mc_result = await self.mc_calculator.calculate_market_cap(
                 token_mint,
                 slot=None,  # Current slot

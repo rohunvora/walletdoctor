@@ -250,6 +250,9 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     logger.info(f"[PHASE-{request_id}] Starting position fetch for {wallet_address}, skip_pricing={skip_pricing}")
     logger.info(f"[PHASE-{request_id}] Environment: PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
     
+    # [CHECK] Critical decision point
+    logger.info(f"[CHECK-{request_id}] About to create fetcher with skip_pricing={skip_pricing}, PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
+    
     # Fetch trades
     phase_start = time.time()
     try:
@@ -350,6 +353,10 @@ def export_positions_for_gpt(wallet_address: str):
     start_time = time.time()
     phase_times = {}
     
+    # Initialize these before try block for exception handler access
+    skip_pricing = False
+    beta_mode = False
+    
     # Log request details immediately
     logger.info(f"[REQUEST-{request_id}] Worker {WORKER_ID} handling export-gpt for {wallet_address[:8]}...")
     logger.info(f"[REQUEST-{request_id}] Query params: {dict(request.args)}")
@@ -396,6 +403,9 @@ def export_positions_for_gpt(wallet_address: str):
         skip_pricing = request.args.get('skip_pricing', '').lower() == 'true'
         beta_mode = request.args.get('beta_mode', '').lower() == 'true'
         skip_birdeye = request.args.get('skip_birdeye', '').lower() == 'true'
+        
+        # [CHECK] Log for troubleshooting
+        logger.info(f"[CHECK-{request_id}] env PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')} skip_pricing={skip_pricing} beta_mode={beta_mode} skip_birdeye={skip_birdeye}")
         
         if skip_pricing or beta_mode or skip_birdeye:
             skip_pricing = True
@@ -463,10 +473,11 @@ def export_positions_for_gpt(wallet_address: str):
         
     except Exception as e:
         duration_ms = (time.time() - start_time) * 1000
-        logger.error(f"[REQUEST-{request_id}] Fatal error after {duration_ms:.0f}ms: {str(e)}")
-        logger.error(f"[REQUEST-{request_id}] Exception type: {type(e).__name__}")
-        logger.error(f"[REQUEST-{request_id}] Phase times: {phase_times}")
-        logger.error(f"[REQUEST-{request_id}] Full traceback:\n{traceback.format_exc()}")
+        logger.error(f"[FATAL-{request_id}] Request failed wallet={wallet_address} after {duration_ms:.0f}ms: {str(e)}")
+        logger.error(f"[FATAL-{request_id}] Exception type: {type(e).__name__}")
+        logger.error(f"[FATAL-{request_id}] Phase times: {phase_times}")
+        logger.error(f"[FATAL-{request_id}] skip_pricing={skip_pricing} beta_mode={beta_mode} PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
+        logger.exception(f"[FATAL-{request_id}] Full traceback:")
         
         error_response = jsonify({
             "error": "Internal server error",

@@ -200,10 +200,12 @@ class MarketCapCalculator:
     async def _try_birdeye_fallback(
         self,
         token_mint: str,
-        slot: Optional[int],
+        slot: Optional[int] = None,
         timestamp: Optional[int] = None
     ) -> Optional[MarketCapResult]:
         """Try Birdeye as fallback source"""
+        logger.info(f"[CHECK-MC] _try_birdeye_fallback called for {token_mint[:8]}... (PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')})")
+        
         try:
             # First, try to get market cap directly from Birdeye
             mc_result = await get_market_cap_from_birdeye(token_mint)
