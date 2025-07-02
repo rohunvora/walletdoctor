@@ -27,11 +27,17 @@ Still running... (fetching prices)
 ```
 
 ### Railway Performance
-- Not yet tested with enhanced logging
+- **Status**: Getting 502 errors (Application failed to respond)
+- **Cold cache test**: Failed with 502 after 32.96s
+- **Warm cache test**: Connection reset by peer after 15s
+- **Cache warming**: Timed out after 45s
 
 ## Phase Logs from Railway
 
-(To be collected after deployment)
+From latest test (02:13:23):
+- Cold cache: 502 error after 32.96s
+- Warm cache: Connection reset
+- **Issue**: App is crashing or timing out before sending response
 
 ## Findings
 

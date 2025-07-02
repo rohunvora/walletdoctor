@@ -1,0 +1,60 @@
+2025-07-02 02:13:23,734 - INFO - 
+============================================================
+2025-07-02 02:13:23,734 - INFO - Railway Performance Test - WAL-613
+2025-07-02 02:13:23,734 - INFO - ============================================================
+2025-07-02 02:13:23,734 - INFO - Base URL: https://web-production-2bb2f.up.railway.app
+2025-07-02 02:13:23,734 - INFO - Small Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:13:23,734 - INFO - Target (cold): 30.0s
+2025-07-02 02:13:23,734 - INFO - Target (warm): 5.0s
+2025-07-02 02:13:23,734 - INFO - Hard timeout: 45.0s per request
+2025-07-02 02:13:23,735 - INFO - 
+============================================================
+2025-07-02 02:13:23,735 - INFO - TEST 1: COLD CACHE
+2025-07-02 02:13:23,735 - INFO - 
+============================================================
+2025-07-02 02:13:23,735 - INFO - Testing: Cold Cache
+2025-07-02 02:13:23,735 - INFO - URL: https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:13:23,735 - INFO - Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:13:23,735 - INFO - Hard timeout: 45.0s
+2025-07-02 02:13:23,735 - INFO - Starting request...
+2025-07-02 02:13:56,691 - ERROR - ❌ Failed: 502
+2025-07-02 02:13:56,691 - ERROR - Response: {"status":"error","code":502,"message":"Application failed to respond","request_id":"Z3VmvK51QI-Rmy4sAax-fw"}
+2025-07-02 02:13:56,691 - INFO - 
+Timing Breakdown:
+2025-07-02 02:13:56,691 - INFO -   Total Time: 32.96s
+2025-07-02 02:13:56,691 - INFO -   Server Time: 0.00s
+2025-07-02 02:13:56,691 - INFO -   Network Time: 0.00s
+2025-07-02 02:13:56,691 - INFO - 
+Phase Timings:
+2025-07-02 02:13:56,691 - INFO -   network_request: 32.96s
+2025-07-02 02:13:56,691 - INFO - 
+♨️  WARM CACHE
+2025-07-02 02:13:56,691 - WARNING - ⚠️  SLOW: 32.96s > 5.0s target
+2025-07-02 02:13:58,696 - INFO - 
+============================================================
+2025-07-02 02:13:58,697 - INFO - TEST 2: WARM CACHE
+2025-07-02 02:13:58,697 - INFO - 
+============================================================
+2025-07-02 02:13:58,697 - INFO - Testing: Warm Cache (immediate)
+2025-07-02 02:13:58,697 - INFO - URL: https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:13:58,697 - INFO - Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:13:58,697 - INFO - Hard timeout: 45.0s
+2025-07-02 02:13:58,697 - INFO - Starting request...
+2025-07-02 02:14:13,790 - ERROR - ❌ Error: ('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))
+2025-07-02 02:14:13,791 - INFO - 
+Warming cache for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya...
+2025-07-02 02:14:58,863 - ERROR - ❌ Cache warming timed out after 45.0s
+2025-07-02 02:15:00,867 - INFO - 
+============================================================
+2025-07-02 02:15:00,867 - INFO - TEST 3: AFTER EXPLICIT WARM
+2025-07-02 02:15:00,867 - INFO - 
+============================================================
+2025-07-02 02:15:00,867 - INFO - Testing: After Explicit Warm
+2025-07-02 02:15:00,867 - INFO - URL: https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:15:00,867 - INFO - Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:15:00,867 - INFO - Hard timeout: 45.0s
+2025-07-02 02:15:00,867 - INFO - Starting request...
+2025-07-02 02:15:45,945 - ERROR - ❌ Request timed out after 45.0s - ABORTED
+2025-07-02 02:15:45,946 - INFO - 
+Partial results saved to: tmp/railway_timing_20250702_021545.json
+2025-07-02 02:15:45,946 - ERROR - Partial results saved. Aborting further tests.
