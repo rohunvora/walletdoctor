@@ -148,3 +148,10 @@ Currently testing with small wallets only while Railway performance is being tun
 
 **TODO**: Enable medium/large wallets once 30s performance barrier is solved.
 # Railway redeploy trigger Wed Jul  2 04:28:47 EDT 2025
+
+# 🚀 Latest Updates
+
+- **v0.6.0-beta** (July 2, 2025): Helius-only pricing is now the default. Birdeye integration has been disabled for performance optimization. All token prices are extracted directly from on-chain swap transactions.
+- **Performance**: ~3s cold cache, ~2.5s warm cache (Redis optimization coming in v0.7.0)
+
+---

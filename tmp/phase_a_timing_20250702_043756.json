@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-07-02T04:38:04.785237",
+  "results": [
+    {
+      "test": "cold_cache_helius",
+      "status": 404,
+      "time": 3.3559839725494385,
+      "success": false
+    },
+    {
+      "test": "warm_cache_helius",
+      "status": 404,
+      "time": 2.60736083984375,
+      "success": false
+    },
+    {
+      "test": "env_check",
+      "success": true
+    }
+  ],
+  "overall_success": false
+}

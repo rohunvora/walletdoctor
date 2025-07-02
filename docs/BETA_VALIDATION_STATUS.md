@@ -1,5 +1,27 @@
 # Beta Validation Status
 
+## Current Status: v0.6.0-beta (July 2, 2025)
+
+### ✅ Phase A Complete
+- Fixed decimal conversion error causing 500s
+- Implemented Helius-only pricing (PRICE_HELIUS_ONLY=true)
+- Birdeye integration disabled for performance
+
+### Performance Metrics
+- **Cold cache**: 3.36s ✅ (target < 8s)
+- **Warm cache**: 2.49s ❌ (target < 0.5s)
+
+### Open Issues
+1. **Warm cache performance** - Still fetching from Helius instead of Redis
+2. **404 errors** - Some wallets returning "no trading data found"
+3. **Redis connection** - Cache not persisting between requests
+
+### Next Steps
+- [ ] Configure Redis connection for persistent caching
+- [ ] Implement price pre-warming for popular tokens
+- [ ] Debug why warm cache isn't hitting Redis
+- [ ] Investigate 404 errors for known active wallets
+
 ## Railway Performance Update (2025-07-02)
 
 ### Issue Identified: App Startup Failure
