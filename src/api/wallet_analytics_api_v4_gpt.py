@@ -97,12 +97,35 @@ def run_async(coro):
     try:
         # Try to get the running loop
         loop = asyncio.get_running_loop()
-        # If we're in a running loop (UvicornWorker), we can't use run_until_complete
-        # Use asyncio.run in a thread instead
+        # If we're in a running loop, create a new event loop in a thread
         logger.debug("Running async code in thread due to existing event loop")
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(asyncio.run, coro)
-            return future.result()
+        
+        # Create a new event loop in a thread
+        import threading
+        result = None
+        exception = None
+        
+        def run_in_thread():
+            nonlocal result, exception
+            try:
+                # Create a new event loop for this thread
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result = new_loop.run_until_complete(coro)
+                finally:
+                    new_loop.close()
+            except Exception as e:
+                exception = e
+        
+        thread = threading.Thread(target=run_in_thread)
+        thread.start()
+        thread.join()
+        
+        if exception:
+            raise exception
+        return result
+        
     except RuntimeError:
         # No loop running, safe to use asyncio.run
         logger.debug("No event loop running, using asyncio.run directly")
