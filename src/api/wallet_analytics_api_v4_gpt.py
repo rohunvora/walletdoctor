@@ -626,39 +626,41 @@ def diagnostics():
         
         # Check environment variables
         env_vars = {
-        "HELIUS_KEY": bool(os.getenv("HELIUS_KEY")),
-        "BIRDEYE_API_KEY": bool(os.getenv("BIRDEYE_API_KEY")),
-        "POSITIONS_ENABLED": os.getenv("POSITIONS_ENABLED", "false"),
-        "UNREALIZED_PNL_ENABLED": os.getenv("UNREALIZED_PNL_ENABLED", "false"),
-        "WEB_CONCURRENCY": os.getenv("WEB_CONCURRENCY", "1"),
-        "HELIUS_PARALLEL_REQUESTS": os.getenv("HELIUS_PARALLEL_REQUESTS", "1"),
-        "HELIUS_TIMEOUT": os.getenv("HELIUS_TIMEOUT", "30"),
-        "POSITION_CACHE_TTL": os.getenv("POSITION_CACHE_TTL", "300"),
-        "ENABLE_CACHE_WARMING": os.getenv("ENABLE_CACHE_WARMING", "false"),
-        "FLASK_DEBUG": os.getenv("FLASK_DEBUG", "false"),
-        "GUNICORN_CMD_ARGS": os.getenv("GUNICORN_CMD_ARGS", "")
-    }
-    
-    # Test Redis connection
-    redis_status = "unknown"
-    cache_entries = 0
-    try:
-        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-        r = redis.from_url(redis_url, decode_responses=True)
-        redis_status = r.ping()
-        if redis_status:
-            redis_status = "PONG"
-            cache_entries = r.dbsize()
-    except Exception as e:
-        redis_status = f"error: {str(e)}"
-    
-    # Check feature flags
-    features = {
-        "positions_enabled": positions_enabled(),
-        "unrealized_pnl_enabled": should_calculate_unrealized_pnl(),
-        "cost_basis_method": get_cost_basis_method()
-    }
-    
+            "HELIUS_KEY": bool(os.getenv("HELIUS_KEY")),
+            "BIRDEYE_API_KEY": bool(os.getenv("BIRDEYE_API_KEY")),
+            "POSITIONS_ENABLED": os.getenv("POSITIONS_ENABLED", "false"),
+            "UNREALIZED_PNL_ENABLED": os.getenv("UNREALIZED_PNL_ENABLED", "false"),
+            "WEB_CONCURRENCY": os.getenv("WEB_CONCURRENCY", "1"),
+            "HELIUS_PARALLEL_REQUESTS": os.getenv("HELIUS_PARALLEL_REQUESTS", "1"),
+            "HELIUS_TIMEOUT": os.getenv("HELIUS_TIMEOUT", "30"),
+            "POSITION_CACHE_TTL": os.getenv("POSITION_CACHE_TTL", "300"),
+            "POSITION_CACHE_TTL_SEC": os.getenv("POSITION_CACHE_TTL_SEC", "NOT SET"),
+            "PRICE_HELIUS_ONLY": os.getenv("PRICE_HELIUS_ONLY", "false"),
+            "ENABLE_CACHE_WARMING": os.getenv("ENABLE_CACHE_WARMING", "false"),
+            "FLASK_DEBUG": os.getenv("FLASK_DEBUG", "false"),
+            "GUNICORN_CMD_ARGS": os.getenv("GUNICORN_CMD_ARGS", "")
+        }
+        
+        # Test Redis connection
+        redis_status = "unknown"
+        cache_entries = 0
+        try:
+            redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            r = redis.from_url(redis_url, decode_responses=True)
+            redis_status = r.ping()
+            if redis_status:
+                redis_status = "PONG"
+                cache_entries = r.dbsize()
+        except Exception as e:
+            redis_status = f"error: {str(e)}"
+        
+        # Check feature flags
+        features = {
+            "positions_enabled": positions_enabled(),
+            "unrealized_pnl_enabled": should_calculate_unrealized_pnl(),
+            "cost_basis_method": get_cost_basis_method()
+        }
+        
         duration_ms = (time.time() - diag_start) * 1000
         logger.info(f"[DIAG-{request_id}] Diagnostics complete in {duration_ms:.0f}ms")
         
