@@ -1,0 +1,64 @@
+{
+  "description": "Small wallet (34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya) - Estimated prices",
+  "wallet_address": "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya",
+  "test_case": "estimated_prices",
+  "expected_response": {
+    "schema_version": "1.1",
+    "wallet": "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya",
+    "timestamp": "2024-01-28T12:00:00Z",
+    "positions": [
+      {
+        "position_id": "34zYDg:NewTok:1706438400",
+        "token_symbol": "NEWTOK",
+        "token_mint": "NewTok8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+        "balance": "50000.00",
+        "decimals": 9,
+        "cost_basis_usd": "100.00",
+        "current_price_usd": "0.002",
+        "current_value_usd": "100.00",
+        "unrealized_pnl_usd": "0.00",
+        "unrealized_pnl_pct": "0.00",
+        "price_confidence": "est",
+        "price_age_seconds": 7200,
+        "opened_at": "2024-01-27T15:30:00Z",
+        "last_trade_at": "2024-01-28T09:15:00Z"
+      },
+      {
+        "position_id": "34zYDg:EPjFWd:1706450000",
+        "token_symbol": "USDC",
+        "token_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "balance": "100.00",
+        "decimals": 6,
+        "cost_basis_usd": "100.00",
+        "current_price_usd": "1.00",
+        "current_value_usd": "100.00",
+        "unrealized_pnl_usd": "0.00",
+        "unrealized_pnl_pct": "0.00",
+        "price_confidence": "high",
+        "price_age_seconds": 30,
+        "opened_at": "2024-01-27T18:00:00Z",
+        "last_trade_at": "2024-01-27T18:00:00Z"
+      }
+    ],
+    "summary": {
+      "total_positions": 2,
+      "total_value_usd": "200.00",
+      "total_unrealized_pnl_usd": "0.00",
+      "total_unrealized_pnl_pct": "0.00",
+      "stale_price_count": 0
+    },
+    "price_sources": {
+      "primary": "https://walletdoctor.app/v4/prices",
+      "primary_hint": "POST {mints: [string], timestamps: [number]} returns {mint: price_usd} in JSON",
+      "fallback": "https://api.coingecko.com/api/v3/simple/price",
+      "fallback_hint": "GET ?ids={coingecko_id}&vs_currencies=usd returns {id: {usd: price}} in JSON"
+    }
+  },
+  "tolerance": 0.005,
+  "validation_rules": {
+    "check_totals": true,
+    "check_schema": true,
+    "check_price_confidence": true,
+    "allow_estimated": true
+  }
+} 

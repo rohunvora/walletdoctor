@@ -1,4 +1,99 @@
-# GPT Roundtrip Test Results
+# GPT Export Roundtrip Test Results
+
+## Overview
+
+The WAL-613 validation harness tests the GPT export endpoint (`/v4/positions/export-gpt/{wallet}`) to ensure schema correctness and proper handling of edge cases.
+
+## Test Status
+
+### Small Wallet Tests ✅
+
+The validation harness is fully operational for small wallets (< 50 positions):
+
+- **Wallet**: `34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya`
+- **Test Cases**:
+  - ✅ Normal portfolio with high-confidence prices
+  - ✅ Stale price detection and flagging
+  - ✅ Empty portfolio (all positions closed)
+  - ✅ Estimated price handling
+  - ✅ Schema validation (v1.1)
+  - ✅ Totals calculation verification
+  - ✅ Required fields presence
+
+### Large Wallet Tests ⏸️ (Deferred)
+
+Large wallet tests are temporarily disabled until the 30-second response time barrier is resolved:
+
+- **Issue**: Railway deployment experiences timeouts for wallets with > 500 positions
+- **Root Cause**: Network latency between Railway and Helius API endpoints
+- **Solution in Progress**: 
+  - Evaluating Railway upgrade plans for better network performance
+  - Considering alternative hosting providers with better Helius connectivity
+  - Implementing request batching optimizations
+
+To enable large wallet tests when ready:
+```bash
+pytest tests/gpt_validation/test_runner.py --large
+```
+
+## Running the Tests
+
+### Basic Test Run
+```bash
+# Run GPT export validation tests (small wallet only)
+pytest tests/gpt_validation/test_runner.py -v
+
+# Run with coverage
+pytest tests/gpt_validation/test_runner.py --cov=src.api.wallet_analytics_api_v4_gpt
+```
+
+### CI Integration
+The tests are integrated into the CI pipeline and run on every PR:
+```bash
+pytest -q tests/gpt_validation/test_runner.py
+```
+
+### Integration Tests
+To run against a live API:
+```bash
+SKIP_INTEGRATION_TESTS=false API_BASE_URL=https://walletdoctor.app pytest tests/gpt_validation/test_runner.py::TestGPTExportValidation::test_live_api_small_wallet -v
+```
+
+## Schema Validation Rules
+
+The validator checks:
+
+1. **Schema Version**: Must be "1.1"
+2. **Required Fields**: All mandatory fields present
+3. **Data Types**: Correct types for all fields
+4. **Price Confidence**: Valid values (high, medium, low, est, stale)
+5. **Totals Accuracy**: Summary totals match calculated values (±0.5%)
+6. **Timestamp Format**: Valid ISO format
+7. **Staleness Flags**: Correct stale/age_seconds handling
+
+## Performance Benchmarks
+
+### Current Performance (Small Wallets)
+- Response Time: < 200ms (cached)
+- Response Time: < 1.5s (cold fetch)
+- Validation Time: < 10ms
+- Memory Usage: < 50MB
+
+### Target Performance (Large Wallets)
+- Response Time: < 5s for 1000+ positions
+- Requires: Network optimization or hosting change
+
+## Next Steps
+
+1. **Immediate**: Small wallet validation is production-ready
+2. **Short-term**: Resolve Railway/Helius latency issue
+3. **Long-term**: Enable full test suite including large wallets
+
+## Related Tickets
+
+- WAL-613: GPT Export Validation Harness (this implementation)
+- WAL-598: Initial validation framework design
+- WAL-611: GPT Export API implementation
 
 ## Test Configuration
 

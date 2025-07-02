@@ -8,25 +8,59 @@ This harness validates that GPT-4 can accurately process WalletDoctor P6 positio
 # Install dependencies
 pip install openai python-dotenv pytest
 
-# Run all validation tests
+# Run all validation tests in STRICT mode (default)
 python -m tests.gpt_validation.test_runner
+
+# Run with mock data (for offline development)
+python -m tests.gpt_validation.test_runner --use-mock
+
+# Run only tests that don't require network
+pytest -m "not requires_network" tests/gpt_validation/
 
 # Run specific fixture
 python -m tests.gpt_validation.test_runner --fixture simple_portfolio.json
-
-# Dry run (no API calls)
-python -m tests.gpt_validation.test_runner --dry-run
 ```
+
+## Strict Mode (Default)
+
+**As of WAL-613, strict mode is the default behavior:**
+
+- Tests run against real API endpoints
+- Network failures cause tests to fail with non-zero exit status
+- HTTP status codes and errors are logged
+- Mock data is NEVER used unless explicitly requested
+
+This ensures CI catches real issues like:
+- Missing or invalid API keys
+- Rate limiting
+- Service outages
+- Configuration errors
+
+## Mock Mode (Opt-in)
+
+To use mock data for offline development:
+
+```bash
+# Enable mock mode explicitly
+pytest tests/gpt_validation/test_runner.py --use-mock
+
+# Or set environment variable
+USE_MOCK=true pytest tests/gpt_validation/
+```
+
+**Important:** Mock mode should only be used for local development when working offline.
 
 ## Configuration
 
 Create `.env` file with:
 ```
 OPENAI_API_KEY=sk-...
-# Or for Azure OpenAI:
-AZURE_OPENAI_ENDPOINT=https://...
-AZURE_OPENAI_KEY=...
-AZURE_OPENAI_VERSION=2024-02-15-preview
+# API endpoint configuration
+API_BASE_URL=https://walletdoctor.app
+API_KEY=wd_...
+
+# Optional: Skip integration tests
+SKIP_INTEGRATION_TESTS=false
 ```
 
 ## Directory Structure
@@ -37,13 +71,14 @@ tests/gpt_validation/
 ├── __init__.py
 ├── test_runner.py             # Main test execution
 ├── validator.py               # Output validation logic
+├── helius_mock.py             # Optional mock for unit tests
+├── pytest.ini                 # Pytest configuration
 ├── fixtures/                  # Test data
-│   ├── simple_portfolio.json
-│   ├── complex_portfolio.json
-│   ├── edge_cases.json
-│   ├── stale_prices.json
-│   └── reopened_positions.json
-└── prompts/                   # GPT system prompts
+│   ├── small_wallet_normal.json
+│   ├── small_wallet_stale_prices.json
+│   ├── small_wallet_empty.json
+│   └── small_wallet_estimated_prices.json
+└── prompts/                   # GPT system prompts (if needed)
     └── calculate_unrealized_pnl.txt
 ```
 
@@ -80,27 +115,31 @@ Each fixture contains input data and expected outputs:
 ### Local Development
 
 ```bash
-# Run with verbose output
-python -m tests.gpt_validation.test_runner -v
+# Run with real API (strict mode)
+pytest tests/gpt_validation/test_runner.py -v
+
+# Run offline with mocks
+pytest tests/gpt_validation/test_runner.py --use-mock
+
+# Skip network tests
+pytest -m "not requires_network" tests/gpt_validation/
 
 # Generate HTML report
-python -m tests.gpt_validation.test_runner --report output.html
-
-# Test specific GPT model
-python -m tests.gpt_validation.test_runner --model gpt-4-0125-preview
+pytest tests/gpt_validation/test_runner.py --html=report.html
 ```
 
 ### CI Integration
 
-Tests run nightly via GitHub Actions:
+Tests run in strict mode by default:
 
 ```yaml
 # .github/workflows/gpt-validation.yml
 name: GPT Validation
 on:
-  schedule:
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   validate:
@@ -111,12 +150,18 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: python -m tests.gpt_validation.test_runner
+      - name: Run GPT validation tests (strict mode)
+        run: pytest tests/gpt_validation/test_runner.py
+        env:
+          API_KEY: ${{ secrets.WD_API_KEY }}
+          API_BASE_URL: https://walletdoctor.app
       - uses: actions/upload-artifact@v3
-        if: always()
+        if: failure()
         with:
-          name: validation-report
-          path: validation-report.html
+          name: test-logs
+          path: |
+            *.log
+            pytest.log
 ```
 
 ## Validation Logic
@@ -147,18 +192,19 @@ The validator checks:
 ### Common Issues
 
 **API Rate Limits**
-- Add delays between tests: `--delay 2`
-- Use cheaper model for development: `--model gpt-3.5-turbo`
+- Check logs for HTTP 429 status
+- Reduce test frequency or add delays
+- Contact support for higher limits
+
+**Network Failures in CI**
+- Tests will fail with clear error messages
+- Check CI logs for HTTP status and traceback
+- Ensure API_KEY is set in CI secrets
 
 **Calculation Differences**
 - Check decimal precision in prompts
 - Verify token decimals are correct
 - Look for rounding differences
-
-**Prompt Issues**
-- Test prompts in playground first
-- Use `--debug` to see full API calls
-- Check few-shot examples match schema version
 
 ### Debug Mode
 
@@ -168,6 +214,9 @@ python -m tests.gpt_validation.test_runner --debug
 
 # Save API calls for analysis
 python -m tests.gpt_validation.test_runner --save-api-calls calls.jsonl
+
+# Test with increased timeout
+pytest tests/gpt_validation/ --timeout=120
 ```
 
 ## Performance Benchmarks
@@ -181,6 +230,7 @@ Target metrics:
 ## Contributing
 
 1. New fixtures should cover unique scenarios
-2. Update prompts carefully - test all fixtures after changes
+2. Always test in strict mode before committing
 3. Document any tolerance adjustments with rationale
-4. Keep fixtures under 50 positions for performance 
+4. Keep fixtures under 50 positions for performance
+5. Never commit with --use-mock in CI configuration 

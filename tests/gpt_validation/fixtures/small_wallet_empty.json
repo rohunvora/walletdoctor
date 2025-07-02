@@ -1,0 +1,30 @@
+{
+  "description": "Small wallet (34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya) - Empty portfolio",
+  "wallet_address": "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya",
+  "test_case": "empty_portfolio",
+  "expected_response": {
+    "schema_version": "1.1",
+    "wallet": "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya",
+    "timestamp": "2024-01-28T12:00:00Z",
+    "positions": [],
+    "summary": {
+      "total_positions": 0,
+      "total_value_usd": "0.00",
+      "total_unrealized_pnl_usd": "0.00",
+      "total_unrealized_pnl_pct": "0.00",
+      "stale_price_count": 0
+    },
+    "price_sources": {
+      "primary": "https://walletdoctor.app/v4/prices",
+      "primary_hint": "POST {mints: [string], timestamps: [number]} returns {mint: price_usd} in JSON",
+      "fallback": "https://api.coingecko.com/api/v3/simple/price",
+      "fallback_hint": "GET ?ids={coingecko_id}&vs_currencies=usd returns {id: {usd: price}} in JSON"
+    }
+  },
+  "tolerance": 0.005,
+  "validation_rules": {
+    "check_totals": true,
+    "check_schema": true,
+    "allow_empty": true
+  }
+} 
