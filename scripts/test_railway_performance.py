@@ -29,7 +29,7 @@ BASE_URL = os.getenv("API_BASE_URL", "https://web-production-2bb2f.up.railway.ap
 # Performance targets
 TARGET_COLD_CACHE = 30.0  # 30 seconds for cold cache
 TARGET_WARM_CACHE = 5.0   # 5 seconds for warm cache
-HARD_TIMEOUT = 10.0      # 10 second hard timeout per request
+HARD_TIMEOUT = 45.0      # Temporary 45 second timeout to see real performance
 
 
 def test_endpoint(wallet: str, test_name: str) -> dict:

@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-07-02T01:57:30.208214",
+  "base_url": "https://web-production-2bb2f.up.railway.app",
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "hard_timeout": 10.0,
+  "targets": {
+    "cold_cache": 30.0,
+    "warm_cache": 5.0
+  },
+  "results": [
+    {
+      "test_name": "Cold Cache",
+      "status_code": 0,
+      "error": "Timeout after 10.0s",
+      "total_time": 10.0,
+      "phase_timings": {},
+      "timestamp": "2025-07-02T01:57:30.207641",
+      "timeout_hit": true,
+      "timeout_phase": "network_request"
+    }
+  ],
+  "aborted": true,
+  "abort_reason": "Timeout exceeded"
+}
