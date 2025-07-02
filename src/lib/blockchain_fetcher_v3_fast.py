@@ -21,12 +21,18 @@ from collections import defaultdict
 import time
 import json
 
+# Set up logger first
+logger = logging.getLogger(__name__)
+
 # Environment variables
 HELIUS_KEY = os.getenv("HELIUS_KEY")
-if not HELIUS_KEY:
-    raise ValueError("HELIUS_KEY environment variable is required")
-
 BIRDEYE_API_KEY = os.getenv("BIRDEYE_API_KEY")
+
+# Log warning if keys are missing but don't fail at import time
+if not HELIUS_KEY:
+    logger.warning("HELIUS_KEY environment variable not set - trading endpoints will fail")
+if not BIRDEYE_API_KEY:
+    logger.warning("BIRDEYE_API_KEY environment variable not set - price fetching may fail")
 
 # Constants
 HELIUS_BASE = "https://api.helius.xyz/v0"
@@ -103,6 +109,12 @@ class BlockchainFetcherV3Fast:
         progress_callback: Optional[Callable[[str], None]] = None,
         skip_pricing: bool = False,
     ):
+        # Check for required keys at runtime
+        if not HELIUS_KEY:
+            raise ValueError("HELIUS_KEY environment variable is required for blockchain fetching")
+        if not skip_pricing and not BIRDEYE_API_KEY:
+            raise ValueError("BIRDEYE_API_KEY environment variable is required for price fetching")
+            
         self.progress_callback = progress_callback or (lambda x: logger.info(x))
         self.helius_limiter = RateLimiter(HELIUS_RPS)
         self.birdeye_limiter = RateLimiter(BIRDEYE_RPS)
