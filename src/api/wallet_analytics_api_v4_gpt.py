@@ -20,6 +20,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from functools import wraps
 import concurrent.futures
+import hashlib
+import traceback
+import uuid
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -41,14 +44,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Log startup info immediately
+# Generate a unique worker ID at startup
+WORKER_ID = str(uuid.uuid4())[:8]
+STARTUP_TIME = datetime.now(timezone.utc).isoformat()
+
+# Log startup info immediately with worker ID
 logger.info("="*60)
-logger.info("WalletDoctor GPT API Starting...")
-logger.info(f"HELIUS_KEY present: {bool(os.getenv('HELIUS_KEY'))}")
-logger.info(f"BIRDEYE_API_KEY present: {bool(os.getenv('BIRDEYE_API_KEY'))}")
-logger.info(f"POSITIONS_ENABLED: {os.getenv('POSITIONS_ENABLED', 'false')}")
+logger.info(f"[BOOT] WalletDoctor GPT API Starting - Worker {WORKER_ID}")
+logger.info(f"[BOOT] Startup time: {STARTUP_TIME}")
+logger.info(f"[BOOT] HELIUS_KEY present: {bool(os.getenv('HELIUS_KEY'))}")
+logger.info(f"[BOOT] BIRDEYE_API_KEY present: {bool(os.getenv('BIRDEYE_API_KEY'))}")
+logger.info(f"[BOOT] POSITIONS_ENABLED: {os.getenv('POSITIONS_ENABLED', 'false')}")
 logger.info(f"[BOOT] PRICE_HELIUS_ONLY: {os.getenv('PRICE_HELIUS_ONLY', 'false')}")
-logger.info(f"Python version: {sys.version}")
+logger.info(f"[BOOT] POSITION_CACHE_TTL_SEC: {os.getenv('POSITION_CACHE_TTL_SEC', 'NOT SET')}")
+logger.info(f"[BOOT] Python version: {sys.version}")
+
+# Create env checksum for verification
+env_string = f"{os.getenv('PRICE_HELIUS_ONLY', '')}:{os.getenv('POSITION_CACHE_TTL_SEC', '')}:{os.getenv('POSITIONS_ENABLED', '')}"
+env_checksum = hashlib.md5(env_string.encode()).hexdigest()[:8]
+logger.info(f"[BOOT] Environment checksum: {env_checksum}")
 logger.info("="*60)
 
 app = Flask(__name__)
@@ -232,20 +246,25 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     phases = {}
     
     # Log request start
-    logger.info(f"[PHASE] Starting position fetch for {wallet_address}, skip_pricing={skip_pricing}")
-    logger.info(f"[PHASE] PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY', 'false')}")
+    request_id = f"pos-{str(uuid.uuid4())[:8]}"
+    logger.info(f"[PHASE-{request_id}] Starting position fetch for {wallet_address}, skip_pricing={skip_pricing}")
+    logger.info(f"[PHASE-{request_id}] Environment: PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}")
     
     # Fetch trades
     phase_start = time.time()
     try:
-        logger.info(f"[PHASE] Starting trade fetch...")
+        logger.info(f"[PHASE-{request_id}] Creating BlockchainFetcherV3Fast...")
         async with BlockchainFetcherV3Fast(skip_pricing=skip_pricing) as fetcher:
+            logger.info(f"[PHASE-{request_id}] Fetcher created, calling fetch_wallet_trades...")
             result = await fetcher.fetch_wallet_trades(wallet_address)
         phases["helius_fetch"] = time.time() - phase_start
-        logger.info(f"[PHASE] helius_fetch completed in {phases['helius_fetch']:.2f}s")
+        logger.info(f"[PHASE-{request_id}] helius_fetch completed in {phases['helius_fetch']:.2f}s")
+        logger.info(f"[PHASE-{request_id}] Got {len(result.get('trades', []))} trades")
     except Exception as e:
         elapsed = time.time() - phase_start
-        logger.error(f"[PHASE] helius_fetch failed after {elapsed:.2f}s: {e}")
+        logger.error(f"[PHASE-{request_id}] helius_fetch failed after {elapsed:.2f}s: {str(e)}")
+        logger.error(f"[PHASE-{request_id}] Exception type: {type(e).__name__}")
+        logger.error(f"[PHASE-{request_id}] Traceback:\n{traceback.format_exc()}")
         raise
     
     trades = result.get("trades", [])
@@ -327,19 +346,23 @@ def export_positions_for_gpt(wallet_address: str):
     - <200ms for cached data
     - <1.5s for cold fetch
     """
-    # TEMPORARY: Return fixed response to isolate the issue
-    if os.getenv("DEBUG_FIXED_RESPONSE", "false").lower() == "true":
-        return jsonify({"ok": True, "wallet": wallet_address, "debug": "Fixed response enabled"})
-    
+    request_id = str(uuid.uuid4())[:8]
     start_time = time.time()
+    phase_times = {}
     
     # Log request details immediately
-    logger.info(f"[REQUEST] export-gpt called for {wallet_address[:8]}...")
-    logger.info(f"[REQUEST] PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY', 'false')}")
+    logger.info(f"[REQUEST-{request_id}] Worker {WORKER_ID} handling export-gpt for {wallet_address[:8]}...")
+    logger.info(f"[REQUEST-{request_id}] Query params: {dict(request.args)}")
+    logger.info(f"[REQUEST-{request_id}] Env check: PRICE_HELIUS_ONLY={os.getenv('PRICE_HELIUS_ONLY')}, checksum={env_checksum}")
     
     try:
+        # Phase 0: Request validation
+        phase_start = time.time()
+        logger.info(f"[PHASE-{request_id}] Starting request validation...")
         # Validate wallet address
         if not wallet_address or len(wallet_address) < 32:
+            phase_times["validation"] = time.time() - phase_start
+            logger.warning(f"[REQUEST-{request_id}] Invalid wallet address")
             return jsonify({
                 "error": "Invalid wallet address",
                 "message": "Wallet address must be at least 32 characters"
@@ -348,6 +371,7 @@ def export_positions_for_gpt(wallet_address: str):
         # Get schema version
         schema_version = request.args.get("schema_version", "1.1")
         if schema_version != "1.1":
+            phase_times["validation"] = time.time() - phase_start
             return jsonify({
                 "error": "Unsupported schema version",
                 "message": f"Schema version {schema_version} not supported. Use 1.1"
@@ -355,12 +379,15 @@ def export_positions_for_gpt(wallet_address: str):
         
         # Check if positions are enabled
         if not positions_enabled():
+            phase_times["validation"] = time.time() - phase_start
+            logger.warning(f"[REQUEST-{request_id}] Positions not enabled")
             return jsonify({
                 "error": "Feature disabled",
                 "message": "Position tracking is not enabled"
             }), 501
         
-        logger.info(f"GPT export request for wallet: {wallet_address}")
+        phase_times["validation"] = time.time() - phase_start
+        logger.info(f"[PHASE-{request_id}] Validation complete in {phase_times['validation']:.3f}s")
         
         # Phase timing
         phase_timings = {}
@@ -376,12 +403,18 @@ def export_positions_for_gpt(wallet_address: str):
         
         # Get positions with staleness info
         phase_start = time.time()
-        logger.info(f"Starting fetch_positions for wallet={wallet_address[:8]}...")
-        snapshot, is_stale, age_seconds = run_async(
-            get_positions_with_staleness(wallet_address, skip_pricing=skip_pricing)
-        )
-        phase_timings["fetch_positions"] = time.time() - phase_start
-        logger.info(f"phase=fetch_positions took={phase_timings['fetch_positions']:.2f}s")
+        logger.info(f"[PHASE-{request_id}] Starting position fetch...")
+        try:
+            snapshot, is_stale, age_seconds = run_async(
+                get_positions_with_staleness(wallet_address, skip_pricing=skip_pricing)
+            )
+            phase_times["position_fetch"] = time.time() - phase_start
+            logger.info(f"[PHASE-{request_id}] Position fetch complete in {phase_times['position_fetch']:.3f}s")
+        except Exception as e:
+            phase_times["position_fetch"] = time.time() - phase_start
+            logger.error(f"[PHASE-{request_id}] Position fetch failed after {phase_times['position_fetch']:.3f}s: {str(e)}")
+            logger.error(f"[PHASE-{request_id}] Traceback: {traceback.format_exc()}")
+            raise
         
         if not snapshot or (not snapshot.positions and age_seconds == 0):
             # No data found
@@ -429,14 +462,21 @@ def export_positions_for_gpt(wallet_address: str):
         return response
         
     except Exception as e:
-        logger.error(f"Error in GPT export: {e}")
         duration_ms = (time.time() - start_time) * 1000
+        logger.error(f"[REQUEST-{request_id}] Fatal error after {duration_ms:.0f}ms: {str(e)}")
+        logger.error(f"[REQUEST-{request_id}] Exception type: {type(e).__name__}")
+        logger.error(f"[REQUEST-{request_id}] Phase times: {phase_times}")
+        logger.error(f"[REQUEST-{request_id}] Full traceback:\n{traceback.format_exc()}")
         
         error_response = jsonify({
             "error": "Internal server error",
-            "message": "Failed to export position data"
+            "message": "Failed to export position data",
+            "request_id": request_id,
+            "worker_id": WORKER_ID
         })
         error_response.headers['X-Response-Time-Ms'] = f"{duration_ms:.2f}"
+        error_response.headers['X-Request-Id'] = request_id
+        error_response.headers['X-Worker-Id'] = WORKER_ID
         
         return error_response, 500
 
@@ -576,10 +616,16 @@ def warm_cache(wallet_address: str):
 @app.route("/v4/diagnostics", methods=["GET"])
 def diagnostics():
     """Diagnostics endpoint for debugging deployment issues"""
-    import redis
+    diag_start = time.time()
+    request_id = f"diag-{str(uuid.uuid4())[:8]}"
     
-    # Check environment variables
-    env_vars = {
+    try:
+        logger.info(f"[DIAG-{request_id}] Diagnostics called, worker={WORKER_ID}")
+        
+        import redis
+        
+        # Check environment variables
+        env_vars = {
         "HELIUS_KEY": bool(os.getenv("HELIUS_KEY")),
         "BIRDEYE_API_KEY": bool(os.getenv("BIRDEYE_API_KEY")),
         "POSITIONS_ENABLED": os.getenv("POSITIONS_ENABLED", "false"),
@@ -613,17 +659,37 @@ def diagnostics():
         "cost_basis_method": get_cost_basis_method()
     }
     
-    return jsonify({
-        "status": "ok",
-        "helius_key_present": env_vars["HELIUS_KEY"],
-        "birdeye_key_present": env_vars["BIRDEYE_API_KEY"],
-        "env": env_vars,
-        "features": features,
-        "redis_ping": redis_status,
-        "cache_entries": cache_entries,
-        "python_version": sys.version,
-        "process_id": os.getpid()
-    })
+        duration_ms = (time.time() - diag_start) * 1000
+        logger.info(f"[DIAG-{request_id}] Diagnostics complete in {duration_ms:.0f}ms")
+        
+        return jsonify({
+            "status": "ok",
+            "worker_id": WORKER_ID,
+            "startup_time": STARTUP_TIME,
+            "env_checksum": env_checksum,
+            "helius_key_present": env_vars["HELIUS_KEY"],
+            "birdeye_key_present": env_vars["BIRDEYE_API_KEY"],
+            "env": env_vars,
+            "features": features,
+            "redis_ping": redis_status,
+            "cache_entries": cache_entries,
+            "python_version": sys.version,
+            "process_id": os.getpid(),
+            "response_time_ms": duration_ms
+        })
+        
+    except Exception as e:
+        duration_ms = (time.time() - diag_start) * 1000
+        logger.error(f"[DIAG-{request_id}] Failed after {duration_ms:.0f}ms: {str(e)}")
+        logger.error(f"[DIAG-{request_id}] Traceback:\n{traceback.format_exc()}")
+        
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "worker_id": WORKER_ID,
+            "request_id": request_id,
+            "response_time_ms": duration_ms
+        }), 500
 
 
 @app.route("/health", methods=["GET"])
