@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-07-02T12:18:25.875541",
+  "results": [
+    {
+      "test": "cold_cache_helius",
+      "status": 200,
+      "time": 13.142707824707031,
+      "success": false
+    },
+    {
+      "test": "warm_cache_helius",
+      "error": "HTTPSConnectionPool(host='web-production-2bb2f.up.railway.app', port=443): Read timed out. (read timeout=5)",
+      "time": 5.061861991882324
+    },
+    {
+      "test": "env_check",
+      "error": "HTTPSConnectionPool(host='web-production-2bb2f.up.railway.app', port=443): Read timed out. (read timeout=5)"
+    }
+  ],
+  "overall_success": false
+}
