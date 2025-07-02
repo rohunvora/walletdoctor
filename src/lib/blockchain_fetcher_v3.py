@@ -62,6 +62,12 @@ class Trade:
     priced: bool = False
     tx_type: str = "swap"
 
+    # P6 Position tracking fields (WAL-601)
+    remaining_balance: Optional[Decimal] = None  # Token balance after this trade
+    cost_basis_method: Optional[str] = None  # "fifo" or "weighted_avg"
+    position_closed: bool = False  # True if this trade closed the position
+    position_id: Optional[str] = None  # Links to Position object
+
     def _round_decimal(self, value: Optional[Decimal], places: int = 4) -> Optional[float]:
         """Round decimal to specified places using banker's rounding"""
         if value is None:
@@ -82,7 +88,7 @@ class Trade:
             token = self.token_out_symbol
             amount = self._round_decimal(self.token_out_amount, 6)  # Keep 6 decimals for amounts
 
-        return {
+        result = {
             "timestamp": self.timestamp.isoformat(),
             "signature": self.signature,
             "action": action,
@@ -106,6 +112,19 @@ class Trade:
             "dex": self.dex,
             "tx_type": self.tx_type,
         }
+        
+        # Include P6 position fields if positions are enabled
+        from src.config.feature_flags import positions_enabled
+        if positions_enabled():
+            if self.remaining_balance is not None:
+                result["remaining_balance"] = self._round_decimal(self.remaining_balance, 6)
+            if self.cost_basis_method is not None:
+                result["cost_basis_method"] = self.cost_basis_method
+            result["position_closed"] = self.position_closed
+            if self.position_id is not None:
+                result["position_id"] = self.position_id
+        
+        return result
 
 
 @dataclass
@@ -536,6 +555,16 @@ class BlockchainFetcherV3:
                 if consecutive_empty_pages > 5:
                     self._report_progress(f"Hit {consecutive_empty_pages} consecutive empty pages, stopping")
                     break
+                
+                # Pagination gap detection - raise assertion if next_sig exists but page is empty
+                if consecutive_empty_pages > 3 and next_before_sig:
+                    error_msg = (f"WARNING: Potential pagination gap detected - {consecutive_empty_pages} "
+                               f"consecutive empty pages but next_sig is not null ({next_before_sig[:8]}...)")
+                    logger.warning(error_msg)
+                    self._report_progress(error_msg)
+                    # Don't break, but log the issue
+                    if consecutive_empty_pages > 10:
+                        raise AssertionError(f"Pagination truncation detected: {consecutive_empty_pages} empty pages with non-null next_sig")
             
             # Progress report
             actual_rps = self.helius_rate_limited_fetcher.calculate_rps()
@@ -978,7 +1007,15 @@ class BlockchainFetcherV3:
         self._report_progress(f"  - Price fetching complete:")
         self._report_progress(f"    - Cache hits: {cache_hits}")
         self._report_progress(f"    - Cache misses: {cache_misses}")
-        self._report_progress(f"    - Cache hit rate: {(cache_hits / (cache_hits + cache_misses) * 100):.1f}%")
+        
+        # Calculate cache hit rate, avoid division by zero
+        total_lookups = cache_hits + cache_misses
+        if total_lookups > 0:
+            hit_rate = (cache_hits / total_lookups) * 100
+            self._report_progress(f"    - Cache hit rate: {hit_rate:.1f}%")
+        else:
+            self._report_progress(f"    - Cache hit rate: N/A (no lookups)")
+            
         self._report_progress(f"    - API calls made: {api_calls}")
         self._report_progress(f"    - Total tokens fetched: {tokens_fetched}")
 
