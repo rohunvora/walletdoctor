@@ -177,6 +177,12 @@ class MarketCapCalculator:
         timestamp: Optional[int] = None
     ) -> Optional[MarketCapResult]:
         """Try fallback sources: Birdeye, Jupiter, then DexScreener"""
+        
+        # Check if PRICE_HELIUS_ONLY is enabled
+        if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
+            logger.info(f"PRICE_HELIUS_ONLY is enabled, skipping all fallback sources for {token_mint[:8]}...")
+            return None
+        
         logger.info(f"Trying fallback sources for {token_mint[:8]}...")
         
         # Try Birdeye first
