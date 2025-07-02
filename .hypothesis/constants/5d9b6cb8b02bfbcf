@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/progress_tracker.py
+# hypothesis_version: 6.135.20
+
+[300, 'age_seconds', 'error', 'pages', 'pending', 'status', 'token', 'total', 'trades']

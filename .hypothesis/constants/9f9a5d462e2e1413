@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/unrealized_pnl_calculator.py
+# hypothesis_version: 6.135.20
+
+[0.0, 300, 900, '0', '100', 'Price unavailable', 'confidence_breakdown', 'est', 'fresh', 'high', 'provided', 'recent', 'stale', 'timestamp', 'total_cost_basis_usd', 'unavailable', 'unknown', 'very stale']

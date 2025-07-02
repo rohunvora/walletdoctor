@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/api/wallet_analytics_api_v4.py
+# hypothesis_version: 6.135.20
+
+[100, 300, 400, 404, 500, 501, 8080, '..', '/', '/health', '/v4/analyze', '/v4/progress/<token>', '/v4/progress/{token}', '0.0.0.0', '4.0', ':', 'GET', 'GET - This info', 'POST', 'Page', 'WalletDoctor API V4', 'X-Progress-Token', 'Z', '__main__', 'cache_stats', 'cached', 'complete', 'cost_basis_method', 'enabled', 'endpoints', 'error', 'false', 'feature_flag', 'features', 'fetching', 'healthy', 'include_positions', 'message', 'pnl_usd', 'position_error', 'position_features', 'position_summary', 'positions', 'positions_enabled', 'progress_token', 'realized_pnl_usd', 'refresh', 'service', 'status', 'summary', 'timestamp', 'total_pnl_usd', 'total_positions', 'total_trades', 'totals', 'tracker', 'trades', 'transactions', 'true', 'unrealized_pnl', 'unrealized_pnl_usd', 'version', 'wallet']

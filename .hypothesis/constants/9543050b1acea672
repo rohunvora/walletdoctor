@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/config/feature_flags.py
+# hypothesis_version: 6.135.20
+
+['1', 'COST_BASIS_METHOD', 'balance_verification', 'cost_basis_method', 'fifo', 'on', 'positions_enabled', 'streaming_positions', 'true', 'weighted_avg', 'yes']

@@ -84,6 +84,64 @@ Example smaller test wallets:
 - `CuieVDEDtLo7FypA9SbLM9saXFdb1dsshEkyErMqkRQq`
 - `675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8` (Raydium DEX wallet)
 
+## Performance Analysis and Optimization
+
+### Bottleneck Identification
+
+After timeout issues with the 6,424-trade wallet, we investigated the performance bottlenecks:
+
+#### Current State
+- **Small wallet (145 trades)**: 502 errors on Railway
+- **Medium wallet (380 trades)**: 35s+ timeout  
+- **Large wallet (6,424 trades)**: 60s+ timeout
+
+All wallets exceed the 30s Railway/ChatGPT timeout limit on cold cache.
+
+#### Root Cause
+The bottleneck appears to be in the blockchain data fetching phase:
+1. Helius API calls to fetch transaction signatures
+2. Fetching full transaction details (batched)
+3. Token metadata lookups
+4. Price data fetching from multiple sources
+
+### Optimization Attempts
+
+#### 1. Cache Warming Endpoint (Implemented)
+Created `/v4/positions/warm-cache/{wallet}` endpoint that:
+- Triggers background cache population
+- Returns immediately with progress token
+- Allows subsequent GPT exports to return from cache
+
+**Status**: Code committed but deployment having issues (500/502 errors)
+
+#### 2. SSE Streaming Endpoint (Implemented)
+Created `/v4/positions/export-gpt-stream/{wallet}` endpoint that:
+- Streams results as Server-Sent Events
+- Sends progress updates during fetching
+- Allows partial data consumption
+
+**Status**: Code implemented but not yet deployed
+
+### Current Issues
+
+1. **Railway Deployment**: The app is experiencing 500/502 errors
+2. **Cold Cache Performance**: Even small wallets timeout on first fetch
+3. **Helius Rate Limits**: May be hitting API limits with large wallets
+
+### Recommendations
+
+1. **Immediate**: Fix Railway deployment issues
+2. **Short-term**: Deploy and test cache warming endpoint
+3. **Medium-term**: Implement more aggressive Helius batching/concurrency
+4. **Long-term**: Consider pre-caching popular wallets on a schedule
+
+### Next Steps
+
+1. Debug Railway deployment logs
+2. Test cache warming with fixed deployment  
+3. Measure warm cache performance
+4. If still >30s, deploy SSE streaming as fallback
+
 ---
 
 **Conclusion**: The GPT integration is technically ready but requires performance optimization for large wallets. Proceed with WAL-613 keeping these timeout constraints in mind. 

@@ -1,0 +1,83 @@
+{
+  "wallet": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
+  "expected_trades": [
+    {
+      "mint": "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+      "symbol": "fakeout",
+      "platform": "pump.AMM",
+      "trade_number": 1,
+      "action": "buy",
+      "sol_delta": 4.45,
+      "expected_mc": 63000,
+      "tolerance": 0.1,
+      "expected_confidence": "high"
+    },
+    {
+      "mint": "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump",
+      "symbol": "fakeout",
+      "platform": "pump.AMM",
+      "trade_number": 2,
+      "action": "sell",
+      "sol_delta": -7.05,
+      "expected_mc": 96000,
+      "tolerance": 0.1,
+      "expected_confidence": "high"
+    },
+    {
+      "mint": "1HE8MZKhpbJiNvjJTrXdV395qEmPEqJme6P5DLBboop",
+      "symbol": "RDMP",
+      "platform": "Raydium CPMM",
+      "trade_number": 1,
+      "action": "buy",
+      "sol_delta": 22.77,
+      "expected_mc": 2400000,
+      "tolerance": 0.1,
+      "expected_confidence": "high"
+    },
+    {
+      "mint": "1HE8MZKhpbJiNvjJTrXdV395qEmPEqJme6P5DLBboop",
+      "symbol": "RDMP",
+      "platform": "Raydium CPMM",
+      "trade_number": 2,
+      "action": "sell",
+      "sol_delta": -4.78,
+      "expected_mc": 5100000,
+      "tolerance": 0.1,
+      "expected_confidence": "high"
+    },
+    {
+      "mint": "1HE8MZKhpbJiNvjJTrXdV395qEmPEqJme6P5DLBboop",
+      "symbol": "RDMP",
+      "platform": "Raydium CPMM",
+      "trade_number": 3,
+      "action": "sell",
+      "sol_delta": -19.94,
+      "expected_mc": 4700000,
+      "tolerance": 0.1,
+      "expected_confidence": "high"
+    },
+    {
+      "mint": "1HE8MZKhpbJiNvjJTrXdV395qEmPEqJme6P5DLBboop",
+      "symbol": "RDMP",
+      "platform": "Raydium CPMM",
+      "trade_number": 4,
+      "action": "sell",
+      "sol_delta": -10.60,
+      "expected_mc": 2500000,
+      "tolerance": 0.1,
+      "expected_confidence": "high"
+    }
+  ],
+  "expected_pnl": {
+    "GuFK1iRQPCSRxPxWhw94SrDtLYaf7oDT68uuDDpjpump": {
+      "symbol": "fakeout",
+      "pnl_sol": 2.6,
+      "tolerance": 0.1
+    },
+    "1HE8MZKhpbJiNvjJTrXdV395qEmPEqJme6P5DLBboop": {
+      "symbol": "RDMP",
+      "pnl_sol": 12.55,
+      "tolerance": 0.1
+    }
+  }
+} 

@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/position_models.py
+# hypothesis_version: 6.135.20
+
+['0', '100', 'PositionPnL', 'PositionSnapshot', 'Z', 'balance', 'closed_at', 'cost_basis', 'cost_basis_method', 'cost_basis_usd', 'current_price_usd', 'current_value_usd', 'decimals', 'est', 'fifo', 'high', 'is_closed', 'last_price_update', 'last_trade_at', 'last_update_slot', 'last_update_time', 'opened_at', 'position_id', 'positions', 'price_age_seconds', 'price_confidence', 'price_source', 'stale', 'summary', 'timestamp', 'token_mint', 'token_symbol', 'total_positions', 'total_value_usd', 'trade_count', 'unavailable', 'unknown', 'unrealized_pnl_pct', 'unrealized_pnl_usd', 'wallet', 'weighted_avg']

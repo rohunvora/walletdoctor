@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/dexscreener_client.py
+# hypothesis_version: 6.135.20
+
+[0.5, 404, '/dex/search', 'Testing SOL price...', '__main__', 'address', 'baseToken', 'base_url', 'bonk', 'buys', 'chainId', 'dexId', 'dexscreener', 'dexscreener_fdv', 'dexscreener_mc', 'fdv', 'h24', 'liquidity', 'marketCap', 'pair', 'pairAddress', 'pairs', 'priceChange', 'priceChange24h', 'priceUsd', 'q', 'quoteToken', 'rate_limited', 'request_count', 'sells', 'solana', 'source', 'txCount24h', 'txns', 'usd', 'volume', 'volume24h']

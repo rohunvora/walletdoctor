@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-07-02T00:35:52.839251Z",
+  "wallet": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
+  "pages_fetched": 10,
+  "total_signatures": 0,
+  "total_trades": 6424,
+  "unique_tokens": 804,
+  "first_slot": 0,
+  "last_slot": 0,
+  "fetch_time_seconds": 9.457056999206543,
+  "validation": {
+    "trades_sufficient": true,
+    "tokens_in_range": false,
+    "has_historical_data": false
+  }
+}

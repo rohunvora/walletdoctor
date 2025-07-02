@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/progress_protocol.py
+# hypothesis_version: 6.135.20
+
+[0.0, 0.5, 100.0, 100, 1000, 5000, '\nSSE Format:', 'SSEEvent', '__main__', 'batch_num', 'calculating_pnl', 'code', 'complete', 'connected', 'data', 'details', 'elapsed_seconds', 'error', 'fetching_metadata', 'fetching_prices', 'fetching_signatures', 'filtering', 'has_more', 'heartbeat', 'id', 'initializing', 'message', 'metadata', 'metrics', 'percentage', 'processing_trades', 'progress', 'req-123', 'retry', 'signatures_count', 'status', 'step', 'summary', 'timestamp', 'total_yielded', 'trades', 'trades_updated', 'type', 'wallet']

@@ -1,0 +1,44 @@
+{
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "timestamp": "2025-07-01T23:45:37.889661Z",
+  "wal_606e": {
+    "positions_before_filter": 4,
+    "positions_after_filter": 4,
+    "filtered_tokens": [],
+    "test_passed": false
+  },
+  "wal_606f": {
+    "position_summary": {
+      "open_positions": 4,
+      "total_cost_basis_usd": 2270.2569092698095,
+      "tokens": [
+        {
+          "symbol": "LABUBU",
+          "net_amount": 24992.646781,
+          "cost_basis_usd": 749.3736819887121
+        },
+        {
+          "symbol": "jockey",
+          "net_amount": 1422013.644363,
+          "cost_basis_usd": 749.1283564438901
+        },
+        {
+          "symbol": "USDC",
+          "net_amount": 434.1017360000001,
+          "cost_basis_usd": 472.0788370086839
+        },
+        {
+          "symbol": "GTA",
+          "net_amount": 0.004067,
+          "cost_basis_usd": 299.6760338285237
+        }
+      ]
+    },
+    "totals": {
+      "realized_pnl_usd": 0.0,
+      "unrealized_pnl_usd": -1816.2055274158477,
+      "total_pnl_usd": -1816.2055274158477
+    },
+    "note": "Unrealized P&L is estimated at 80% loss due to lack of API access"
+  }
+}

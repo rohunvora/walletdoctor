@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/position_builder.py
+# hypothesis_version: 6.135.20
+
+[0.0, '+00:00', '0', 'SOL', 'UNKNOWN', 'Z', 'action', 'after_trade', 'amount', 'balance', 'buy', 'cost_basis_method', 'cost_basis_per_token', 'cost_basis_usd', 'decimals', 'last_trade', 'mint', 'pnl_usd', 'position_closed', 'position_id', 'price', 'remaining_balance', 'sell', 'signature', 'slot', 'symbol', 'timestamp', 'token_in', 'token_out', 'tokens', 'total_bought', 'total_cost_basis_usd', 'total_positions', 'total_sold']

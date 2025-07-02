@@ -1,0 +1,234 @@
+openapi: 3.0.1
+info:
+  title: WalletDoctor Portfolio API
+  description: Real-time Solana wallet portfolio and P&L data for GPT integration
+  version: 1.1.0
+servers:
+  - url: https://walletdoctor.app
+    description: Production server
+  - url: http://localhost:8081
+    description: Development server
+paths:
+  /v4/positions/export-gpt/{wallet}:
+    get:
+      operationId: getWalletPortfolio
+      summary: Get wallet portfolio with positions and P&L
+      description: |
+        Returns complete portfolio data including all open positions, 
+        current values, and unrealized P&L calculations. All monetary 
+        values are returned as strings to preserve precision.
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          description: Solana wallet address
+          schema:
+            type: string
+            minLength: 32
+            maxLength: 44
+            example: "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"
+        - name: schema_version
+          in: query
+          required: false
+          description: Schema version (currently only 1.1 supported)
+          schema:
+            type: string
+            default: "1.1"
+            enum: ["1.1"]
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Successful response with portfolio data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+        '400':
+          description: Invalid wallet address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Wallet not found or no trading data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '501':
+          description: Feature disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: API key in format wd_<32-characters>
+  schemas:
+    PortfolioResponse:
+      type: object
+      required:
+        - schema_version
+        - wallet
+        - timestamp
+        - positions
+        - summary
+        - price_sources
+      properties:
+        schema_version:
+          type: string
+          example: "1.1"
+        wallet:
+          type: string
+          example: "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-28T10:30:00Z"
+        stale:
+          type: boolean
+          description: Present and true if data is from stale cache
+        age_seconds:
+          type: integer
+          description: Age of cached data in seconds (when stale=true)
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+        summary:
+          $ref: '#/components/schemas/PortfolioSummary'
+        price_sources:
+          $ref: '#/components/schemas/PriceSources'
+    Position:
+      type: object
+      required:
+        - position_id
+        - token_symbol
+        - token_mint
+        - balance
+        - decimals
+        - cost_basis_usd
+        - current_price_usd
+        - current_value_usd
+        - unrealized_pnl_usd
+        - unrealized_pnl_pct
+        - price_confidence
+        - price_age_seconds
+        - opened_at
+        - last_trade_at
+      properties:
+        position_id:
+          type: string
+          example: "3JoVBi:DezXAZ:1706438400"
+        token_symbol:
+          type: string
+          example: "BONK"
+        token_mint:
+          type: string
+          example: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+        balance:
+          type: string
+          description: Token balance as string to preserve precision
+          example: "1000000.123456"
+        decimals:
+          type: integer
+          example: 5
+        cost_basis_usd:
+          type: string
+          description: Total USD invested as string
+          example: "25.50"
+        current_price_usd:
+          type: string
+          description: Current token price in USD
+          example: "0.0000315"
+        current_value_usd:
+          type: string
+          description: Current position value in USD
+          example: "31.50"
+        unrealized_pnl_usd:
+          type: string
+          description: Unrealized profit/loss in USD
+          example: "6.00"
+        unrealized_pnl_pct:
+          type: string
+          description: Unrealized P&L percentage
+          example: "23.53"
+        price_confidence:
+          type: string
+          enum: ["high", "est", "stale"]
+          description: Price data confidence level
+        price_age_seconds:
+          type: integer
+          description: Age of price data in seconds
+          example: 45
+        opened_at:
+          type: string
+          format: date-time
+          example: "2024-01-27T15:30:00Z"
+        last_trade_at:
+          type: string
+          format: date-time
+          example: "2024-01-28T09:15:00Z"
+    PortfolioSummary:
+      type: object
+      required:
+        - total_positions
+        - total_value_usd
+        - total_unrealized_pnl_usd
+        - total_unrealized_pnl_pct
+        - stale_price_count
+      properties:
+        total_positions:
+          type: integer
+          example: 5
+        total_value_usd:
+          type: string
+          example: "1250.75"
+        total_unrealized_pnl_usd:
+          type: string
+          example: "325.40"
+        total_unrealized_pnl_pct:
+          type: string
+          example: "35.15"
+        stale_price_count:
+          type: integer
+          description: Number of positions with stale price data
+          example: 0
+    PriceSources:
+      type: object
+      properties:
+        primary:
+          type: string
+          example: "https://walletdoctor.app/v4/prices"
+        primary_hint:
+          type: string
+          example: "POST {mints: [string], timestamps: [number]} returns {mint: price_usd} in JSON"
+        fallback:
+          type: string
+          example: "https://api.coingecko.com/api/v3/simple/price"
+        fallback_hint:
+          type: string
+          example: "GET ?ids={coingecko_id}&vs_currencies=usd returns {id: {usd: price}} in JSON"
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "Invalid wallet address"
+        message:
+          type: string
+          example: "Wallet address must be at least 32 characters" 

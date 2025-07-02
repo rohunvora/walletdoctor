@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/mc_cache.py
+# hypothesis_version: 6.135.20
+
+[1234567.89, 1000, '%Y-%m-%d', 'MarketCapData', 'N/A', 'REDIS_URL', '__main__', 'backend', 'confidence', 'connected_clients', 'est', 'high', 'in-memory', 'lru_max_size', 'lru_size', 'mc:v1:', 'raydium', 'redis', 'redis_connected', 'redis_total_commands', 'redis_used_memory', 'source', 'timestamp', 'unavailable', 'used_memory_human', 'value']

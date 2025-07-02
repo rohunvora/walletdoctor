@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "WalletDoctor GPT API",
+    "description": "Collection for testing WalletDoctor's GPT export endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-Api-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://walletdoctor.app",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "wd_YOUR_32_CHARACTER_KEY_HERE",
+      "type": "string"
+    },
+    {
+      "key": "test_wallet",
+      "value": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Wallet Portfolio",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v4/positions/export-gpt/{{test_wallet}}",
+          "host": ["{{base_url}}"],
+          "path": ["v4", "positions", "export-gpt", "{{test_wallet}}"],
+          "query": []
+        },
+        "description": "Get complete portfolio data for a wallet including positions and P&L"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v4/positions/export-gpt/{{test_wallet}}",
+              "host": ["{{base_url}}"],
+              "path": ["v4", "positions", "export-gpt", "{{test_wallet}}"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "X-Response-Time-Ms",
+              "value": "45.23"
+            },
+            {
+              "key": "X-Cache-Status",
+              "value": "MISS"
+            }
+          ],
+          "body": "{\n  \"schema_version\": \"1.1\",\n  \"wallet\": \"3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2\",\n  \"timestamp\": \"2024-01-28T10:30:00Z\",\n  \"positions\": [\n    {\n      \"position_id\": \"3JoVBi:DezXAZ:1706438400\",\n      \"token_symbol\": \"BONK\",\n      \"token_mint\": \"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263\",\n      \"balance\": \"1000000.123456\",\n      \"decimals\": 5,\n      \"cost_basis_usd\": \"25.50\",\n      \"current_price_usd\": \"0.0000315\",\n      \"current_value_usd\": \"31.50\",\n      \"unrealized_pnl_usd\": \"6.00\",\n      \"unrealized_pnl_pct\": \"23.53\",\n      \"price_confidence\": \"high\",\n      \"price_age_seconds\": 45,\n      \"opened_at\": \"2024-01-27T15:30:00Z\",\n      \"last_trade_at\": \"2024-01-28T09:15:00Z\"\n    }\n  ],\n  \"summary\": {\n    \"total_positions\": 1,\n    \"total_value_usd\": \"31.50\",\n    \"total_unrealized_pnl_usd\": \"6.00\",\n    \"total_unrealized_pnl_pct\": \"23.53\",\n    \"stale_price_count\": 0\n  },\n  \"price_sources\": {\n    \"primary\": \"https://walletdoctor.app/v4/prices\",\n    \"primary_hint\": \"POST {mints: [string], timestamps: [number]} returns {mint: price_usd} in JSON\",\n    \"fallback\": \"https://api.coingecko.com/api/v3/simple/price\",\n    \"fallback_hint\": \"GET ?ids={coingecko_id}&vs_currencies=usd returns {id: {usd: price}} in JSON\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Portfolio with Schema Version",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v4/positions/export-gpt/{{test_wallet}}?schema_version=1.1",
+          "host": ["{{base_url}}"],
+          "path": ["v4", "positions", "export-gpt", "{{test_wallet}}"],
+          "query": [
+            {
+              "key": "schema_version",
+              "value": "1.1",
+              "description": "Schema version to use"
+            }
+          ]
+        },
+        "description": "Get portfolio data with specific schema version"
+      }
+    },
+    {
+      "name": "Invalid Wallet Test",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v4/positions/export-gpt/invalid",
+          "host": ["{{base_url}}"],
+          "path": ["v4", "positions", "export-gpt", "invalid"]
+        },
+        "description": "Test invalid wallet address handling"
+      },
+      "response": [
+        {
+          "name": "Invalid Wallet Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v4/positions/export-gpt/invalid",
+              "host": ["{{base_url}}"],
+              "path": ["v4", "positions", "export-gpt", "invalid"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"error\": \"Invalid wallet address\",\n  \"message\": \"Wallet address must be at least 32 characters\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "No Auth Test",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/v4/positions/export-gpt/{{test_wallet}}",
+          "host": ["{{base_url}}"],
+          "path": ["v4", "positions", "export-gpt", "{{test_wallet}}"]
+        },
+        "description": "Test endpoint without authentication"
+      },
+      "response": [
+        {
+          "name": "Unauthorized Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v4/positions/export-gpt/{{test_wallet}}",
+              "host": ["{{base_url}}"],
+              "path": ["v4", "positions", "export-gpt", "{{test_wallet}}"]
+            }
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"error\": \"API key required\",\n  \"message\": \"Please provide API key via X-Api-Key header\"\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Log the request details for debugging",
+          "console.log('Making request to:', pm.request.url.toString());",
+          "console.log('API Key:', pm.variables.get('api_key').substring(0, 10) + '...');"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Common tests for all requests",
+          "pm.test('Response time is less than 1500ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+          "});",
+          "",
+          "// Test response headers",
+          "if (pm.response.code === 200) {",
+          "    pm.test('Has X-Response-Time-Ms header', function () {",
+          "        pm.expect(pm.response.headers.has('X-Response-Time-Ms')).to.be.true;",
+          "    });",
+          "",
+          "    pm.test('Response is valid JSON', function () {",
+          "        pm.response.to.be.json;",
+          "    });",
+          "",
+          "    pm.test('Schema version is correct', function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData.schema_version).to.eql('1.1');",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ]
+} 

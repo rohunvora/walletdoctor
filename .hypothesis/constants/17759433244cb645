@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/jupiter_client.py
+# hypothesis_version: 6.135.20
+
+[0.1, 0.5, 100.0, 404, 429, ',', 'Retry-After', 'USDC', '__main__', 'amount', 'asLegacyTransaction', 'confidence', 'data', 'depth', 'false', 'id', 'ids', 'inAmount', 'inputMint', 'jupiter_price', 'jupiter_price_v4', 'jupiter_quote', 'jupiter_quote_v6', 'onlyDirectRoutes', 'outAmount', 'outputMint', 'price', 'priceImpactPct', 'price_api', 'quote_api', 'request_count', 'routePlan', 'routes', 'slippageBps', 'source', 'tokens', 'vsToken', 'vsTokenSymbol']

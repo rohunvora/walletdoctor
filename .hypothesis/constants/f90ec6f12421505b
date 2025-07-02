@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/birdeye_client.py
+# hypothesis_version: 6.135.20
+
+[0.5, 404, 429, 3600, 86400, '/defi/history_price', '/defi/price', '/defi/token_overview', '1H', 'Accept', 'BIRDEYE_API_KEY', 'Retry-After', 'Unknown error', 'X-API-KEY', '__main__', 'address', 'address_type', 'api_key_set', 'application/json', 'base_url', 'birdeye_current', 'birdeye_historical', 'birdeye_mc', 'check_liquidity', 'data', 'decimals', 'fdv', 'holder', 'inf', 'items', 'lastTradeTime', 'lastTradeUnixTime', 'liquidity', 'marketCap', 'mc', 'message', 'price', 'priceChange24h', 'request_count', 'source', 'success', 'supply', 'timeDiff', 'time_from', 'time_to', 'timestamp', 'token', 'true', 'type', 'unixTime', 'updateTime', 'updateUnixTime', 'v24hUSD', 'value', 'volume24h']

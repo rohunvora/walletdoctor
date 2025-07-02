@@ -477,6 +477,125 @@ def home():
     })
 
 
+@app.route("/v4/positions/export-gpt-stream/<wallet_address>", methods=["GET"])
+@simple_auth_required
+def export_positions_stream(wallet_address: str):
+    """
+    Stream positions export in GPT-friendly format using Server-Sent Events
+    
+    GET /v4/positions/export-gpt-stream/{wallet}
+    
+    This endpoint streams the response as data becomes available,
+    allowing ChatGPT to start processing before the full response is ready.
+    
+    Headers:
+    - X-Api-Key: API key for authentication
+    
+    Returns: SSE stream with events:
+    - progress: Updates on fetching progress
+    - data: Partial position data as available
+    - complete: Final summary when done
+    """
+    from flask import Response
+    import json
+    
+    def generate():
+        """Generate SSE events"""
+        try:
+            # Send initial connection event
+            yield f"event: connected\ndata: {json.dumps({'wallet': wallet_address})}\n\n"
+            
+            # Check cache first
+            cache = get_position_cache_v2()
+            cached_result = asyncio.run(cache.get_portfolio_snapshot(wallet_address))
+            
+            if cached_result:
+                snapshot, is_stale = cached_result
+                age_seconds = int((datetime.now(timezone.utc) - snapshot.timestamp).total_seconds())
+                
+                # If data is fresh, send it immediately
+                if age_seconds < 300:  # 5 minutes
+                    yield f"event: cache_hit\ndata: {json.dumps({'age_seconds': age_seconds})}\n\n"
+                    
+                    # Send the full response
+                    response_data = format_gpt_schema_v1_1(snapshot)
+                    yield f"event: complete\ndata: {json.dumps(response_data)}\n\n"
+                    return
+            
+            # Need to fetch fresh data - stream progress
+            yield f"event: cache_miss\ndata: {json.dumps({'message': 'Fetching fresh data'})}\n\n"
+            
+            # Fetch trades (without streaming progress for now)
+            start_time = time.time()
+            yield f"event: fetching\ndata: {json.dumps({'message': 'Fetching blockchain data...'})}\n\n"
+            
+            async def fetch_data():
+                async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+                    return await fetcher.fetch_wallet_trades(wallet_address)
+            
+            result = asyncio.run(fetch_data())
+            trades = result.get("trades", [])
+            
+            fetch_duration = time.time() - start_time
+            yield f"event: trades_fetched\ndata: {json.dumps({'count': len(trades), 'duration': fetch_duration})}\n\n"
+            
+            # Build positions
+            method = CostBasisMethod(get_cost_basis_method())
+            builder = PositionBuilder(method)
+            positions = builder.build_positions_from_trades(trades, wallet_address)
+            
+            yield f"event: positions_built\ndata: {json.dumps({'count': len(positions)})}\n\n"
+            
+            # Calculate P&L
+            if positions and should_calculate_unrealized_pnl():
+                calculator = UnrealizedPnLCalculator()
+                
+                # Stream positions as they're calculated
+                position_pnls = []
+                batch_size = 10
+                
+                for i in range(0, len(positions), batch_size):
+                    batch = positions[i:i+batch_size]
+                    batch_pnls = asyncio.run(calculator.create_position_pnl_list(batch))
+                    position_pnls.extend(batch_pnls)
+                    
+                    # Send batch update
+                    yield f"event: pnl_batch\ndata: {json.dumps({'processed': len(position_pnls), 'total': len(positions)})}\n\n"
+                
+                # Create and cache snapshot
+                snapshot = PositionSnapshot.from_positions(wallet_address, position_pnls)
+                asyncio.run(cache.set_portfolio_snapshot(snapshot))
+                
+                # Send complete response
+                response_data = format_gpt_schema_v1_1(snapshot)
+                total_duration = time.time() - start_time
+                response_data['_performance'] = {
+                    'duration_seconds': total_duration,
+                    'trades_count': len(trades),
+                    'positions_count': len(positions)
+                }
+                
+                yield f"event: complete\ndata: {json.dumps(response_data)}\n\n"
+            else:
+                # No positions
+                yield f"event: complete\ndata: {json.dumps({'error': 'No positions found'})}\n\n"
+                
+        except Exception as e:
+            logger.error(f"Error in SSE stream: {e}")
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+    
+    # Return SSE response
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive"
+        }
+    )
+
+
 if __name__ == "__main__":
     # For development
     app.run(host="0.0.0.0", port=8081, debug=False) 

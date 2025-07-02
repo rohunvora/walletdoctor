@@ -1,0 +1,91 @@
+{
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "timestamp": "2024-01-28T12:00:00Z",
+  "cache_mode": "redis",
+  "data_source": "archive/data/34zYDgjy_trades.json",
+  "position_summary": {
+    "open_positions": 4,
+    "total_cost_basis_usd": 2270.26,
+    "tokens": [
+      {
+        "symbol": "jockey",
+        "holdings": 1422013.64,
+        "cost_basis_usd": 749.13
+      },
+      {
+        "symbol": "LABUBU", 
+        "holdings": 24992.65,
+        "cost_basis_usd": 749.37
+      },
+      {
+        "symbol": "USDC",
+        "holdings": 434.10,
+        "cost_basis_usd": 472.08
+      },
+      {
+        "symbol": "GTA",
+        "holdings": 0.004067,
+        "cost_basis_usd": 299.68
+      }
+    ]
+  },
+  "notable_positions": {
+    "biggest_value": {
+      "token": "jockey",
+      "amount": 1422013.64,
+      "cost_basis": 0.000527,
+      "cost_basis_usd": 749.13,
+      "trade_count": 1,
+      "note": "Largest position by token count"
+    },
+    "stable_coin": {
+      "token": "USDC",
+      "amount": 434.10,
+      "cost_basis": 1.064,
+      "cost_basis_usd": 472.08,
+      "trade_count": 7,
+      "note": "Stablecoin position for cross-checking"
+    },
+    "high_price_token": {
+      "token": "GTA",
+      "amount": 0.004067,
+      "cost_basis": 73684.79,
+      "cost_basis_usd": 299.68,
+      "trade_count": 1,
+      "note": "Highest price per token"
+    }
+  },
+  "totals": {
+    "realized_pnl_usd": 0.0,
+    "total_trades": 31,
+    "total_volume_usd": 22345.81,
+    "total_bought_usd": 13859.80,
+    "total_sold_usd": 8486.01,
+    "net_spent_usd": 5373.80
+  },
+  "cross_check_token": {
+    "token": "USDC",
+    "trade_breakdown": [
+      {"action": "sell", "amount": 228.71, "price": 1.0376, "value_usd": 237.31},
+      {"action": "buy", "amount": 701.82, "price": 1.0673, "value_usd": 749.08},
+      {"action": "sell", "amount": 385.58, "price": 1.0575, "value_usd": 407.74},
+      {"action": "buy", "amount": 282.00, "price": 1.0625, "value_usd": 299.63},
+      {"action": "sell", "amount": 207.20, "price": 1.0605, "value_usd": 219.73},
+      {"action": "buy", "amount": 282.97, "price": 1.0589, "value_usd": 299.63},
+      {"action": "sell", "amount": 11.21, "price": 1.0250, "value_usd": 11.49}
+    ],
+    "net_amount": 434.10,
+    "total_bought_usd": 1348.34,
+    "total_sold_usd": 876.26,
+    "average_cost_basis": 1.064
+  },
+  "verification_notes": {
+    "tokens_found": ["BUNK", "COIN ACT ", "GOR", "GTA", "Honey", "LABUBU", "OSCAR", "SOL", "USDC", "gor", "jockey"],
+    "mock_tokens_check": {
+      "BONK": false,
+      "WIF": false,
+      "BODEN": false
+    },
+    "data_integrity": "Real on-chain data from archived trades, no mock tokens present"
+  }
+} 

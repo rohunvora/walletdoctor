@@ -1,0 +1,4 @@
+# file: /Users/satoshi/walletdoctor/src/lib/amm_price.py
+# hypothesis_version: 6.135.20
+
+[100, 300, 1000, 347318465, 347397782, 347398239, '0', '1.0', '1000', '10000000', '1000000000000', '100000000000000', '150.0', '150000000000', '1600000000000', '1670000000000', '2.0', '30000000000', '3130000000000', '3400000000000', '3780000000', '420000000', '50000000000', '9000000000000', '950000000000000', 'Content-Type', 'HELIUS_KEY', '__main__', 'address', 'application/json', 'cache_size', 'error', 'high', 'id', 'jsonrpc', 'low', 'medium', 'message', 'method', 'params', 'pools', 'program', 'pump', 'pump_amm', 'raydium', 'request_count', 'self', 'sol_price', 'token_a_amount', 'token_a_decimals', 'token_a_mint', 'token_a_price', 'token_b_amount', 'token_b_decimals', 'token_b_mint', 'token_b_price', 'unknown', 'virtual_sol_reserves']
