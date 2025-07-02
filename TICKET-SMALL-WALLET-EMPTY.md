@@ -19,25 +19,33 @@ Small wallet endpoint returns HTTP 200 but with empty positions array, despite h
 3. **Clean environment** - PRICE_HELIUS_ONLY=true, WEB_CONCURRENCY=1, no Redis
 4. **Single hypothesis per deploy** - Keep loops under 10 minutes
 
+## Micro-Experiment #1: Helius Response Check
+**Commit**: 04025d7 - Added CHECK logs in `_fetch_signature_page` to capture:
+- `[CHECK] helius_url=` - The exact URL being called
+- `[CHECK] helius_resp_first_200B=` - First 200 bytes of raw response
+
+### Expected Outcomes:
+| Observation | Next Move |
+|------------|-----------|
+| `{"message":"Missing or invalid API key"}` | HELIUS_KEY not loaded in runtime |
+| Empty JSON list `[]` | Wrong cluster or endpoint path |
+| Non-empty array but still 0 trades | Parser bug in signature collection |
+
 ## Test Commands
 ```bash
-# Cold request
+# Single cold request only (no need for warm)
 curl -i -m 10 -H "X-Api-Key:$KEY" "$URL/v4/positions/export-gpt/$SMALL"
 
-# Wait 3 seconds
-
-# Warm request  
-curl -i -m 10 -H "X-Api-Key:$KEY" "$URL/v4/positions/export-gpt/$SMALL"
-
-# Collect logs
-railway logs --since 2m | grep "\[CHECK\]" > phase.log
+# Immediately collect logs
+railway logs --since 2m | grep "\[CHECK\] helius" > helius_check.log
 ```
 
 ## Evidence Collection
 - [ ] Cold response headers + first 200B of body
 - [ ] Warm response headers + first 200B of body  
 - [ ] phase.log with CHECK counts
-- [ ] Commit SHA: 5280dca
+- [x] Commit SHA: 5280dca (original)
+- [x] Commit SHA: 04025d7 (Helius checks)
 
 ## Interpretation Guide
 - If `trades_found=0` → problem is trade parser
