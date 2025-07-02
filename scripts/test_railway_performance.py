@@ -3,6 +3,7 @@
 Test Railway deployment performance for GPT export endpoint (WAL-613)
 
 Tests the small wallet to ensure < 30s response time.
+Now with 10s hard timeout per phase for fail-fast behavior.
 """
 
 import time
@@ -28,6 +29,7 @@ BASE_URL = os.getenv("API_BASE_URL", "https://web-production-2bb2f.up.railway.ap
 # Performance targets
 TARGET_COLD_CACHE = 30.0  # 30 seconds for cold cache
 TARGET_WARM_CACHE = 5.0   # 5 seconds for warm cache
+HARD_TIMEOUT = 10.0      # 10 second hard timeout per request
 
 
 def test_endpoint(wallet: str, test_name: str) -> dict:
@@ -40,21 +42,36 @@ def test_endpoint(wallet: str, test_name: str) -> dict:
     logger.info(f"Testing: {test_name}")
     logger.info(f"URL: {url}")
     logger.info(f"Wallet: {wallet}")
+    logger.info(f"Hard timeout: {HARD_TIMEOUT}s")
     
     # Start timing
     start_time = time.time()
+    phase_timings = {}
     
     try:
-        # Make request
-        response = requests.get(url, headers=headers, timeout=60)
+        # Make request with hard timeout
+        logger.info("Starting request...")
+        phase_start = time.time()
+        response = requests.get(url, headers=headers, timeout=HARD_TIMEOUT)
         end_time = time.time()
         
         # Calculate timings
         total_time = end_time - start_time
+        phase_timings["network_request"] = end_time - phase_start
         
         # Extract timing from header if available
         server_time = float(response.headers.get("X-Response-Time-Ms", 0)) / 1000
         network_time = total_time - server_time if server_time > 0 else 0
+        
+        # Extract phase timings from headers if available
+        if "X-Helius-Time-Ms" in response.headers:
+            phase_timings["helius_fetch"] = float(response.headers["X-Helius-Time-Ms"]) / 1000
+        if "X-Price-Fetch-Time-Ms" in response.headers:
+            phase_timings["price_fetch"] = float(response.headers["X-Price-Fetch-Time-Ms"]) / 1000
+        if "X-Position-Build-Time-Ms" in response.headers:
+            phase_timings["position_build"] = float(response.headers["X-Position-Build-Time-Ms"]) / 1000
+        if "X-Serialize-Time-Ms" in response.headers:
+            phase_timings["serialize"] = float(response.headers["X-Serialize-Time-Ms"]) / 1000
         
         result = {
             "test_name": test_name,
@@ -62,8 +79,10 @@ def test_endpoint(wallet: str, test_name: str) -> dict:
             "total_time": total_time,
             "server_time": server_time,
             "network_time": network_time,
+            "phase_timings": phase_timings,
             "cache_status": response.headers.get("X-Cache-Status", "UNKNOWN"),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "timeout_hit": False
         }
         
         if response.status_code == 200:
@@ -87,6 +106,13 @@ def test_endpoint(wallet: str, test_name: str) -> dict:
         logger.info(f"  Server Time: {server_time:.2f}s")
         logger.info(f"  Network Time: {network_time:.2f}s")
         
+        if phase_timings:
+            logger.info(f"\nPhase Timings:")
+            for phase, duration in phase_timings.items():
+                logger.info(f"  {phase}: {duration:.2f}s")
+                if duration > HARD_TIMEOUT:
+                    logger.error(f"  ⚠️  Phase '{phase}' exceeded {HARD_TIMEOUT}s timeout!")
+        
         # Check against targets
         if result["cache_status"] == "MISS":
             target = TARGET_COLD_CACHE
@@ -104,14 +130,22 @@ def test_endpoint(wallet: str, test_name: str) -> dict:
         return result
         
     except requests.exceptions.Timeout:
-        logger.error("❌ Request timed out after 60s")
-        return {
+        logger.error(f"❌ Request timed out after {HARD_TIMEOUT}s - ABORTED")
+        result = {
             "test_name": test_name,
             "status_code": 0,
-            "error": "Timeout after 60s",
-            "total_time": 60.0,
-            "timestamp": datetime.now().isoformat()
+            "error": f"Timeout after {HARD_TIMEOUT}s",
+            "total_time": HARD_TIMEOUT,
+            "phase_timings": phase_timings,
+            "timestamp": datetime.now().isoformat(),
+            "timeout_hit": True,
+            "timeout_phase": "network_request"
         }
+        # Save partial results
+        save_partial_results([result])
+        logger.error("Partial results saved. Aborting further tests.")
+        sys.exit(1)
+        
     except Exception as e:
         logger.error(f"❌ Error: {e}")
         return {
@@ -119,7 +153,9 @@ def test_endpoint(wallet: str, test_name: str) -> dict:
             "status_code": 0,
             "error": str(e),
             "total_time": time.time() - start_time,
-            "timestamp": datetime.now().isoformat()
+            "phase_timings": phase_timings,
+            "timestamp": datetime.now().isoformat(),
+            "timeout_hit": False
         }
 
 
@@ -131,13 +167,40 @@ def warm_cache(wallet: str):
     logger.info(f"\nWarming cache for {wallet}...")
     
     try:
-        response = requests.post(url, headers=headers, timeout=60)
+        response = requests.post(url, headers=headers, timeout=HARD_TIMEOUT)
         if response.status_code == 200:
             logger.info("✅ Cache warmed successfully")
         else:
             logger.warning(f"⚠️  Cache warming failed: {response.status_code}")
+    except requests.exceptions.Timeout:
+        logger.error(f"❌ Cache warming timed out after {HARD_TIMEOUT}s")
     except Exception as e:
         logger.warning(f"⚠️  Cache warming error: {e}")
+
+
+def save_partial_results(results: list):
+    """Save partial results to JSON even on failure"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_file = f"tmp/railway_timing_{timestamp}.json"
+    
+    os.makedirs("tmp", exist_ok=True)
+    
+    with open(report_file, "w") as f:
+        json.dump({
+            "timestamp": datetime.now().isoformat(),
+            "base_url": BASE_URL,
+            "wallet": SMALL_WALLET,
+            "hard_timeout": HARD_TIMEOUT,
+            "targets": {
+                "cold_cache": TARGET_COLD_CACHE,
+                "warm_cache": TARGET_WARM_CACHE
+            },
+            "results": results,
+            "aborted": True,
+            "abort_reason": "Timeout exceeded"
+        }, f, indent=2)
+    
+    logger.info(f"\nPartial results saved to: {report_file}")
 
 
 def main():
@@ -150,6 +213,7 @@ def main():
     logger.info(f"Small Wallet: {SMALL_WALLET}")
     logger.info(f"Target (cold): {TARGET_COLD_CACHE}s")
     logger.info(f"Target (warm): {TARGET_WARM_CACHE}s")
+    logger.info(f"Hard timeout: {HARD_TIMEOUT}s per request")
     
     results = []
     
@@ -199,8 +263,30 @@ def main():
         logger.info(f"{status} {result['test_name']}: {time_str} ({cache})")
     
     # Write detailed report
-    report_file = "railway_performance_report.json"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_file = f"tmp/railway_timing_{timestamp}.json"
+    
+    os.makedirs("tmp", exist_ok=True)
+    
     with open(report_file, "w") as f:
+        json.dump({
+            "timestamp": datetime.now().isoformat(),
+            "base_url": BASE_URL,
+            "wallet": SMALL_WALLET,
+            "hard_timeout": HARD_TIMEOUT,
+            "targets": {
+                "cold_cache": TARGET_COLD_CACHE,
+                "warm_cache": TARGET_WARM_CACHE
+            },
+            "results": results,
+            "all_passed": all_passed,
+            "aborted": False
+        }, f, indent=2)
+    
+    logger.info(f"\nDetailed report saved to: {report_file}")
+    
+    # Also save simplified report
+    with open("railway_performance_report.json", "w") as f:
         json.dump({
             "timestamp": datetime.now().isoformat(),
             "base_url": BASE_URL,
@@ -212,8 +298,6 @@ def main():
             "results": results,
             "all_passed": all_passed
         }, f, indent=2)
-    
-    logger.info(f"\nDetailed report saved to: {report_file}")
     
     if all_passed:
         logger.info("\n✅ All tests passed!")

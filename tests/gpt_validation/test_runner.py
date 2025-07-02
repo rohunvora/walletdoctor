@@ -289,7 +289,8 @@ class TestGPTExportValidation:
             
             try:
                 logger.info(f"Making API request to {url}")
-                response = requests.get(url, headers=headers, timeout=30)
+                # 10s hard timeout for fail-fast
+                response = requests.get(url, headers=headers, timeout=10)
                 
                 # Log the HTTP status
                 logger.info(f"HTTP Status: {response.status_code}")
@@ -304,13 +305,13 @@ class TestGPTExportValidation:
                 # Get response time from header
                 response_time = float(response.headers.get("X-Response-Time-Ms", 0))
                 
+            except requests.exceptions.Timeout as e:
+                logger.error(f"API request timed out after 10s - ABORTED")
+                pytest.fail(f"API request exceeded 10s timeout in strict mode")
             except requests.exceptions.RequestException as e:
                 logger.error(f"API request failed: {e}")
-                if use_mock:
-                    pytest.skip(f"API not available and mock mode enabled: {e}")
-                else:
-                    # In strict mode, fail the test
-                    pytest.fail(f"API request failed in strict mode: {e}")
+                # No automatic fallback to mock - fail in strict mode
+                pytest.fail(f"API request failed in strict mode: {e}")
         
         # Validate response
         is_valid, errors, warnings = self.validator.validate(data)

@@ -1,5 +1,11 @@
 # Beta Validation Status
 
+## Railway Performance Update (2025-07-02)
+- Small wallet (145 trades): 502 timeout @ 5.1s
+- Railway proxy timing out before app responds
+- Need to set RAILWAY_PROXY_TIMEOUT=30 and optimize Helius fetching
+- See tmp/railway_timing_summary.md for details
+
 ## Date: January 2, 2025
 
 ### What We Did
