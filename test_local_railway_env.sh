@@ -11,7 +11,7 @@ export HELIUS_PARALLEL_REQUESTS="5"
 export HELIUS_MAX_RETRIES="2"
 export HELIUS_TIMEOUT="15"
 export ENABLE_CACHE_WARMING="true"
-export GUNICORN_CMD_ARGS="--timeout 120 --worker-class uvicorn.workers.UvicornWorker"
+# GUNICORN_CMD_ARGS not needed - removed UvicornWorker
 export LOG_LEVEL="debug"
 export FLASK_DEBUG="true"
 export PORT="8080"
@@ -24,7 +24,6 @@ echo "BIRDEYE_API_KEY present: ${BIRDEYE_API_KEY:+true}"
 gunicorn src.api.wallet_analytics_api_v4_gpt:app \
     --workers $WEB_CONCURRENCY \
     --timeout 120 \
-    --worker-class uvicorn.workers.UvicornWorker \
     --bind "0.0.0.0:$PORT" \
     --log-level debug \
     --access-logfile - 

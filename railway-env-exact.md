@@ -8,7 +8,7 @@ BIRDEYE_API_KEY=<real key>
 POSITIONS_ENABLED=true
 UNREALIZED_PNL_ENABLED=true
 WEB_CONCURRENCY=2
-GUNICORN_CMD_ARGS=--timeout 120 --worker-class uvicorn.workers.UvicornWorker
+# GUNICORN_CMD_ARGS removed - not needed after fixing Procfile
 HELIUS_PARALLEL_REQUESTS=5
 HELIUS_MAX_RETRIES=2
 HELIUS_TIMEOUT=15
