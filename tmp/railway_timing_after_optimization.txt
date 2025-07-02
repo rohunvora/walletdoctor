@@ -1,0 +1,23 @@
+2025-07-02 02:19:57,704 - INFO - 
+============================================================
+2025-07-02 02:19:57,704 - INFO - Railway Performance Test - WAL-613
+2025-07-02 02:19:57,704 - INFO - ============================================================
+2025-07-02 02:19:57,705 - INFO - Base URL: https://web-production-2bb2f.up.railway.app
+2025-07-02 02:19:57,705 - INFO - Small Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:19:57,705 - INFO - Target (cold): 30.0s
+2025-07-02 02:19:57,705 - INFO - Target (warm): 5.0s
+2025-07-02 02:19:57,705 - INFO - Hard timeout: 45.0s per request
+2025-07-02 02:19:57,705 - INFO - 
+============================================================
+2025-07-02 02:19:57,705 - INFO - TEST 1: COLD CACHE
+2025-07-02 02:19:57,705 - INFO - 
+============================================================
+2025-07-02 02:19:57,705 - INFO - Testing: Cold Cache
+2025-07-02 02:19:57,705 - INFO - URL: https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:19:57,705 - INFO - Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+2025-07-02 02:19:57,705 - INFO - Hard timeout: 45.0s
+2025-07-02 02:19:57,705 - INFO - Starting request...
+2025-07-02 02:20:42,804 - ERROR - ❌ Request timed out after 45.0s - ABORTED
+2025-07-02 02:20:42,805 - INFO - 
+Partial results saved to: tmp/railway_timing_20250702_022042.json
+2025-07-02 02:20:42,805 - ERROR - Partial results saved. Aborting further tests.

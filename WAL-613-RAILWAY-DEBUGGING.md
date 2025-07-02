@@ -17,7 +17,7 @@
 Started: 02:10:42
 Signature fetch: ~1s (1677 signatures)
 Transaction fetch: ~2s (1117 transactions)
-Price fetching: Still running after 2+ minutes
+Price fetching: Very slow (took over 2 minutes)
 ```
 
 ### Railway Production
@@ -29,49 +29,102 @@ Cache warming: Timeout after 45s
 
 ## Root Cause Analysis
 
-### Hypothesis 1: Network Latency
-- Railway → Helius might have higher latency than local
-- Railway → Birdeye price fetching could be the bottleneck
+### ✅ CONFIRMED: Price Fetching is the Bottleneck
+- **Birdeye API rate limit**: 1 request/second
+- **Small wallet has 1074 unique trades**
+- Even with batching (100 mints/call), still requires many sequential calls
+- **Estimated time**: 10-15 seconds minimum for price fetching alone
 
-### Hypothesis 2: Resource Constraints
-- Memory limits causing worker restarts
-- CPU throttling during intensive operations
-
-### Hypothesis 3: Async/Sync Blocking
-- Flask's sync nature blocking on async operations
-- Gunicorn worker timeout (default 30s)
+### ✅ CONFIRMED: Worker Timeout Issue
+- Default gunicorn timeout was 30s
+- Worker gets killed before request completes
+- Results in 502 errors
 
 ## Action Items
 
-### 1. Enhanced Logging (DONE)
+### 1. Enhanced Logging (✅ DONE)
 - Added info-level phase logging to GPT export
 - Will show exactly where the 30+ second delay occurs
 
-### 2. Environment Tuning
-Updated Railway env vars:
-- `WEB_CONCURRENCY=1` (reduce memory pressure)
-- `HELIUS_PARALLEL_REQUESTS=15` (increase throughput)
-- `HELIUS_TIMEOUT=20` (increase timeout)
-- `GUNICORN_TIMEOUT=60` (prevent worker timeout)
-- `RAILWAY_PROXY_TIMEOUT=60` (prevent proxy timeout)
+### 2. Environment Tuning (⏳ PENDING)
+**NOTE**: Railway env vars NOT updated yet per diagnostics endpoint
 
-### 3. Direct Testing Needed
-- SSH into Railway: `railway run bash`
-- Run: `./scripts/railway_shell_test.sh`
-- Compare network latency vs local
+Need to manually update in Railway dashboard:
+- `WEB_CONCURRENCY=1` (currently 2)
+- `HELIUS_PARALLEL_REQUESTS=15` (currently 5)
+- `HELIUS_TIMEOUT=20` (currently 15)
+- `GUNICORN_TIMEOUT=60` (not set)
+- `RAILWAY_PROXY_TIMEOUT=60` (not set)
 
-### 4. Cache Warming Strategy
-If Helius/Birdeye is slow on Railway:
-- Implement background pre-warming
-- Use Redis for cross-request caching
-- Consider CDN for price data
+### 3. Skip Pricing Debug Mode (✅ DONE)
+Added `?skip_pricing=true` parameter to isolate issue:
+```
+/v4/positions/export-gpt/{wallet}?skip_pricing=true
+```
+
+### 4. Diagnostics Endpoint (✅ WORKING)
+```
+GET /v4/diagnostics
+```
+Shows env vars, Redis status, feature flags
+
+## Immediate Fix
+
+1. **Update Railway Environment Variables**:
+   ```
+   WEB_CONCURRENCY=1
+   HELIUS_PARALLEL_REQUESTS=15
+   HELIUS_TIMEOUT=20
+   GUNICORN_TIMEOUT=60
+   RAILWAY_PROXY_TIMEOUT=60
+   LOG_LEVEL=info
+   ```
+
+2. **Test with skip_pricing**:
+   ```bash
+   curl -H "X-Api-Key: wd_12345678901234567890123456789012" \
+     "https://web-production-2bb2f.up.railway.app/v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya?skip_pricing=true"
+   ```
+
+3. **Monitor Phase Logs**:
+   ```bash
+   railway logs --tail 200 | grep "phase="
+   ```
+
+## Long-term Solutions
+
+1. **Redis Caching** (Critical)
+   - Set up Redis on Railway
+   - Cache prices across requests
+   - Pre-warm popular token prices
+
+2. **Background Jobs**
+   - Use Celery/RQ for heavy computations
+   - Return job ID, poll for results
+
+3. **Price Service Optimization**
+   - Implement price proxy with caching
+   - Use WebSocket for real-time prices
+   - Consider different price provider with higher rate limits
+
+4. **Architecture Change**
+   - Consider FastAPI for true async support
+   - Or use threading for price fetches in Flask
+
+## Expected Outcome
+
+Once env vars are updated:
+- Requests should complete (even if slow)
+- Phase logs will show exact bottlenecks
+- skip_pricing=true should return in <5s
 
 ## Next Steps
 
-1. **Deploy env var changes** and retest
-2. **Analyze Railway logs** for phase timings
-3. **Run direct shell test** to isolate network issues
-4. **Consider FastAPI** if sync/async is the issue
+1. **USER ACTION REQUIRED**: Update Railway env vars in dashboard
+2. Wait 5 minutes for deployment
+3. Test with skip_pricing=true first
+4. If that works, test normal flow
+5. Check phase timing logs
 
 ## Logs to Collect
 ```bash

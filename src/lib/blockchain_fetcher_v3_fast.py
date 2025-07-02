@@ -379,61 +379,108 @@ class BlockchainFetcherV3Fast:
     async def _fetch_prices_batch(self, trades: List[Trade]):
         """Fetch prices in optimized batches"""
         self._report_progress("Collecting required prices...")
+        
+        # Count unique tokens to price
+        unique_mints = set()
+        cache_hits = 0
+        cache_misses = 0
 
         # First pass: check cache and queue missing prices
         for trade in trades:
             for mint in [trade.token_in_mint, trade.token_out_mint]:
                 if mint == SOL_MINT:
                     continue
+                unique_mints.add(mint)
 
                 cached = self.price_cache.get(mint, trade.timestamp)
                 if cached is None:
+                    cache_misses += 1
                     self.price_cache.add_pending(mint, trade.timestamp)
+                else:
+                    cache_hits += 1
+
+        logger.info(f"[RCA] Unique mints: {len(unique_mints)}, Cache hits: {cache_hits}, Cache misses: {cache_misses}")
 
         # Get batches to fetch
         batches = self.price_cache.get_pending_batches()
 
         if batches:
             self._report_progress(f"Fetching {len(batches)} price batches...")
+            logger.info(f"[RCA] Created {len(batches)} Birdeye batches for {cache_misses} missing prices")
+            
+            batch_start = time.time()
+            batch_count = 0
 
             # Fetch in controlled parallelism (respect rate limit)
             for i in range(0, len(batches), 3):  # 3 parallel at most
                 batch_group = batches[i : i + 3]
-                tasks = [self._fetch_birdeye_batch(ts, mints) for ts, mints in batch_group]
+                group_start = time.time()
+                
+                tasks = [self._fetch_birdeye_batch(ts, mints, batch_num=i+j+1) for j, (ts, mints) in enumerate(batch_group)]
                 await asyncio.gather(*tasks, return_exceptions=True)
+                
+                batch_count += len(batch_group)
+                group_elapsed = time.time() - group_start
+                logger.info(f"[RCA] Batch group {i//3 + 1}: {len(batch_group)} batches in {group_elapsed:.2f}s")
+            
+            total_elapsed = time.time() - batch_start
+            logger.info(f"[RCA] All {batch_count} Birdeye batches completed in {total_elapsed:.2f}s")
 
         # Apply cached prices
         for trade in trades:
             await self._apply_cached_prices(trade)
 
-    async def _fetch_birdeye_batch(self, timestamp: int, mints: List[str]) -> Dict[str, Optional[Decimal]]:
+    async def _fetch_birdeye_batch(self, timestamp: int, mints: List[str], batch_num: int = 0) -> Dict[str, Optional[Decimal]]:
         """Fetch a batch of prices from Birdeye"""
+        start_time = time.time()
         await self.birdeye_limiter.acquire()
+        acquire_time = time.time() - start_time
+        
+        if acquire_time > 0.1:
+            logger.info(f"[RCA] Batch {batch_num}: Rate limit delay {acquire_time:.2f}s")
 
         try:
             # Use Birdeye batch endpoint
             url = "https://public-api.birdeye.so/public/multi_price"
             headers = {"X-API-KEY": BIRDEYE_API_KEY}
             params = {"list_address": ",".join(mints), "time": timestamp}
+            
+            logger.info(f"[RCA] Batch {batch_num}: Requesting prices for {len(mints)} tokens")
 
             if not self.session:
                 raise RuntimeError("Session not initialized")
 
             async with self.session.get(url, headers=headers, params=params, timeout=ClientTimeout(total=30)) as resp:
+                elapsed = time.time() - start_time
+                logger.info(f"[RCA] Batch {batch_num}: Response status={resp.status} in {elapsed:.2f}s")
+                
                 if resp.status == 200:
                     data = await resp.json()
                     if data.get("success") and data.get("data"):
                         # Cache all results
                         ts_dt = datetime.fromtimestamp(timestamp)
+                        success_count = 0
                         for mint, price_data in data["data"].items():
                             if price_data and "value" in price_data:
                                 price = Decimal(str(price_data["value"]))
                                 self.price_cache.set(mint, ts_dt, price)
+                                success_count += 1
                             else:
                                 self.price_cache.set(mint, ts_dt, None)
+                        
+                        logger.info(f"[RCA] Batch {batch_num}: Priced {success_count}/{len(mints)} tokens")
+                elif resp.status == 429:
+                    retry_after = resp.headers.get("Retry-After", "unknown")
+                    logger.warning(f"[RCA] Batch {batch_num}: Rate limited! Retry-After: {retry_after}")
+                else:
+                    logger.warning(f"[RCA] Batch {batch_num}: Unexpected status {resp.status}")
 
+        except asyncio.TimeoutError:
+            elapsed = time.time() - start_time
+            logger.error(f"[RCA] Batch {batch_num}: Timeout after {elapsed:.2f}s")
         except Exception as e:
-            logger.error(f"Error fetching Birdeye batch: {e}")
+            elapsed = time.time() - start_time
+            logger.error(f"[RCA] Batch {batch_num}: Error after {elapsed:.2f}s: {e}")
 
         return {}
 

@@ -392,7 +392,18 @@ class UnrealizedPnLCalculator:
         Returns:
             List of PositionPnL objects
         """
+        # Log for RCA validation
+        logger.info(f"[RCA] Starting price fetch for {len(positions)} positions")
+        
+        # Count unique tokens
+        unique_tokens = set(p.token_mint for p in positions)
+        logger.info(f"[RCA] Unique tokens to price: {len(unique_tokens)}")
+        
+        start_time = asyncio.get_event_loop().time()
         results = await self.calculate_batch_unrealized_pnl(positions)
+        elapsed = asyncio.get_event_loop().time() - start_time
+        
+        logger.info(f"[RCA] Price fetch completed in {elapsed:.2f}s")
         
         position_pnls = []
         for result in results:
