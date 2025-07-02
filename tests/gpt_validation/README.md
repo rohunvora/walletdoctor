@@ -233,4 +233,9 @@ Target metrics:
 2. Always test in strict mode before committing
 3. Document any tolerance adjustments with rationale
 4. Keep fixtures under 50 positions for performance
-5. Never commit with --use-mock in CI configuration 
+5. Never commit with --use-mock in CI configuration
+
+### Strict vs Mock
+
+• Default CI is strict (real network).  
+• Devs without keys: run `pytest --use-mock` or `pytest -m "not requires_network"`. 

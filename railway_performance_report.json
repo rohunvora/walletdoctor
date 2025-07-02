@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-07-02T00:36:35.982908",
+  "base_url": "https://walletdoctor.app",
+  "wallet": "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya",
+  "targets": {
+    "cold_cache": 30.0,
+    "warm_cache": 5.0
+  },
+  "results": [
+    {
+      "test_name": "Cold Cache",
+      "status_code": 0,
+      "error": "HTTPSConnectionPool(host='walletdoctor.app', port=443): Max retries exceeded with url: /v4/positions/export-gpt/34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x103db8130>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))",
+      "total_time": 0.0869591236114502,
+      "timestamp": "2025-07-02T00:36:31.952681"
+    },
+    {
+      "test_name": "Warm Cache (immediate)",
+      "status_code": 0,
+      "error": "HTTPSConnectionPool(host='walletdoctor.app', port=443): Max retries exceeded with url: /v4/positions/export-gpt/34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x103db5130>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))",
+      "total_time": 0.005383968353271484,
+      "timestamp": "2025-07-02T00:36:33.963493"
+    },
+    {
+      "test_name": "After Explicit Warm",
+      "status_code": 0,
+      "error": "HTTPSConnectionPool(host='walletdoctor.app', port=443): Max retries exceeded with url: /v4/positions/export-gpt/34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x103dc3190>: Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known'))",
+      "total_time": 0.007179975509643555,
+      "timestamp": "2025-07-02T00:36:35.982192"
+    }
+  ],
+  "all_passed": false
+}

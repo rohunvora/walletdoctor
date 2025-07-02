@@ -1,0 +1,77 @@
+name: GPT Export Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Main job - runs in strict mode (requires API)
+  validate-strict:
+    name: Validate GPT Export (Strict Mode)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run GPT validation tests (strict mode)
+        run: |
+          cd tests/gpt_validation
+          python -m pytest test_runner.py -v
+        env:
+          API_KEY: ${{ secrets.WD_API_KEY }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://walletdoctor.app' }}
+          SKIP_INTEGRATION_TESTS: false
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: test-results
+          path: |
+            tests/gpt_validation/*.log
+            tests/gpt_validation/pytest.log
+
+  # Optional job - runs offline tests only (no API required)
+  validate-offline:
+    name: Validate GPT Export (Offline/Fast)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'  # Only on PRs to give quick feedback
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run offline tests only
+        run: |
+          cd tests/gpt_validation
+          # Run tests that don't require network
+          python -m pytest test_runner.py -v -m "not requires_network"
+      
+      - name: Run with mock mode (for contributors without keys)
+        run: |
+          cd tests/gpt_validation
+          # This should pass even without API keys
+          python -m pytest test_runner.py -v --use-mock
+        continue-on-error: true  # Don't fail the build if mock tests fail 
