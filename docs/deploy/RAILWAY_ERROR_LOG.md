@@ -59,4 +59,31 @@ def warm_cache(wallet_address: str):
 1. Deploy the fixed code to Railway
 2. Monitor for successful startup
 3. Test cache warming endpoint
-4. Measure cold vs warm cache performance 
+4. Measure cold vs warm cache performance
+
+### Additional Fix Applied
+
+After initial testing showed continued 502 errors, identified event loop conflicts with `asyncio.run()` in gunicorn:
+
+```python
+def run_async(coro):
+    """Safely run async code in Flask/gunicorn environment"""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No loop running, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+    else:
+        # Loop is already running
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
+```
+
+Replaced all `asyncio.run()` calls with `run_async()` helper to handle event loop issues in production. 

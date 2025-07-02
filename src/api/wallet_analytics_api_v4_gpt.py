@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from functools import wraps
+import concurrent.futures
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -44,6 +45,33 @@ CORS(app)
 API_KEY_HEADER = os.getenv('API_KEY_HEADER', 'X-Api-Key')
 API_KEY_PREFIX = os.getenv('API_KEY_PREFIX', 'wd_')
 API_KEY_LENGTH = 35  # wd_ + 32 chars
+
+
+def run_async(coro):
+    """
+    Safely run async code in Flask/gunicorn environment
+    
+    This handles event loop issues that can occur with asyncio.run()
+    in production environments.
+    """
+    try:
+        # Try to get the running loop
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No loop running, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)
+    else:
+        # Loop is already running (shouldn't happen in sync Flask)
+        # Create a new loop in a thread
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
 
 
 def simple_auth_required(f):
@@ -263,7 +291,7 @@ def export_positions_for_gpt(wallet_address: str):
         logger.info(f"GPT export request for wallet: {wallet_address}")
         
         # Get positions with staleness info
-        snapshot, is_stale, age_seconds = asyncio.run(
+        snapshot, is_stale, age_seconds = run_async(
             get_positions_with_staleness(wallet_address)
         )
         
@@ -341,7 +369,7 @@ def warm_cache(wallet_address: str):
         
         # Check if already cached
         cache = get_position_cache_v2()
-        cached_result = asyncio.run(cache.get_portfolio_snapshot(wallet_address))
+        cached_result = run_async(cache.get_portfolio_snapshot(wallet_address))
         
         if cached_result:
             snapshot, is_stale = cached_result
@@ -423,14 +451,14 @@ def warm_cache(wallet_address: str):
                     error=str(e)
                 )
         
-        # Start the task (in production, use proper background task queue)
-        asyncio.create_task(warm_cache_task())
+        # Run the warming synchronously for now
+        # In production, this should use a proper task queue like Celery
+        run_async(warm_cache_task())
         
         return jsonify({
-            "status": "warming_started",
+            "status": "cache_warmed",
             "progress_token": progress_token,
-            "message": "Cache warming initiated",
-            "check_progress_url": f"/v4/progress/{progress_token}"
+            "message": "Cache warming completed"
         })
         
     except Exception as e:
@@ -507,7 +535,7 @@ def export_positions_stream(wallet_address: str):
             
             # Check cache first
             cache = get_position_cache_v2()
-            cached_result = asyncio.run(cache.get_portfolio_snapshot(wallet_address))
+            cached_result = run_async(cache.get_portfolio_snapshot(wallet_address))
             
             if cached_result:
                 snapshot, is_stale = cached_result
@@ -533,7 +561,7 @@ def export_positions_stream(wallet_address: str):
                 async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
                     return await fetcher.fetch_wallet_trades(wallet_address)
             
-            result = asyncio.run(fetch_data())
+            result = run_async(fetch_data())
             trades = result.get("trades", [])
             
             fetch_duration = time.time() - start_time
@@ -556,7 +584,7 @@ def export_positions_stream(wallet_address: str):
                 
                 for i in range(0, len(positions), batch_size):
                     batch = positions[i:i+batch_size]
-                    batch_pnls = asyncio.run(calculator.create_position_pnl_list(batch))
+                    batch_pnls = run_async(calculator.create_position_pnl_list(batch))
                     position_pnls.extend(batch_pnls)
                     
                     # Send batch update
@@ -564,7 +592,7 @@ def export_positions_stream(wallet_address: str):
                 
                 # Create and cache snapshot
                 snapshot = PositionSnapshot.from_positions(wallet_address, position_pnls)
-                asyncio.run(cache.set_portfolio_snapshot(snapshot))
+                run_async(cache.set_portfolio_snapshot(snapshot))
                 
                 # Send complete response
                 response_data = format_gpt_schema_v1_1(snapshot)

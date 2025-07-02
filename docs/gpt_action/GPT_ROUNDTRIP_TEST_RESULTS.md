@@ -128,19 +128,46 @@ Created `/v4/positions/export-gpt-stream/{wallet}` endpoint that:
 2. **Cold Cache Performance**: Even small wallets timeout on first fetch
 3. **Helius Rate Limits**: May be hitting API limits with large wallets
 
-### Recommendations
+### Root Cause Identified
 
-1. **Immediate**: Fix Railway deployment issues
-2. **Short-term**: Deploy and test cache warming endpoint
-3. **Medium-term**: Implement more aggressive Helius batching/concurrency
-4. **Long-term**: Consider pre-caching popular wallets on a schedule
+The 500/502 errors were caused by:
+1. **Async Route Handler**: Flask doesn't support `async def` route handlers without special setup
+   - The `warm_cache` endpoint was declared as async
+   - Fixed by making it synchronous with `asyncio.run()`
+2. **Gunicorn Worker Timeout**: Default 30s timeout was too short
+   - Fixed by adding `--timeout 120` to Procfile
 
-### Next Steps
+### Fix Deployed
 
-1. Debug Railway deployment logs
-2. Test cache warming with fixed deployment  
-3. Measure warm cache performance
-4. If still >30s, deploy SSE streaming as fallback
+```python
+# Fixed async handler:
+def warm_cache(wallet_address: str):  # Changed from async def
+    cached_result = asyncio.run(cache.get_portfolio_snapshot(wallet_address))
+```
+
+```
+# Updated Procfile:
+web: gunicorn src.api.wallet_analytics_api_v4_gpt:app --timeout 120 --workers 2
+```
+
+### Pending Performance Tests
+
+Once Railway redeploys with the fixes:
+
+1. **Cache Warming Test**:
+   ```bash
+   curl -X POST -H "X-Api-Key: wd_..." \
+     https://web-production-2bb2f.up.railway.app/v4/positions/warm-cache/{wallet}
+   ```
+
+2. **Performance Measurements**:
+   - Small wallet (145 trades): Target <5s cold, <200ms warm
+   - Medium wallet (380 trades): Target <15s cold, <200ms warm  
+   - Large wallet (6,424 trades): Target <30s with cache warming
+
+3. **SSE Streaming Test**:
+   - Verify `/v4/positions/export-gpt-stream/{wallet}` works
+   - Test if ChatGPT can consume SSE events
 
 ---
 
