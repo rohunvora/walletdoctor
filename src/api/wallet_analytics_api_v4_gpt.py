@@ -296,9 +296,12 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     positions = builder.build_positions_from_trades(trades, wallet_address)
     app.logger.info("[CHECK] positions_raw=%d", len(positions))
     
-    # Hard-flush logs
+    # hard-flush so the lines always hit the log
     for h in app.logger.handlers:
-        h.flush()
+        try:
+            h.flush()
+        except Exception:
+            pass
     
     log("positions_built")
     
