@@ -1,0 +1,7 @@
+=== No-Birdeye Control Test ===
+Time: 2025-07-02T02:38:42.371228
+Wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+Total time: 2.74s
+Total trades: 1076
+
+Metrics:
