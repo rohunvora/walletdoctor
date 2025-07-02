@@ -1,0 +1,449 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "WalletDoctor API Monitoring",
+    "tags": ["walletdoctor", "api", "positions"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 37,
+    "version": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Request Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(walletdoctor_api_requests_total[5m])",
+            "legendFormat": "Requests/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "reqps",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "API P95 Latency",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "walletdoctor_api_latency_p95_ms",
+            "legendFormat": "P95 Latency",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 150
+                },
+                {
+                  "color": "red",
+                  "value": 200
+                }
+              ]
+            },
+            "unit": "ms",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Memory Usage (RSS)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "walletdoctor_memory_rss_mb",
+            "legendFormat": "RSS MB",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 450
+                },
+                {
+                  "color": "red",
+                  "value": 600
+                }
+              ]
+            },
+            "unit": "MB",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 4,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "walletdoctor_cache_hit_rate_pct",
+            "legendFormat": "Hit Rate %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "green",
+                  "value": 85
+                }
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        }
+      },
+      {
+        "id": 5,
+        "title": "API Latency Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "walletdoctor_api_latency_p50_ms",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "walletdoctor_api_latency_p95_ms",
+            "legendFormat": "P95",
+            "refId": "B"
+          },
+          {
+            "expr": "walletdoctor_api_latency_p99_ms",
+            "legendFormat": "P99",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "ms",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "values": ["last"]
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Memory Usage Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "walletdoctor_memory_rss_mb",
+            "legendFormat": "RSS MB",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 450
+                },
+                {
+                  "color": "red",
+                  "value": 600
+                }
+              ]
+            },
+            "unit": "MB",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 7,
+        "title": "Position Cache Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(walletdoctor_cache_hits_total[5m])",
+            "legendFormat": "Cache Hits/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(walletdoctor_cache_misses_total[5m])",
+            "legendFormat": "Cache Misses/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "walletdoctor_cache_entries",
+            "legendFormat": "Cache Entries",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "short",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 8,
+        "title": "Position Calculation Performance",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "walletdoctor_position_calc_p95_ms",
+            "legendFormat": "Position Calc P95",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(walletdoctor_position_calculations_total[5m])",
+            "legendFormat": "Calc Rate/sec",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "ms",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 9,
+        "title": "HTTP Status Codes",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "increase(walletdoctor_api_responses_200[5m])",
+            "legendFormat": "200 OK",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(walletdoctor_api_responses_400[5m])",
+            "legendFormat": "400 Bad Request",
+            "refId": "B"
+          },
+          {
+            "expr": "increase(walletdoctor_api_responses_500[5m])",
+            "legendFormat": "500 Server Error",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "short"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 10,
+        "title": "Uptime",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "walletdoctor_uptime_seconds",
+            "legendFormat": "Uptime",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "s",
+            "min": 0
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 8,
+          "x": 8,
+          "y": 24
+        }
+      },
+      {
+        "id": 11,
+        "title": "Alert Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "walletdoctor_api_latency_p95_ms > 200",
+            "legendFormat": "API Latency Critical",
+            "refId": "A"
+          },
+          {
+            "expr": "walletdoctor_memory_rss_mb > 600",
+            "legendFormat": "Memory Critical",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 8,
+          "x": 16,
+          "y": 24
+        }
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "API Deployments",
+          "enable": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "type": "manual"
+        }
+      ]
+    }
+  },
+  "overwrite": false,
+  "inputs": [],
+  "folderId": null,
+  "folderTitle": "WalletDoctor"
+} 
