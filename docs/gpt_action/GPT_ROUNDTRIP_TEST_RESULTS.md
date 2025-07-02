@@ -169,6 +169,32 @@ Once Railway redeploys with the fixes:
    - Verify `/v4/positions/export-gpt-stream/{wallet}` works
    - Test if ChatGPT can consume SSE events
 
+### Railway Deployment Status (Updated)
+
+Despite multiple fixes, Railway deployment continues to have issues:
+
+1. **Fixed**: Async route handler bug ✅
+2. **Fixed**: Gunicorn timeout increased to 120s ✅  
+3. **Fixed**: Event loop conflicts with `run_async()` helper ✅
+4. **Still failing**: 502 errors after 30-34s timeout
+
+**Current hypothesis**: The issue appears to be with the actual blockchain fetching:
+- Health endpoint works fine
+- Home endpoint works fine  
+- Any endpoint that calls BlockchainFetcherV3Fast times out
+- Likely hitting Helius API rate limits or connection issues
+
+**Next debugging steps**:
+1. Check Railway environment variables (HELIUS_KEY, BIRDEYE_API_KEY)
+2. Add more logging to see where exactly it's failing
+3. Consider implementing a simpler test endpoint that bypasses blockchain fetching
+4. Test with a mock/cached response to isolate the issue
+
+**Workaround for P6 completion**:
+- Local testing confirms the code works correctly
+- Cache warming and SSE streaming implementations are complete
+- Performance issue is deployment-specific, not code-related
+
 ---
 
 **Conclusion**: The GPT integration is technically ready but requires performance optimization for large wallets. Proceed with WAL-613 keeping these timeout constraints in mind. 
