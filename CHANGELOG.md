@@ -2,6 +2,35 @@
 
 All notable changes to WalletDoctor API will be documented in this file.
 
+## [0.6.0-beta] - 2025-07-02
+
+### Fixed
+- **CRITICAL**: Fixed "Wallet not found" error for wallets with trades but no open positions
+  - Now returns valid 200 response with empty positions array
+  - Preserves trade history and summary data
+- Fixed Birdeye API calls despite `PRICE_HELIUS_ONLY=true` setting
+  - Added environment check in MarketCapCalculator fallback sources
+  - Eliminates 2+ minute timeouts for Helius-only mode
+- Fixed async event loop error in Gunicorn sync workers
+  - Replaced ThreadPoolExecutor with direct threading approach
+  - Resolves 502 errors from "no running event loop"
+
+### Performance
+- Small wallets (1k+ trades): Cold 2.9s ✅, Warm 3.2s (target <0.5s)
+- Medium wallets (380 trades): Still hitting 502 errors (pagination needed)
+- Achieves <8s cold cache target for small wallets
+- Helius-only mode working correctly with no external API calls
+
+### Environment
+- Confirmed `PRICE_HELIUS_ONLY=true` configuration
+- Single worker deployment (`WEB_CONCURRENCY=1`)
+- Redis integration pending for warm cache optimization
+
+### Testing
+- Added comprehensive phase logging for performance analysis
+- Created medium wallet test suite
+- Validated end-to-end green path for small wallets
+
 ## [3.1.0] - 2024-01-15
 
 ### Changed
