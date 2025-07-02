@@ -21,9 +21,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-SMALL_WALLET = "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya"
+SMALL_WALLET = "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
 API_KEY = os.getenv("API_KEY", "wd_" + "a" * 32)
-BASE_URL = os.getenv("API_BASE_URL", "https://walletdoctor.app")
+BASE_URL = os.getenv("API_BASE_URL", "https://web-production-2bb2f.up.railway.app")
 
 # Performance targets
 TARGET_COLD_CACHE = 30.0  # 30 seconds for cold cache

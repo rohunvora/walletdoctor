@@ -33,7 +33,7 @@ class TestGPTExportValidation:
     FIXTURES_DIR = Path(__file__).parent / "fixtures"
     
     # Small wallet address
-    SMALL_WALLET = "34zYDgjy9Uyj9NZnDVKBB45urkbBV4h5LzxWjXJg9VCya"
+    SMALL_WALLET = "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
     
     # API configuration
     API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8081")
