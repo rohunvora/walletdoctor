@@ -150,10 +150,6 @@ class BlockchainFetcherV3Fast:
 
         # Step 1: Fetch all signatures using RPC (1000 per page)
         signatures = await self._fetch_all_signatures(wallet_address)
-        logger.info(
-            "[CHECK] sigs_received_in_fetch_wallet_trades="
-            f"{len(signatures)} id={id(signatures)}"
-        )
         self.metrics.signatures_fetched = len(signatures)
         self._report_progress(f"Fetched {len(signatures)} signatures")
 
@@ -230,20 +226,12 @@ class BlockchainFetcherV3Fast:
         
         self._report_progress(f"Signature fetch complete: {len(all_signatures)} total signatures in {page} pages")
         
-        import sys
-        logger.info(f"[CHECK] sig_pages_fetched={page} sigs_before_flatten={len(all_signatures)}")
-        logger.info(f"[CHECK] sigs_after_flatten={len(all_signatures)}")
-        sys.stdout.flush(); sys.stderr.flush()
-        
         return all_signatures
 
     async def _fetch_signature_page(self, wallet: str, before_sig: Optional[str] = None) -> Tuple[List[str], Optional[str]]:
         """Fetch a single page of signatures using RPC"""
         url = f"{HELIUS_RPC_BASE}/?api-key={HELIUS_KEY}"
         headers = {"Content-Type": "application/json"}
-        
-        # [CHECK] Log the URL we're calling
-        logger.info(f"[CHECK] helius_url={url}")
         
         params = {"limit": SIGNATURE_PAGE_LIMIT}
         if before_sig:
@@ -262,14 +250,6 @@ class BlockchainFetcherV3Fast:
                     # Get raw response text first
                     resp_text = await resp.text()
                     
-                    # [CHECK] Log first 200 bytes of response
-                    logger.info(f"[CHECK] helius_resp_first_200B={resp_text[:200]}")
-                    
-                    # Hard flush logs
-                    import sys
-                    sys.stdout.flush()
-                    sys.stderr.flush()
-                    
                     if resp.status == 429:
                         retry_after = int(resp.headers.get("Retry-After", "5"))
                         await asyncio.sleep(retry_after)
@@ -279,11 +259,6 @@ class BlockchainFetcherV3Fast:
                     
                     # Parse JSON from text we already have
                     json_data = json.loads(resp_text)
-
-                    logger.info(
-                        f"[CHECK] helius_raw_count={len(json_data.get('result', []))} "
-                        f"wallet={wallet}"
-                    )
 
                     if "result" not in json_data:
                         return [], None

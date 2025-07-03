@@ -283,13 +283,7 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     # No cached data, need to fetch
     try:
         async with BlockchainFetcherV3Fast(skip_pricing=skip_pricing) as fetcher:
-            try:
-                result = await fetcher.fetch_wallet_trades(wallet_address)
-            except Exception as e:
-                logger.exception("[CHECK] EXC_fetch_wallet_trades %s", repr(e))
-                raise
-            else:
-                logger.info("[CHECK] sigs_received_in_api=%s", len(result.get("signatures", [])))
+            result = await fetcher.fetch_wallet_trades(wallet_address)
         
         log("helius_signatures_fetched")
         log("transactions_fetched")
@@ -301,10 +295,7 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     
     # Extract data and log counts
     signatures = result.get("signatures", [])
-    import sys
-    app.logger.info("[CHECK] helius_signatures_post_call=%d", len(signatures))
-    sys.stdout.flush()
-    app.logger.info("[CHECK] helius_signatures=%d", len(signatures))
+    app.logger.info("[CHECK] trades_found=%d", len(result.get("trades", [])))
     
     trades = result.get("trades", [])
     app.logger.info("[CHECK] trades_raw=%d", len(trades))
