@@ -50,8 +50,14 @@ class BuyRecord:
                 
         price_per_token = total_cost / amount if amount > 0 else Decimal("0")
         
+        # Handle timestamp conversion from string to datetime
+        timestamp = trade["timestamp"]
+        if isinstance(timestamp, str):
+            # Convert ISO string to datetime
+            timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        
         return cls(
-            timestamp=trade["timestamp"],
+            timestamp=timestamp,
             amount=amount,
             price_per_token=price_per_token,
             total_cost_usd=total_cost,
