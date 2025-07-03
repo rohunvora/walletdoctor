@@ -1194,7 +1194,7 @@ class BlockchainFetcherV3:
 
         return sorted_trades
 
-    def _create_response_envelope(self, wallet: str, trades: List[Trade], elapsed_time: float) -> Dict[str, Any]:
+    def _create_response_envelope(self, wallet: str, trades: List[Trade], elapsed_time: float, signatures: Optional[List[str]] = None) -> Dict[str, Any]:
         """Task 6: Create response envelope"""
         # Calculate summary stats
         total_pnl = sum(t.pnl_usd for t in trades)
@@ -1225,13 +1225,8 @@ class BlockchainFetcherV3:
                 },
             },
             "trades": [trade.to_dict() for trade in trades],
+            "signatures": signatures or [],
         }
-        
-        logger.info(
-            "[CHECK] envelope_keys=%s sigs_in_envelope=%s",
-            list(envelope.keys()),
-            len(envelope.get("signatures", [])),
-        )
         
         return envelope
 

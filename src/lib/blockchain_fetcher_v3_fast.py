@@ -193,7 +193,7 @@ class BlockchainFetcherV3Fast:
         self.metrics.log_summary(self._report_progress)
 
         # Create response envelope with transactions
-        response = self._create_response_envelope(wallet_address, final_trades, time.time() - start_time)
+        response = self._create_response_envelope(wallet_address, final_trades, time.time() - start_time, signatures)
         
         # Add transactions for Helius price extraction
         if os.getenv('PRICE_HELIUS_ONLY', '').lower() == 'true':
@@ -556,10 +556,10 @@ class BlockchainFetcherV3Fast:
         v3 = BlockchainFetcherV3()
         return v3._calculate_pnl(trades)
 
-    def _create_response_envelope(self, wallet, trades, elapsed):
+    def _create_response_envelope(self, wallet, trades, elapsed, signatures=None):
         v3 = BlockchainFetcherV3()
         v3.metrics = self.metrics
-        return v3._create_response_envelope(wallet, trades, elapsed)
+        return v3._create_response_envelope(wallet, trades, elapsed, signatures)
 
 
 # Fast convenience functions
