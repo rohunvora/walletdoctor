@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Dict, Any
 import json
+import os
 
 from src.lib.position_builder import PositionBuilder, TokenTradeGroup
 from src.lib.position_models import Position, CostBasisMethod
@@ -769,6 +770,112 @@ class TestPositionBuilder(unittest.TestCase):
         self.assertEqual(len(positions), 2)
         token_symbols = {p.token_symbol for p in positions}
         self.assertEqual(token_symbols, {"TOKEN1", "TOKEN2"})
+
+    def test_demo_wallet_returns_positions(self):
+        """Test that demo wallet returns at least 1 position - POS-001"""
+        
+        # Sample trades that should create at least one position
+        # Based on real CfVs3waH token data from demo wallet
+        trades = [
+            {
+                "action": "buy",
+                "amount": 2057286.598598,
+                "dex": "JUPITER",
+                "price": None,
+                "signature": "5bfNFfg62zZvbs7zne2jYBoUwwQsA1ynMwSogV2NRrsmH7zzjKjrdeV8sAQkwGRyscEAEx6zhWYPF1GmGzT3sp3D",
+                "timestamp": "2025-06-13T00:48:18",
+                "token": "CfVs3waH",
+                "token_in": {
+                    "amount": 20000.0,
+                    "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                    "symbol": "EPjFWdd5"
+                },
+                "token_out": {
+                    "amount": 2057286.598598,
+                    "mint": "CfVs3waH2Z9TM397qSkaipTDhA9wWgtt8UchZKfwkYiu",
+                    "symbol": "CfVs3waH"
+                },
+                "value_usd": None
+            },
+            {
+                "action": "buy", 
+                "amount": 1267634.078078,
+                "dex": "JUPITER",
+                "price": None,
+                "signature": "2abc...def",
+                "timestamp": "2025-06-13T01:00:00",
+                "token": "CfVs3waH",
+                "token_in": {
+                    "amount": 15000.0,
+                    "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                    "symbol": "EPjFWdd5"
+                },
+                "token_out": {
+                    "amount": 1267634.078078,
+                    "mint": "CfVs3waH2Z9TM397qSkaipTDhA9wWgtt8UchZKfwkYiu",
+                    "symbol": "CfVs3waH"
+                },
+                "value_usd": None
+            }
+        ]
+        
+        # Test position builder
+        builder = PositionBuilder(CostBasisMethod.FIFO)
+        
+        # Ensure positions are enabled for test
+        os.environ["POSITIONS_ENABLED"] = "true"
+        
+        positions = builder.build_positions_from_trades(trades, "test_wallet")
+        
+        # Should return at least 1 position  
+        self.assertGreater(len(positions), 0, f"Expected ≥1 position, got {len(positions)}")
+        
+        # Check the position properties
+        position = positions[0]
+        self.assertEqual(position.token_symbol, "CfVs3waH")
+        self.assertGreater(position.balance, 0)
+        self.assertFalse(position.is_closed)
+        self.assertEqual(position.trade_count, 2)
+        
+        print(f"✅ Position builder test passed: {len(positions)} positions returned")
+    
+    def test_empty_trades_returns_empty_positions(self):
+        """Test that empty trades list returns no positions"""
+        builder = PositionBuilder(CostBasisMethod.FIFO)
+        positions = builder.build_positions_from_trades([], "test_wallet")
+        self.assertEqual(len(positions), 0)
+    
+    def test_sold_position_not_returned(self):
+        """Test that fully sold positions are not returned"""
+        trades = [
+            {
+                "action": "buy",
+                "amount": 1000,
+                "timestamp": "2025-01-01T00:00:00",
+                "token": "TEST",
+                "signature": "buy1",
+                "token_in": {"mint": "So11111111111111111111111111111111111111112", "symbol": "SOL"},
+                "token_out": {"mint": "TEST123", "symbol": "TEST"},
+                "value_usd": 10.0
+            },
+            {
+                "action": "sell",
+                "amount": 1000,
+                "timestamp": "2025-01-01T01:00:00", 
+                "token": "TEST",
+                "signature": "sell1",
+                "token_in": {"mint": "TEST123", "symbol": "TEST"},
+                "token_out": {"mint": "So11111111111111111111111111111111111111112", "symbol": "SOL"},
+                "value_usd": 12.0,
+                "price": 0.012
+            }
+        ]
+        
+        builder = PositionBuilder(CostBasisMethod.FIFO)
+        positions = builder.build_positions_from_trades(trades, "test_wallet")
+        
+        # Should not return closed position
+        self.assertEqual(len(positions), 0, f"Expected 0 positions for closed position, got {len(positions)}")
 
 
 if __name__ == "__main__":

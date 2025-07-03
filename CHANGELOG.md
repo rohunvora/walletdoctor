@@ -105,4 +105,33 @@ All notable changes to WalletDoctor API will be documented in this file.
 - Initial V3 implementation with blockchain fetching
 - Direct Helius API integration
 - Real-time Birdeye price fetching
-- 100% trade parsing with fallback parser 
+- 100% trade parsing with fallback parser
+
+## [Unreleased]
+
+## [v0.7.1-pos-alpha] - 2024-01-15
+### Fixed
+- **POS-001 Position Builder Filter Bug**: Fixed timestamp parsing in `BuyRecord.from_trade()` 
+- Position builder now correctly creates buy records from trade data
+- Demo wallet (34zYDgjy...) now returns ≥1 position as expected
+- Converts string timestamps to datetime objects for proper processing
+
+### Technical Details
+- Fixed `BuyRecord.from_trade()` to handle ISO timestamp strings
+- Added unit test `test_demo_wallet_returns_positions()` ensuring ≥1 position returned
+- Updated spam token filter to allow tokens with actual buy trades
+
+## [v0.7.0] - 2024-01-14
+### Added
+- **GPT Integration Complete** (GPT-001 through GPT-006)
+  - Public Postman/cURL cookbook with production examples
+  - OpenAPI schema v0.7.0 with JSONSchema generation
+  - TypeScript client with automatic retry and types
+  - 4 prompt templates with token cost analysis  
+  - SSE streaming spike documentation
+  - CI workflow with daily health checks
+
+### Enhanced
+- Demo wallet table in TRADES_EXPORT_API.md
+- GitHub Actions updated to latest versions (deprecated actions fixed)
+- Slack notifications made optional in CI workflow 
