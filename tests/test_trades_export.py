@@ -38,7 +38,7 @@ class TestTradesExport(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         data = response.get_json()
-        self.assertIn("Invalid wallet address", data["message"])
+        self.assertIn("Wallet address must be at least 32 characters", data["message"])
         
     @patch('src.api.wallet_analytics_api_v4_gpt.run_async')
     def test_trades_export_success(self, mock_run_async):
