@@ -148,13 +148,18 @@ class PositionBuilder:
                 # WAL-606e: Check if this is a spam token
                 if self._is_spam_token(group):
                     spam_filtered += 1
-                    logger.debug(f"Filtered spam token {group.token_symbol}: no buys or low TVL")
+                    logger.info(f"[WHY] {group.token_symbol} dropped: spam_token (no_buys={len(group.buys)==0}, invested_usd={float(group.total_invested_usd)})")
                     continue
                 positions.append(position)
             elif position is None:
-                logger.debug(f"Token {group.token_symbol} returned None position (likely balance <= 0)")
+                logger.info(f"[WHY] {group.token_symbol} dropped: None_position (balance={float(group.current_balance) if group.current_balance is not None else 0})")
             else:
-                logger.debug(f"Token {group.token_symbol} position is closed")
+                logger.info(f"[WHY] {group.token_symbol} dropped: position_closed")
+        
+        # Hard flush logs
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
         
         logger.info(f"[FILTER-AFTER] positions={len(positions)} filtered={spam_filtered}")
         logger.info(f"Built {len(positions)} open positions from {len(trades)} trades (filtered {spam_filtered} spam tokens)")
