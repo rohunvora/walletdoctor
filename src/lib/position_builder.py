@@ -177,13 +177,12 @@ class PositionBuilder:
         Returns:
             True if token should be filtered as spam
         """
-        # Check if there are no buy trades (airdrop only)
-        if not group.buys or group.total_invested_usd == ZERO:
-            # This is an airdrop - check if it has meaningful TVL
-            # For now, we'll filter all airdrops as we don't have pool data
-            # In production, we'd check pool SOL < MIN_POOL_SOL
+        # Check if there are NO buy trades at all (pure airdrop)
+        if not group.buys:
             return True
         
+        # If we have buy trades, allow it through even if USD values are missing
+        # The missing USD values are a data quality issue, not spam
         return False
     
     def _group_trades_by_token(self, trades: List[Dict[str, Any]]) -> Dict[str, TokenTradeGroup]:
