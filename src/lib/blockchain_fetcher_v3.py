@@ -1206,7 +1206,7 @@ class BlockchainFetcherV3:
         from_slot = min(slots) if slots else 0
         to_slot = max(slots) if slots else 0
 
-        return {
+        envelope = {
             "wallet": wallet,
             "from_slot": from_slot,
             "to_slot": to_slot,
@@ -1226,6 +1226,14 @@ class BlockchainFetcherV3:
             },
             "trades": [trade.to_dict() for trade in trades],
         }
+        
+        logger.info(
+            "[CHECK] envelope_keys=%s sigs_in_envelope=%s",
+            list(envelope.keys()),
+            len(envelope.get("signatures", [])),
+        )
+        
+        return envelope
 
 
 
