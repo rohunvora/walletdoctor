@@ -270,6 +270,11 @@ class BlockchainFetcherV3Fast:
                     # Parse JSON from text we already have
                     json_data = json.loads(resp_text)
 
+                    logger.info(
+                        f"[CHECK] helius_raw_count={len(json_data.get('result', []))} "
+                        f"wallet={wallet}"
+                    )
+
                     if "result" not in json_data:
                         return [], None
                     
