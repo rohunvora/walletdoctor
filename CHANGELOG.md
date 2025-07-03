@@ -109,6 +109,18 @@ All notable changes to WalletDoctor API will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.7.2-pos-fix] - 2024-01-15
+### Fixed
+- **POS-002 Production Endpoint Issue**: Fixed UnrealizedPnLCalculator filtering out all positions
+- Production `/v4/positions/export-gpt/{wallet}` endpoint now returns positions correctly
+- Demo wallet (34zYDgjy...) now returns 18 positions in production (was 0)
+
+### Technical Details
+- Fixed overly strict filter in `create_position_pnl_list()` method
+- When `skip_pricing=True`, positions were incorrectly filtered out due to None price values
+- Now uses ZERO default values instead of None for PositionPnL compatibility
+- Production endpoint working end-to-end: trades → positions → P&L → response
+
 ## [v0.7.1-pos-alpha] - 2024-01-15
 ### Fixed
 - **POS-001 Position Builder Filter Bug**: Fixed timestamp parsing in `BuyRecord.from_trade()` 
