@@ -2,7 +2,7 @@ openapi: "3.1.0"
 info:
   title: WalletDoctor Portfolio API
   description: Real-time Solana wallet portfolio and P&L data for GPT integration
-  version: "1.1.0"
+  version: "0.7.0"
 servers:
   - url: https://web-production-2bb2f.up.railway.app
     description: Railway deployment (public beta)
@@ -59,6 +59,65 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "501":
           description: Feature disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v4/trades/export-gpt/{wallet}:
+    get:
+      operationId: getWalletTrades
+      summary: Get wallet trades and signatures for GPT integration
+      description: Returns raw trading data including all transaction signatures and trade records. Simplified endpoint without positions or pricing complexity for GPT prompting workflows.
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          description: Solana wallet address
+          schema:
+            type: string
+            minLength: 32
+            maxLength: 44
+            example: "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Successful response with trades data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradesResponse"
+              example:
+                wallet: "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+                signatures: ["5j2K...abc", "3mF4...def"]
+                trades: [
+                  {
+                    "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+                    "signature": "5j2K...abc",
+                    "slot": 123456789,
+                    "timestamp": 1641024000,
+                    "type": "buy",
+                    "token_mint": "So11111111111111111111111111111111111111112",
+                    "token_symbol": "SOL",
+                    "amount": "1.5",
+                    "price_usd": "100.50",
+                    "value_usd": "150.75"
+                  }
+                ]
+        "400":
+          description: Invalid wallet address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
           content:
             application/json:
               schema:
@@ -228,4 +287,81 @@ components:
           example: "Invalid wallet address"
         message:
           type: string
-          example: "Wallet address must be at least 32 characters" 
+          example: "Wallet address must be at least 32 characters"
+    TradesResponse:
+      type: object
+      required:
+        - wallet
+        - signatures
+        - trades
+      properties:
+        wallet:
+          type: string
+          description: The wallet address requested
+          example: "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+        signatures:
+          type: array
+          description: Array of transaction signatures for this wallet
+          items:
+            type: string
+          example: ["5j2K8uN3JfZkZJvKKvQ3nA4wFnBcDzVnVkFdRqMkN2Xabc", "3mF4pLz6GqH9BcWxT5vYnE2dQ7aS1zKoRtMfN8Jkdef"]
+        trades:
+          type: array
+          description: Array of parsed trade records
+          items:
+            $ref: "#/components/schemas/Trade"
+    Trade:
+      type: object
+      required:
+        - wallet
+        - signature
+        - slot
+        - timestamp
+        - type
+        - token_mint
+        - token_symbol
+        - amount
+      properties:
+        wallet:
+          type: string
+          description: Wallet address
+          example: "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+        signature:
+          type: string
+          description: Transaction signature
+          example: "5j2K8uN3JfZkZJvKKvQ3nA4wFnBcDzVnVkFdRqMkN2Xabc"
+        slot:
+          type: integer
+          description: Solana slot number
+          example: 123456789
+        timestamp:
+          type: integer
+          description: Unix timestamp
+          example: 1641024000
+        type:
+          type: string
+          description: Trade type
+          enum: ["buy", "sell"]
+          example: "buy"
+        token_mint:
+          type: string
+          description: Token mint address
+          example: "So11111111111111111111111111111111111111112"
+        token_symbol:
+          type: string
+          description: Token symbol
+          example: "SOL"
+        amount:
+          type: string
+          description: Trade amount as string to preserve precision
+          example: "1.500000000"
+        price_usd:
+          type: string
+          description: Price per token in USD (if available)
+          nullable: true
+          example: "100.50"
+        value_usd:
+          type: string
+          description: Total trade value in USD (if available)
+          nullable: true
+          example: "150.75" 

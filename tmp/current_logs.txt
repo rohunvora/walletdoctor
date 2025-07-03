@@ -1,0 +1,41 @@
+=== Quick Railway Log Check ===
+Getting recent logs (this won't hang)...
+
+Recent logs:
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
+INFO:src.api.wallet_analytics_api_v4_gpt:============================================================
+ERROR:src.api.wallet_analytics_api_v4_gpt:Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+ERROR:src.api.wallet_analytics_api_v4_gpt:Traceback (most recent call last):
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 854, in dispatch_request
+    self.raise_routing_exception(req)
+  File "/opt/venv/lib/python3.11/site-packages/flask/app.py", line 463, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/flask/ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.11/site-packages/werkzeug/routing/map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-2c2a8af4] Diagnostics called, worker=f05cedfc
+./scripts/railway_quick_logs.sh: line 18: 11429 Terminated: 15          railway logs --deployment
+
+=== Error Check ===
+    lambda: self._connect(), lambda error: self.disconnect(error)
+[2025-07-02 16:36:53 +0000] [5] [ERROR] Error handling request /v4/positions/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+RuntimeError: no running event loop
+ERROR:src.api.wallet_analytics_api_v4_gpt:Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+ERROR:src.api.wallet_analytics_api_v4_gpt:Traceback (most recent call last):
+
+=== Boot Messages ===
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITIONS_ENABLED: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] PRICE_HELIUS_ONLY: true
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] POSITION_CACHE_TTL_SEC: 300
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Python version: 3.11.10 (main, Sep  7 2024, 01:03:31) [GCC 13.3.0]
+INFO:src.api.wallet_analytics_api_v4_gpt:[BOOT] Environment checksum: 61a72284
+
+Full logs saved to: tmp/quick_logs.txt

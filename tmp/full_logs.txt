@@ -1,0 +1,39 @@
+=== Quick Railway Log Check ===
+Getting recent logs (this won't hang)...
+
+Recent logs:
+INFO:src.lib.blockchain_fetcher_v3_fast:dust_rows: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:unpriced_rows: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:Parse rate: 63.9%
+INFO:src.lib.blockchain_fetcher_v3_fast:[PRICE] Including 1119 transactions for Helius price extraction
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-ec7bfece] helius_fetch completed in 2.99s
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-ec7bfece] Got 1076 trades
+INFO:src.api.wallet_analytics_api_v4_gpt:Fetched 1076 trades
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
+INFO:src.lib.position_builder:[FILTER-BEFORE] positions=137
+INFO:src.lib.position_builder:[FILTER-AFTER] positions=0 filtered=17
+INFO:src.lib.position_builder:Built 0 open positions from 1076 trades (filtered 17 spam tokens)
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] position_build completed in 0.01s, positions=0
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-66675f15] Position fetch complete in 3.028s
+INFO:src.api.wallet_analytics_api_v4_gpt:phase=format_response took=0.00s
+INFO:src.api.wallet_analytics_api_v4_gpt:GPT export completed: wallet=34zYDgjy..., positions=0, stale=False, duration_ms=3028.76
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-c69b01ab] Diagnostics called, worker=be92fcf0
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-c69b01ab] Diagnostics complete in 1ms
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-0ad15960] Diagnostics called, worker=be92fcf0
+INFO:src.api.wallet_analytics_api_v4_gpt:[DIAG-diag-0ad15960] Diagnostics complete in 1ms
+./scripts/railway_quick_logs.sh: line 18:  6586 Terminated: 15          railway logs --deployment
+
+=== Error Check ===
+WARNING:src.lib.position_cache_v2:Redis connection failed, using in-memory cache: Error 111 connecting to localhost:6379. Connection refused.
+INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
+INFO:src.lib.blockchain_fetcher_v3_fast:parser_errors: 0
+
+=== Boot Messages ===
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-66675f15] Starting request validation...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-66675f15] Starting position fetch...
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE-pos-ec7bfece] Starting position fetch for 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya, skip_pricing=False
+INFO:src.lib.blockchain_fetcher_v3_fast:Starting FAST fetch for wallet: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya
+INFO:src.api.wallet_analytics_api_v4_gpt:[PHASE] Starting position build...
+
+Full logs saved to: tmp/quick_logs.txt
