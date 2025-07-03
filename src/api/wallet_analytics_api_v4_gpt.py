@@ -285,6 +285,8 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
         async with BlockchainFetcherV3Fast(skip_pricing=skip_pricing) as fetcher:
             result = await fetcher.fetch_wallet_trades(wallet_address)
         
+        logger.info(f"[CHECK] sigs_received_in_api={len(result.get('signatures', []))} id={id(result.get('signatures', []))}")
+        
         log("helius_signatures_fetched")
         log("transactions_fetched")
         log("trades_extracted")
