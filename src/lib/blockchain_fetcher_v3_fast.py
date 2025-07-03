@@ -232,6 +232,9 @@ class BlockchainFetcherV3Fast:
         url = f"{HELIUS_RPC_BASE}/?api-key={HELIUS_KEY}"
         headers = {"Content-Type": "application/json"}
         
+        # [CHECK] Log the URL we're calling
+        logger.info(f"[CHECK] helius_url={url}")
+        
         params = {"limit": SIGNATURE_PAGE_LIMIT}
         if before_sig:
             params["before"] = before_sig
@@ -246,13 +249,26 @@ class BlockchainFetcherV3Fast:
         try:
             async with self.helius_rate_limited_fetcher:
                 async with self.session.post(url, headers=headers, json=body, timeout=ClientTimeout(total=30)) as resp:
+                    # Get raw response text first
+                    resp_text = await resp.text()
+                    
+                    # [CHECK] Log first 200 bytes of response
+                    logger.info(f"[CHECK] helius_resp_first_200B={resp_text[:200]}")
+                    
+                    # Hard flush logs
+                    import sys
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                    
                     if resp.status == 429:
                         retry_after = int(resp.headers.get("Retry-After", "5"))
                         await asyncio.sleep(retry_after)
                         return await self._fetch_signature_page(wallet, before_sig)
 
                     resp.raise_for_status()
-                    json_data = await resp.json()
+                    
+                    # Parse JSON from text we already have
+                    json_data = json.loads(resp_text)
 
                     if "result" not in json_data:
                         return [], None

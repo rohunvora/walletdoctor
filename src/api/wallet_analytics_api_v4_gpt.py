@@ -23,6 +23,7 @@ import concurrent.futures
 import hashlib
 import traceback
 import uuid
+import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -63,6 +64,15 @@ logger.info(f"[BOOT] Python version: {sys.version}")
 env_string = f"{os.getenv('PRICE_HELIUS_ONLY', '')}:{os.getenv('POSITION_CACHE_TTL_SEC', '')}:{os.getenv('POSITIONS_ENABLED', '')}"
 env_checksum = hashlib.md5(env_string.encode()).hexdigest()[:8]
 logger.info(f"[BOOT] Environment checksum: {env_checksum}")
+
+# Add commit SHA for deployment verification
+try:
+    BOOT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode().strip()
+    logger.info(f"[BOOT] commit_sha={BOOT_SHA}")
+except:
+    logger.info(f"[BOOT] commit_sha=unknown")
+sys.stdout.flush()
+
 logger.info("="*60)
 
 app = Flask(__name__)
