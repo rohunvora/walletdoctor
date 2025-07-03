@@ -876,6 +876,55 @@ class TestPositionBuilder(unittest.TestCase):
         
         # Should not return closed position
         self.assertEqual(len(positions), 0, f"Expected 0 positions for closed position, got {len(positions)}")
+    
+    def test_pnl_calculator_regression_pos_002(self):
+        """
+        POS-002 Regression test - ensure UnrealizedPnLCalculator doesn't filter out all positions
+        
+        Tests the full pipeline: position_builder → unrealized_pnl_calculator → API response
+        This prevents the POS-002 bug from returning where positions were filtered out in P&L calculation.
+        """
+        import asyncio
+        from src.lib.unrealized_pnl_calculator import UnrealizedPnLCalculator
+        from src.lib.position_models import PositionSnapshot
+        
+        # Use same demo wallet trades that exposed the bug
+        trades = [
+            {
+                "action": "buy",
+                "amount": 1000000,
+                "timestamp": "2025-01-01T00:00:00",
+                "token": "DEMO",
+                "signature": "regression1",
+                "token_in": {"mint": "So11111111111111111111111111111111111111112", "symbol": "SOL"},
+                "token_out": {"mint": "DEMO123", "symbol": "DEMO"},
+                "value_usd": 100.0
+            }
+        ]
+        
+        # Step 1: Build positions
+        builder = PositionBuilder(CostBasisMethod.WEIGHTED_AVG)
+        positions = builder.build_positions_from_trades(trades, "regression_wallet")
+        self.assertGreater(len(positions), 0, "Position builder should return positions")
+        
+        # Step 2: Test UnrealizedPnLCalculator with skip_pricing=True (production default)
+        async def test_pnl_pipeline():
+            calculator = UnrealizedPnLCalculator()
+            position_pnls = await calculator.create_position_pnl_list(positions, skip_pricing=True)
+            return position_pnls
+        
+        position_pnls = asyncio.run(test_pnl_pipeline())
+        
+        # Step 3: Ensure positions survive P&L calculation  
+        self.assertGreater(len(position_pnls), 0, 
+                          "POS-002 REGRESSION: UnrealizedPnLCalculator filtered out all positions")
+        
+        # Step 4: Test full snapshot creation
+        snapshot = PositionSnapshot.from_positions("regression_wallet", position_pnls)
+        self.assertGreater(len(snapshot.positions), 0,
+                          "PositionSnapshot should contain positions after P&L calculation")
+        
+        print(f"✅ POS-002 regression test passed: {len(snapshot.positions)} positions survived pipeline")
 
 
 if __name__ == "__main__":
