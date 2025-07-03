@@ -524,17 +524,14 @@ class UnrealizedPnLCalculator:
         
         position_pnls = []
         for result in results:
-            if (result.error is None and 
-                result.current_price_usd is not None and
-                result.current_value_usd is not None and
-                result.unrealized_pnl_usd is not None and
-                result.unrealized_pnl_pct is not None):
+            # POS-002 fix: Include positions even when pricing is skipped
+            if result.error is None:
                 position_pnl = PositionPnL(
                     position=result.position,
-                    current_price_usd=result.current_price_usd,
-                    current_value_usd=result.current_value_usd,
-                    unrealized_pnl_usd=result.unrealized_pnl_usd,
-                    unrealized_pnl_pct=result.unrealized_pnl_pct,
+                    current_price_usd=result.current_price_usd or ZERO,
+                    current_value_usd=result.current_value_usd or ZERO,
+                    unrealized_pnl_usd=result.unrealized_pnl_usd or ZERO,
+                    unrealized_pnl_pct=result.unrealized_pnl_pct or ZERO,
                     price_confidence=result.price_confidence,
                     last_price_update=result.last_price_update
                 )
