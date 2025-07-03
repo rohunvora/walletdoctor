@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://walletdoctor.app/schemas/0.7.0/ExportResponse.json",
+  "title": "ExportResponse",
+  "description": "ExportResponse schema",
+  "type": "object",
+  "required": [
+    "wallet",
+    "signatures",
+    "trades"
+  ],
+  "properties": {
+    "wallet": {
+      "type": "string",
+      "description": "The wallet address",
+      "example": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+    },
+    "signatures": {
+      "type": "array",
+      "description": "Array of transaction signatures",
+      "items": {
+        "type": "string"
+      },
+      "example": [
+        "4NyzTh42S1bGswq8BNHvsm3PxM9NBYcmYgqk1n89HjiiKWHz2sT9Ut4rmuNHjeErTBAwoQV8aYP4oM54",
+        "5m5bE9B5144pJwMsv9DA4L1ovc3r6mnJSosvEc22qjc59P9KcFtHvFbMXipeCV2mzsXMrbuyyJ9FG7TC34pWPNS7"
+      ]
+    },
+    "trades": {
+      "type": "array",
+      "description": "Array of trade records",
+      "items": {
+        "$ref": "#/components/schemas/Trade"
+      }
+    }
+  }
+}

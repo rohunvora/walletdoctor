@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://walletdoctor.app/schemas/0.7.0/TokenFlow.json",
+  "title": "TokenFlow",
+  "description": "TokenFlow schema",
+  "type": "object",
+  "required": [
+    "amount",
+    "mint",
+    "symbol"
+  ],
+  "properties": {
+    "amount": {
+      "type": "number",
+      "description": "Token amount"
+    },
+    "mint": {
+      "type": "string",
+      "description": "Token mint address"
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Token symbol"
+    }
+  }
+}
