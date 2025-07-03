@@ -882,6 +882,65 @@ def export_positions_stream(wallet_address: str):
     )
 
 
+@app.route("/v4/trades/export-gpt/<wallet_address>", methods=["GET"])
+@simple_auth_required  
+def export_trades(wallet_address: str):
+    """
+    Export wallet trades in simple format for GPT integration
+    
+    GET /v4/trades/export-gpt/{wallet}
+    
+    Returns just signatures and trades without positions or pricing complexity.
+    
+    Response:
+    {
+        "wallet": "wallet_address",
+        "signatures": ["sig1", "sig2", ...],
+        "trades": [{"trade": "data"}, ...]
+    }
+    """
+    try:
+        # Validate wallet address
+        if not wallet_address or len(wallet_address) < 32:
+            return jsonify({
+                "error": "Invalid wallet address",
+                "message": "Wallet address must be at least 32 characters"
+            }), 400
+        
+        logger.info(f"Exporting trades for wallet: {wallet_address}")
+        
+        # Fetch trades without position calculation
+        async def fetch_trades_only():
+            async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+                result = await fetcher.fetch_wallet_trades(wallet_address)
+            return result
+        
+        result = run_async(fetch_trades_only())
+        
+        # Extract signatures and trades
+        signatures = result.get("signatures", [])
+        trades = result.get("trades", [])
+        
+        # Create simple response
+        response = {
+            "wallet": wallet_address,
+            "signatures": signatures,
+            "trades": trades
+        }
+        
+        logger.info(f"[CHECK] trades_len={len(trades)}")
+        logger.info(f"[CHECK] envelope_keys={list(response.keys())}")
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Error exporting trades for {wallet_address}: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": str(e)
+        }), 500
+
+
 if __name__ == "__main__":
     # For development
     app.run(host="0.0.0.0", port=8081, debug=False) 
