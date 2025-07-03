@@ -6,6 +6,7 @@ This directory contains all active development tickets. Each ticket is a standal
 
 ## Ticket Board
 
+### Backend Infrastructure
 | ID | Title | Scope / Done-When | Priority | Owner |
 |---|---|---|---|---|
 | [POS-001](./POS-001.md) | Fix position-builder filter bug | Returns ≥1 open positions for test wallet in smoke test | P1 | |
@@ -13,6 +14,16 @@ This directory contains all active development tickets. Each ticket is a standal
 | [CCH-001](./CCH-001.md) | Add Redis warm-cache | Warm <0.5s, cache hit ratio metric in `/diagnostics` | P3 | |
 | [PAG-001](./PAG-001.md) | Large-wallet pagination | 250k+ sig wallets succeed ≤30s | P3 | |
 | [OPS-001](./OPS-001.md) | Hard branch-freeze rule | GH protection + `BRANCH_FREEZE.md` merged | P2 | DevOps |
+
+### GPT Integration ([Epic: GPT-000](./GPT-000-INTEGRATION-EPIC.md))
+| ID | Title | Scope / Done-When | Priority | Owner |
+|---|---|---|---|---|
+| [GPT-001](./GPT-001.md) | Public Postman / cURL cookbook | `docs/gpt_examples.md` shows 3 copy-paste calls returning 200 | P1 | |
+| [GPT-002](./GPT-002.md) | Schema JSONSchema export | `schemas/trades_export_v0.7.0.json` auto-generated; validated by ajv | P1 | |
+| [GPT-003](./GPT-003.md) | TypeScript client helper | Lightweight npm package with auth handling; published to GitHub Packages | P2 | |
+| [GPT-004](./GPT-004.md) | Prompt templates & few-shot examples | `prompts/base_trades.md` contains 5+ examples; reviewed by GPT PM | P2 | |
+| [GPT-005](./GPT-005.md) | Streaming support spike | PoC SSE endpoint returning first 100 trades in <1s | P3 | |
+| [GPT-006](./GPT-006.md) | CI integration tests | GitHub Action hits Railway daily; fails if HTTP ≥400; alerts in #alerts | P1 | |
 
 ## Process
 
