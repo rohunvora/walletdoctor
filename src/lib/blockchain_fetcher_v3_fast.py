@@ -225,6 +225,12 @@ class BlockchainFetcherV3Fast:
                 break
         
         self._report_progress(f"Signature fetch complete: {len(all_signatures)} total signatures in {page} pages")
+        
+        import sys
+        logger.info(f"[CHECK] sig_pages_fetched={page} sigs_before_flatten={len(all_signatures)}")
+        logger.info(f"[CHECK] sigs_after_flatten={len(all_signatures)}")
+        sys.stdout.flush(); sys.stderr.flush()
+        
         return all_signatures
 
     async def _fetch_signature_page(self, wallet: str, before_sig: Optional[str] = None) -> Tuple[List[str], Optional[str]]:
