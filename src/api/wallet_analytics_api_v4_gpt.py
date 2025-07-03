@@ -295,6 +295,9 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     
     # Extract data and log counts
     signatures = result.get("signatures", [])
+    import sys
+    app.logger.info("[CHECK] helius_signatures_post_call=%d", len(signatures))
+    sys.stdout.flush()
     app.logger.info("[CHECK] helius_signatures=%d", len(signatures))
     
     trades = result.get("trades", [])
