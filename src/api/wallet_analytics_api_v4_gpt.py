@@ -750,6 +750,7 @@ def home():
         "version": "1.1",
         "endpoints": {
             "/v4/positions/export-gpt/{wallet}": "GET - Export positions in GPT schema v1.1",
+            "/v4/trades/export-gpt/{wallet}": "GET - Export signatures and trades for GPT integration",
             "/health": "GET - Health check",
             "/": "GET - This info"
         },
