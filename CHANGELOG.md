@@ -2,6 +2,39 @@
 
 All notable changes to WalletDoctor API will be documented in this file.
 
+## [0.7.0-trades-only] - 2025-07-03
+
+### Added
+- **NEW ENDPOINT**: `GET /v4/trades/export-gpt/{wallet}` for GPT integration
+  - Returns clean JSON with wallet address, signatures array, and trades array
+  - Designed specifically for ChatGPT and AI analysis workflows
+  - No position calculations, pricing pipelines, or caching complexity
+  - Response format: `{wallet: string, signatures: string[], trades: object[]}`
+- Comprehensive API documentation (`docs/TRADES_EXPORT_API.md`)
+- Unit tests for trades export endpoint (`tests/test_trades_export.py`)
+
+### Fixed
+- **CRITICAL**: Resolved signatures missing from `fetch_wallet_trades()` response
+  - Added signatures to response envelope in `_create_response_envelope()`
+  - Signatures were fetched correctly (1713) but lost during response building
+  - Now properly returns both signatures and trades in API responses
+
+### Performance
+- **Trades Export**: 3-4 seconds cold, <1 second warm (single worker)
+- **Data Volume**: 1713 signatures + 1091 trades for test wallet
+- **Response Size**: ~729KB for active wallet
+- **Infrastructure**: Minimal - single Railway worker, no Redis/cache dependencies
+
+### Scope
+- **Intentionally Limited**: Positions/prices/cache features out-of-scope for v0.7.0
+- **GPT-Focused**: Clean data export without complex portfolio calculations
+- **Baseline**: Establishes stable foundation for future position/pricing work
+
+### Technical
+- Fixed blockchain fetcher to properly include signatures in response envelope
+- Removed temporary debug logging from production code
+- Added proper error handling and validation for wallet addresses
+
 ## [0.6.0-beta] - 2025-07-02
 
 ### Fixed
