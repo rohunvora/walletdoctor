@@ -296,6 +296,7 @@ async def get_positions_with_staleness(wallet_address: str, skip_pricing: bool =
     # Extract data and log counts
     signatures = result.get("signatures", [])
     app.logger.info("[CHECK] trades_found=%d", len(result.get("trades", [])))
+    app.logger.info("[CHECK] signatures_found=%d", len(signatures))
     
     trades = result.get("trades", [])
     app.logger.info("[CHECK] trades_raw=%d", len(trades))
