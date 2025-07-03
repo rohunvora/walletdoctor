@@ -150,6 +150,10 @@ class BlockchainFetcherV3Fast:
 
         # Step 1: Fetch all signatures using RPC (1000 per page)
         signatures = await self._fetch_all_signatures(wallet_address)
+        logger.info(
+            "[CHECK] sigs_received_in_fetch_wallet_trades="
+            f"{len(signatures)} id={id(signatures)}"
+        )
         self.metrics.signatures_fetched = len(signatures)
         self._report_progress(f"Fetched {len(signatures)} signatures")
 
