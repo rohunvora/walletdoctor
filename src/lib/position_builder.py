@@ -141,6 +141,7 @@ class PositionBuilder:
         # Build positions for other tokens
         raw_positions_count = len(token_groups)
         logger.info(f"[FILTER-BEFORE] positions={raw_positions_count}")
+        logger.info(f"[CHECK] positions_prefilter={len(trades)}")  # POS-001 check
         
         for token_mint, group in token_groups.items():
             position = self._build_position_for_token(wallet, group)
@@ -162,6 +163,7 @@ class PositionBuilder:
         sys.stderr.flush()
         
         logger.info(f"[FILTER-AFTER] positions={len(positions)} filtered={spam_filtered}")
+        logger.info(f"[CHECK] positions_postfilter={len(positions)}")  # POS-001 check
         logger.info(f"Built {len(positions)} open positions from {len(trades)} trades (filtered {spam_filtered} spam tokens)")
         return positions
     
