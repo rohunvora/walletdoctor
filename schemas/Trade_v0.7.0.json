@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://walletdoctor.app/schemas/0.7.0/Trade.json",
+  "title": "Trade",
+  "description": "Trade schema",
+  "type": "object",
+  "required": [
+    "action",
+    "amount",
+    "dex",
+    "fees_usd",
+    "pnl_usd",
+    "position_closed",
+    "price",
+    "priced",
+    "signature",
+    "timestamp",
+    "token",
+    "token_in",
+    "token_out",
+    "tx_type",
+    "value_usd"
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "sell"
+      ],
+      "description": "Trade action"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Token amount traded"
+    },
+    "dex": {
+      "type": "string",
+      "description": "DEX where trade occurred",
+      "example": "RAYDIUM"
+    },
+    "fees_usd": {
+      "type": "number",
+      "description": "Transaction fees in USD"
+    },
+    "pnl_usd": {
+      "type": "number",
+      "description": "Profit/loss in USD (0 for buys)"
+    },
+    "position_closed": {
+      "type": "boolean",
+      "description": "Whether this trade closed a position"
+    },
+    "price": {
+      "type": "number",
+      "description": "Token price at time of trade"
+    },
+    "priced": {
+      "type": "boolean",
+      "description": "Whether price data is available"
+    },
+    "signature": {
+      "type": "string",
+      "description": "Transaction signature"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Trade timestamp"
+    },
+    "token": {
+      "type": "string",
+      "description": "Primary token symbol"
+    },
+    "token_in": {
+      "$ref": "#/components/schemas/TokenFlow"
+    },
+    "token_out": {
+      "$ref": "#/components/schemas/TokenFlow"
+    },
+    "tx_type": {
+      "type": "string",
+      "description": "Transaction type",
+      "example": "swap"
+    },
+    "value_usd": {
+      "type": "number",
+      "description": "Total USD value of trade"
+    }
+  }
+}

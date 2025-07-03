@@ -169,6 +169,17 @@ components:
       name: X-Api-Key
 ```
 
+### Demo Wallets for Testing
+
+Use these confirmed mainnet wallets for testing and development:
+
+| Wallet Type | Address | Trades | Purpose |
+|-------------|---------|--------|---------|
+| Small Demo | `34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya` | ≈1,100 | Quick testing, examples |
+| Mid Demo | `AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8` | ≈2,300 | Performance testing |
+
+These wallets are used in our CI system for daily health checks and provide reliable test data for GPT integration development.
+
 ### Sample Analysis Prompts
 - "Analyze the trading patterns in this wallet data"
 - "What are the most profitable trades in this data?"

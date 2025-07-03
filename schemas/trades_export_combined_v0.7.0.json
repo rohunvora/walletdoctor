@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://walletdoctor.app/schemas/0.7.0/trades_export.json",
+  "title": "WalletDoctor Trades Export Schemas",
+  "description": "All schemas for trades export API v0.7.0",
+  "definitions": {
+    "ExportResponse": {
+      "type": "object",
+      "required": [
+        "wallet",
+        "signatures",
+        "trades"
+      ],
+      "properties": {
+        "wallet": {
+          "type": "string",
+          "description": "The wallet address",
+          "example": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+        },
+        "signatures": {
+          "type": "array",
+          "description": "Array of transaction signatures",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "4NyzTh42S1bGswq8BNHvsm3PxM9NBYcmYgqk1n89HjiiKWHz2sT9Ut4rmuNHjeErTBAwoQV8aYP4oM54",
+            "5m5bE9B5144pJwMsv9DA4L1ovc3r6mnJSosvEc22qjc59P9KcFtHvFbMXipeCV2mzsXMrbuyyJ9FG7TC34pWPNS7"
+          ]
+        },
+        "trades": {
+          "type": "array",
+          "description": "Array of trade records",
+          "items": {
+            "$ref": "#/components/schemas/Trade"
+          }
+        }
+      }
+    },
+    "Trade": {
+      "type": "object",
+      "required": [
+        "action",
+        "amount",
+        "dex",
+        "fees_usd",
+        "pnl_usd",
+        "position_closed",
+        "price",
+        "priced",
+        "signature",
+        "timestamp",
+        "token",
+        "token_in",
+        "token_out",
+        "tx_type",
+        "value_usd"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "buy",
+            "sell"
+          ],
+          "description": "Trade action"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Token amount traded"
+        },
+        "dex": {
+          "type": "string",
+          "description": "DEX where trade occurred",
+          "example": "RAYDIUM"
+        },
+        "fees_usd": {
+          "type": "number",
+          "description": "Transaction fees in USD"
+        },
+        "pnl_usd": {
+          "type": "number",
+          "description": "Profit/loss in USD (0 for buys)"
+        },
+        "position_closed": {
+          "type": "boolean",
+          "description": "Whether this trade closed a position"
+        },
+        "price": {
+          "type": "number",
+          "description": "Token price at time of trade"
+        },
+        "priced": {
+          "type": "boolean",
+          "description": "Whether price data is available"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Transaction signature"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Trade timestamp"
+        },
+        "token": {
+          "type": "string",
+          "description": "Primary token symbol"
+        },
+        "token_in": {
+          "$ref": "#/components/schemas/TokenFlow"
+        },
+        "token_out": {
+          "$ref": "#/components/schemas/TokenFlow"
+        },
+        "tx_type": {
+          "type": "string",
+          "description": "Transaction type",
+          "example": "swap"
+        },
+        "value_usd": {
+          "type": "number",
+          "description": "Total USD value of trade"
+        }
+      }
+    },
+    "TokenFlow": {
+      "type": "object",
+      "required": [
+        "amount",
+        "mint",
+        "symbol"
+      ],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "description": "Token amount"
+        },
+        "mint": {
+          "type": "string",
+          "description": "Token mint address"
+        },
+        "symbol": {
+          "type": "string",
+          "description": "Token symbol"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": [
+        "error",
+        "message"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Error type"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        }
+      }
+    },
+    "RetryErrorResponse": {
+      "type": "object",
+      "required": [
+        "error",
+        "message",
+        "retry_after"
+      ],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Error type"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "retry_after": {
+          "type": "integer",
+          "description": "Seconds to wait before retry"
+        }
+      }
+    }
+  }
+}

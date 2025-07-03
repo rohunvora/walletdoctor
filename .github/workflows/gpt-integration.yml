@@ -1,0 +1,249 @@
+name: GPT Integration Tests
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # Daily at 9 AM UTC
+  workflow_dispatch:  # Manual trigger
+  pull_request:
+    paths:
+      - 'src/api/**'
+      - 'docs/gpt_action/**'
+      - 'schemas/**'
+
+# Prevent concurrent runs to avoid DOS
+concurrency:
+  group: gpt-integration
+  cancel-in-progress: false
+
+env:
+  API_URL: https://web-production-2bb2f.up.railway.app
+  TEST_WALLET: 34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya  # Small wallet only
+
+jobs:
+  schema-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Validate trades export schema v0.7.0
+        run: |
+          python scripts/validate_openapi_schema.py schemas/trades_export_v0.7.0_openapi.json 0.7.0
+      
+      - name: Check schema files exist
+        run: |
+          echo "Checking for required schema files..."
+          for file in ExportResponse Trade TokenFlow ErrorResponse RetryErrorResponse trades_export_combined; do
+            if [ ! -f "schemas/${file}_v0.7.0.json" ]; then
+              echo "❌ Missing schema file: schemas/${file}_v0.7.0.json"
+              exit 1
+            fi
+          done
+          echo "✅ All schema files present"
+  
+  test-trades-endpoint:
+    runs-on: ubuntu-latest
+    needs: schema-validation  # Only run tests if schema is valid
+    timeout-minutes: 2  # Fail fast if hanging
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up environment
+        run: |
+          # Use provided API key or test key
+          echo "API_KEY=${API_KEY:-wd_12345678901234567890123456789012}" >> $GITHUB_ENV
+      
+      - name: Test cold performance
+        id: cold_test
+        run: |
+          echo "Testing cold performance..."
+          START=$(date +%s%3N)
+          
+          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" \
+            -H "X-Api-Key: $API_KEY" \
+            -H "Accept: application/json" \
+            --max-time 30 \
+            "$API_URL/v4/trades/export-gpt/$TEST_WALLET")
+          
+          END=$(date +%s%3N)
+          DURATION=$((END - START))
+          DURATION_SEC=$(echo "scale=2; $DURATION / 1000" | bc)
+          
+          echo "duration_ms=$DURATION" >> $GITHUB_OUTPUT
+          echo "duration_sec=$DURATION_SEC" >> $GITHUB_OUTPUT
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          
+          # Log results
+          echo "Response time: ${DURATION_SEC}s (${DURATION}ms)"
+          echo "HTTP status: $HTTP_CODE"
+          
+          # Check response
+          if [ $HTTP_CODE -eq 200 ]; then
+            TRADE_COUNT=$(jq '.trades | length' response.json)
+            echo "✅ Success! Found $TRADE_COUNT trades"
+          else
+            echo "❌ Request failed with HTTP $HTTP_CODE"
+            cat response.json
+            exit 1
+          fi
+      
+      - name: Test warm performance
+        id: warm_test
+        run: |
+          echo "Testing warm performance (second request)..."
+          sleep 2  # Brief pause
+          
+          START=$(date +%s%3N)
+          
+          HTTP_CODE=$(curl -s -o response2.json -w "%{http_code}" \
+            -H "X-Api-Key: $API_KEY" \
+            -H "Accept: application/json" \
+            --max-time 10 \
+            "$API_URL/v4/trades/export-gpt/$TEST_WALLET")
+          
+          END=$(date +%s%3N)
+          DURATION=$((END - START))
+          DURATION_SEC=$(echo "scale=2; $DURATION / 1000" | bc)
+          
+          echo "duration_ms=$DURATION" >> $GITHUB_OUTPUT
+          echo "duration_sec=$DURATION_SEC" >> $GITHUB_OUTPUT
+          
+          echo "Response time: ${DURATION_SEC}s (${DURATION}ms)"
+      
+      - name: Performance check
+        run: |
+          COLD_MS=${{ steps.cold_test.outputs.duration_ms }}
+          WARM_MS=${{ steps.warm_test.outputs.duration_ms }}
+          
+          COLD_SEC=$(echo "scale=2; $COLD_MS / 1000" | bc)
+          WARM_SEC=$(echo "scale=2; $WARM_MS / 1000" | bc)
+          
+          echo "=== Performance Summary ==="
+          echo "Cold: ${COLD_SEC}s"
+          echo "Warm: ${WARM_SEC}s"
+          
+          # Check thresholds
+          COLD_PASS=true
+          WARM_PASS=true
+          
+          # Cold performance (ms)
+          if [ $COLD_MS -gt 8000 ]; then
+            echo "❌ FAIL: Cold performance ${COLD_SEC}s > 8s threshold"
+            COLD_PASS=false
+          elif [ $COLD_MS -gt 6000 ]; then
+            echo "⚠️  WARN: Cold performance ${COLD_SEC}s > 6s warning threshold"
+            echo "::warning title=Cold Performance::Cold request took ${COLD_SEC}s (warning threshold: 6s)"
+          else
+            echo "✅ PASS: Cold performance ${COLD_SEC}s ≤ 6s"
+          fi
+          
+          # Warm performance (ms) - Adjusted for Railway single worker reality
+          if [ $WARM_MS -gt 5000 ]; then
+            echo "❌ FAIL: Warm performance ${WARM_SEC}s > 5s threshold"
+            WARM_PASS=false
+          elif [ $WARM_MS -gt 3000 ]; then
+            echo "⚠️  WARN: Warm performance ${WARM_SEC}s > 3s warning threshold"
+            echo "::warning title=Warm Performance::Warm request took ${WARM_SEC}s (warning threshold: 3s)"
+          else
+            echo "✅ PASS: Warm performance ${WARM_SEC}s ≤ 3s"
+          fi
+          
+          # Fail if either threshold exceeded
+          if [ "$COLD_PASS" = "false" ] || [ "$WARM_PASS" = "false" ]; then
+            exit 1
+          fi
+      
+      - name: Test auth error handling
+        run: |
+          echo "Testing missing API key (401 expected)..."
+          
+          HTTP_CODE=$(curl -s -o auth_error.json -w "%{http_code}" \
+            --max-time 5 \
+            "$API_URL/v4/trades/export-gpt/$TEST_WALLET")
+          
+          if [ $HTTP_CODE -eq 401 ]; then
+            echo "✅ Correctly returned 401 for missing API key"
+            ERROR_MSG=$(jq -r '.error' auth_error.json)
+            echo "Error message: $ERROR_MSG"
+          elif [ $HTTP_CODE -eq 403 ]; then
+            echo "✅ Returned 403 for missing API key (also acceptable)"
+            ERROR_MSG=$(jq -r '.error' auth_error.json)
+            echo "Error message: $ERROR_MSG"
+          else
+            echo "❌ Expected 401 or 403, got $HTTP_CODE"
+            cat auth_error.json
+            exit 1
+          fi
+      
+      - name: Notify on failure
+        if: failure() && github.event_name == 'schedule'
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
+            echo "📢 Sending Slack notification..."
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"🚨 GPT Integration test failed!\nEndpoint: ${{ env.API_URL }}\nWallet: ${{ env.TEST_WALLET }}\"}" \
+              "${{ secrets.SLACK_WEBHOOK }}" || echo "⚠️ Slack notification failed"
+          else
+            echo "📋 No Slack webhook configured — skipping notification"
+          fi
+
+  sanity-check-live-wallets:
+    runs-on: ubuntu-latest
+    needs: test-trades-endpoint  # Run after main tests pass
+    timeout-minutes: 3
+    continue-on-error: true  # Don't fail the build, just show warnings
+    
+    strategy:
+      matrix:
+        include:
+          - alias: "small-demo"
+            wallet: "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya"
+            min_trades: 500
+          - alias: "mid-demo"  
+            wallet: "AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8"
+            min_trades: 2000
+    
+    steps:
+      - name: Test ${{ matrix.alias }} wallet data
+        run: |
+          echo "🔍 Testing ${{ matrix.alias }} wallet: ${{ matrix.wallet }}"
+          echo "Expected: ≥${{ matrix.min_trades }} trades"
+          
+          # Use provided API key or test key
+          API_KEY="${{ env.API_KEY || 'wd_12345678901234567890123456789012' }}"
+          
+          HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" \
+            -H "X-Api-Key: $API_KEY" \
+            -H "Accept: application/json" \
+            --max-time 20 \
+            "${{ env.API_URL }}/v4/trades/export-gpt/${{ matrix.wallet }}")
+          
+          if [ $HTTP_CODE -eq 200 ]; then
+            TRADE_COUNT=$(jq '.trades | length' response.json)
+            echo "📊 Found $TRADE_COUNT trades"
+            
+            if [ $TRADE_COUNT -ge ${{ matrix.min_trades }} ]; then
+              echo "✅ PASS: $TRADE_COUNT ≥ ${{ matrix.min_trades }} trades"
+            else
+              echo "⚠️  WARN: $TRADE_COUNT < ${{ matrix.min_trades }} trades (expected for ${{ matrix.alias }})"
+              echo "::warning title=${{ matrix.alias }} Data::Only found $TRADE_COUNT trades, expected ≥${{ matrix.min_trades }}"
+            fi
+          else
+            echo "❌ HTTP $HTTP_CODE - wallet may be inactive or endpoint issue"
+            echo "::warning title=${{ matrix.alias }} Request::HTTP $HTTP_CODE for wallet ${{ matrix.wallet }}"
+          fi
+
+  # Future: Add matrix for larger wallets when CCH-001 lands
+  # test-large-wallets:
+  #   if: false  # Enable after CCH-001
+  #   strategy:
+  #     matrix:
+  #       wallet:
+  #         - AAXTYrQR6CHDGhJYz4uSgJ6dq7JTySTR6WyAq8QKZnF8  # Medium
+  #         - 3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2  # Large 
