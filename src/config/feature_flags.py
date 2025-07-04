@@ -31,7 +31,8 @@ class FeatureFlags:
             "price_sol_spot_only": False,        # Use SOL spot price for all current_price_usd values
             "token_price_enabled": False,        # Use CoinGecko for per-token pricing (PRC-002)
             "price_helius_only": False,          # WAL-512: Feature flag for Helius-only pricing (no Birdeye)
-            "price_enrich_trades": False         # TRD-002: Feature flag for enriching trade data with prices and P&L
+            "price_enrich_trades": False,        # TRD-002: Feature flag for enriching trade data with prices and P&L
+            "trades_compact": False              # v0.7.2: Compress trade responses for ChatGPT connector limits
         }
         
         # Override with environment variables if present
@@ -48,7 +49,8 @@ class FeatureFlags:
             "price_sol_spot_only",
             "token_price_enabled",
             "price_helius_only",
-            "price_enrich_trades"
+            "price_enrich_trades",
+            "trades_compact"
         ]
         
         for flag in bool_flags:
@@ -107,6 +109,11 @@ class FeatureFlags:
         """TRD-002: Feature flag for enriching trade data with prices and P&L"""
         return self._flags["price_enrich_trades"]
     
+    @property
+    def trades_compact(self) -> bool:
+        """v0.7.2: Feature flag for compressing trade responses"""
+        return self._flags["trades_compact"]
+    
     def get_all(self) -> Dict[str, Any]:
         """Get all feature flag values"""
         return {
@@ -118,7 +125,8 @@ class FeatureFlags:
             "price_sol_spot_only": self.price_sol_spot_only,
             "token_price_enabled": self.token_price_enabled,
             "price_helius_only": self.price_helius_only,
-            "price_enrich_trades": self.price_enrich_trades
+            "price_enrich_trades": self.price_enrich_trades,
+            "trades_compact": self.trades_compact
         }
     
     def is_enabled(self, feature: str) -> bool:
@@ -178,4 +186,9 @@ def price_helius_only() -> bool:
 
 def price_enrich_trades() -> bool:
     """TRD-002: Feature flag for enriching trade data with prices and P&L"""
-    return FEATURE_FLAGS.price_enrich_trades 
+    return FEATURE_FLAGS.price_enrich_trades
+
+
+def trades_compact() -> bool:
+    """v0.7.2: Feature flag for compressing trade responses"""
+    return FEATURE_FLAGS.trades_compact 

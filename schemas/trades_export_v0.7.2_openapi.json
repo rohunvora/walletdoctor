@@ -1,0 +1,177 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "WalletDoctor Trades Export API",
+    "version": "0.7.2-compact",
+    "description": "Compressed trade export format for ChatGPT connector compatibility"
+  },
+  "paths": {
+    "/v4/trades/export-gpt/{wallet}": {
+      "get": {
+        "summary": "Export compressed wallet trades",
+        "operationId": "getWalletTradesCompact",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "description": "Solana wallet address"
+          },
+          {
+            "name": "schema_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["v0.7.0", "v0.7.1-trades-value", "v0.7.2-compact"],
+              "default": "v0.7.2-compact"
+            },
+            "description": "Response format version"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            },
+            "description": "Maximum number of trades to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompactTradesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CompactTradesResponse": {
+        "type": "object",
+        "required": ["wallet", "schema_version", "field_map", "trades", "constants", "summary"],
+        "properties": {
+          "wallet": {
+            "type": "string",
+            "description": "Wallet address"
+          },
+          "schema_version": {
+            "type": "string",
+            "description": "Schema version",
+            "example": "v0.7.2-compact"
+          },
+          "field_map": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Field names in order for trade arrays",
+            "example": ["ts", "act", "tok", "amt", "p_sol", "p_usd", "val", "pnl"]
+          },
+          "trades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompactTrade"
+            },
+            "description": "Compressed trade arrays"
+          },
+          "constants": {
+            "$ref": "#/components/schemas/Constants"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          }
+        }
+      },
+      "CompactTrade": {
+        "type": "array",
+        "minItems": 8,
+        "maxItems": 8,
+        "items": [
+          {
+            "type": "integer",
+            "description": "Unix timestamp"
+          },
+          {
+            "type": "integer",
+            "description": "Action (0=sell, 1=buy)",
+            "enum": [0, 1]
+          },
+          {
+            "type": "string",
+            "description": "Token symbol or mint"
+          },
+          {
+            "type": "number",
+            "description": "Token amount"
+          },
+          {
+            "type": "string",
+            "description": "Price in SOL (may be empty)"
+          },
+          {
+            "type": "string",
+            "description": "Price in USD (may be empty)"
+          },
+          {
+            "type": "string",
+            "description": "Value in USD (may be empty)"
+          },
+          {
+            "type": "string",
+            "description": "P&L in USD (may be empty)"
+          }
+        ],
+        "example": [1736784000, 1, "BONK", 1000000, "0.00247", "0.361", "361.00", "0"]
+      },
+      "Constants": {
+        "type": "object",
+        "required": ["actions", "sol_mint"],
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Action mapping",
+            "example": ["sell", "buy"]
+          },
+          "sol_mint": {
+            "type": "string",
+            "description": "SOL mint address",
+            "example": "So11111111111111111111111111111111111111112"
+          }
+        }
+      },
+      "Summary": {
+        "type": "object",
+        "required": ["total", "included"],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Total trades in wallet"
+          },
+          "included": {
+            "type": "integer",
+            "description": "Trades included in response"
+          }
+        }
+      }
+    }
+  }
+} 

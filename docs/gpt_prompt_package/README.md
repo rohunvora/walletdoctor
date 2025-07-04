@@ -68,4 +68,13 @@ Once `run_eval.sh` passes, the API is ready for ChatGPT integration with meaning
 The trades endpoint now includes enriched price and P&L fields:
 - `price_sol`, `price_usd`, `value_usd`, `pnl_usd` are now populated for 97%+ trades
 - Use `?schema_version=v0.7.1-trades-value` for enriched trade data
-- Enables comprehensive P&L analysis and trading insights 
+- Enables comprehensive P&L analysis and trading insights
+
+### 🗜️ v0.7.2-compact Format (NEW)
+
+For large wallets that exceed ChatGPT's response size limits:
+- Use `?schema_version=v0.7.2-compact` for compressed format
+- Reduces response size by 4-5x (from ~770 to ~180 bytes per trade)
+- Stays under 200KB for ~1,000 trades
+- Preserves all enriched fields in array format
+- Field map: `["ts", "act", "tok", "amt", "p_sol", "p_usd", "val", "pnl"]` 

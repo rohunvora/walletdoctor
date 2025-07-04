@@ -902,6 +902,7 @@ def export_trades(wallet_address: str):
     - schema_version: Response format version (default: v0.7.0)
       - v0.7.0: Original format (price/value_usd always null)
       - v0.7.1-trades-value: Enriched with price_sol, price_usd, value_usd, pnl_usd
+    - limit: Maximum number of trades to return (default: 100, max: 500)
     
     Returns just signatures and trades without positions or pricing complexity.
     
@@ -924,7 +925,14 @@ def export_trades(wallet_address: str):
         # Get schema version from query param
         schema_version = request.args.get("schema_version", "v0.7.0")
         
-        logger.info(f"Exporting trades for wallet: {wallet_address}, schema: {schema_version}")
+        # Get limit parameter (default 100, max 500)
+        try:
+            limit = int(request.args.get("limit", "100"))
+            limit = min(max(limit, 1), 500)  # Clamp between 1 and 500
+        except ValueError:
+            limit = 100
+        
+        logger.info(f"Exporting trades for wallet: {wallet_address}, schema: {schema_version}, limit: {limit}")
         
         # Fetch trades without position calculation
         async def fetch_trades_only():
@@ -938,9 +946,13 @@ def export_trades(wallet_address: str):
         signatures = result.get("signatures", [])
         trades = result.get("trades", [])
         
+        # Ensure trades is a list
+        if not isinstance(trades, list):
+            trades = []
+        
         # Apply enrichment if feature flag is enabled and schema supports it
-        from src.config.feature_flags import price_enrich_trades
-        if price_enrich_trades() and schema_version == "v0.7.1-trades-value":
+        from src.config.feature_flags import price_enrich_trades, trades_compact
+        if price_enrich_trades() and (schema_version == "v0.7.1-trades-value" or schema_version == "v0.7.2-compact"):
             logger.info(f"Applying trade enrichment for {len(trades)} trades")
             from src.lib.trade_enricher import TradeEnricher
             
@@ -949,7 +961,23 @@ def export_trades(wallet_address: str):
             enriched_trades = run_async(enricher.enrich_trades(trades))
             trades = enriched_trades
         
-        # Create response
+        # Apply compression if flag is enabled or schema requests it
+        if trades_compact() or schema_version == "v0.7.2-compact":
+            logger.info(f"Applying trade compression for {len(trades)} trades")
+            from src.lib.trade_compressor import TradeCompressor
+            
+            # Run compression
+            compressor = TradeCompressor()
+            response = compressor.compress_trades(trades, wallet_address, schema_version="v0.7.2-compact")
+            
+            # Log response size
+            import json
+            response_size = len(json.dumps(response))
+            logger.info(f"Compressed response size: {response_size:,} bytes ({response_size/1024:.1f} KB)")
+            
+            return jsonify(response)
+        
+        # Create standard response
         response = {
             "wallet": wallet_address,
             "signatures": signatures,

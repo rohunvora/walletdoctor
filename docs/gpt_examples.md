@@ -4,19 +4,60 @@ Complete examples for integrating WalletDoctor API with ChatGPT and other AI sys
 
 ## 📊 Trading Activity Analysis
 
-**API Version**: v0.7.1-trades-value (enriched trades endpoint)  
+**API Versions**: 
+- **v0.7.2-compact** (NEW): Compressed format for large wallets (<200KB)
+- **v0.7.1-trades-value**: Full enriched trades with price/P&L
+- **v0.7.0**: Legacy format without enrichment
+
 **Wallet**: `34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`  
 **Features**: Trade history with price data and P&L analysis (TRD-002 ✅)
 
 ### Basic Trades Request
 
+#### Compressed Format (v0.7.2-compact) - Recommended for Large Wallets
+```bash
+curl -X GET "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya?schema_version=v0.7.2-compact" \
+  -H "X-Api-Key: wd_test1234567890abcdef1234567890ab" \
+  -H "Accept: application/json"
+```
+
+#### Full Format (v0.7.1-trades-value)
 ```bash
 curl -X GET "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya?schema_version=v0.7.1-trades-value" \
   -H "X-Api-Key: wd_test1234567890abcdef1234567890ab" \
   -H "Accept: application/json"
 ```
 
-### Response Format (v0.7.1-trades-value)
+### Response Format (v0.7.2-compact) - 4x Smaller!
+
+```json
+{
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "schema_version": "v0.7.2-compact",
+  "field_map": ["ts", "act", "tok", "amt", "p_sol", "p_usd", "val", "pnl"],
+  "trades": [
+    [1736017029, 1, "vRseBFqT", 101109.031893, "0.00247", "0.361", "36521.18", "0"],
+    [1736014562, 0, "BONK", 500000, "0.00290", "0.425", "212.50", "18.75"]
+  ],
+  "constants": {
+    "actions": ["sell", "buy"],
+    "sol_mint": "So11111111111111111111111111111111111111112"
+  },
+  "summary": {
+    "total": 1107,
+    "included": 1107
+  }
+}
+```
+
+**Decompression**: Each trade array follows the field_map order:
+- `trades[0][0]` = Unix timestamp (1736017029)
+- `trades[0][1]` = Action index (1 = buy, 0 = sell)
+- `trades[0][2]` = Token symbol
+- `trades[0][3]` = Amount
+- `trades[0][4-7]` = Price/value fields (may be empty strings)
+
+### Response Format (v0.7.1-trades-value) - Full Details
 
 ```json
 {
