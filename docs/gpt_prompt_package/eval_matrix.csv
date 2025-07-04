@@ -1,0 +1,5 @@
+wallet,endpoint,cold_time_s,warm_time_s,non_null_price_pct,schema_version,notes
+34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya,/v4/positions/export-gpt,,,,,Small demo (18 pos)
+3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2,/v4/positions/export-gpt,,,,,Medium demo (356 pos)
+34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya,/v4/trades/export-gpt,,,N/A,,Small trades (1106)
+3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2,/v4/trades/export-gpt,,,N/A,,Medium trades (6428) 
