@@ -28,7 +28,8 @@ class FeatureFlags:
             "streaming_positions": False,        # SSE position updates
             "balance_verification": False,       # On-chain balance verification
             "cost_basis_method": "weighted_avg", # "weighted_avg" or "fifo"
-            "price_sol_spot_only": False         # Use SOL spot price for all current_price_usd values
+            "price_sol_spot_only": False,        # Use SOL spot price for all current_price_usd values
+            "token_price_enabled": False         # Use CoinGecko for per-token pricing (PRC-002)
         }
         
         # Override with environment variables if present
@@ -42,7 +43,8 @@ class FeatureFlags:
             "unrealized_pnl_enabled", 
             "streaming_positions",
             "balance_verification",
-            "price_sol_spot_only"
+            "price_sol_spot_only",
+            "token_price_enabled"
         ]
         
         for flag in bool_flags:
@@ -86,6 +88,11 @@ class FeatureFlags:
         """Use SOL spot price for all current_price_usd values (PRC-001)"""
         return self._flags["price_sol_spot_only"]
     
+    @property
+    def token_price_enabled(self) -> bool:
+        """Use CoinGecko for per-token pricing (PRC-002)"""
+        return self._flags["token_price_enabled"]
+    
     def get_all(self) -> Dict[str, Any]:
         """Get all feature flag values"""
         return {
@@ -94,7 +101,8 @@ class FeatureFlags:
             "streaming_positions": self.streaming_positions,
             "balance_verification": self.balance_verification,
             "cost_basis_method": self.cost_basis_method,
-            "price_sol_spot_only": self.price_sol_spot_only
+            "price_sol_spot_only": self.price_sol_spot_only,
+            "token_price_enabled": self.token_price_enabled
         }
     
     def is_enabled(self, feature: str) -> bool:
@@ -139,4 +147,9 @@ def get_cost_basis_method() -> str:
 
 def should_use_sol_spot_pricing() -> bool:
     """Check if SOL spot pricing should be used for current_price_usd (PRC-001)"""
-    return FEATURE_FLAGS.price_sol_spot_only 
+    return FEATURE_FLAGS.price_sol_spot_only
+
+
+def should_use_token_pricing() -> bool:
+    """Check if CoinGecko token pricing should be used (PRC-002)"""
+    return FEATURE_FLAGS.token_price_enabled 

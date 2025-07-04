@@ -17,9 +17,10 @@ from dataclasses import dataclass
 from src.lib.position_models import Position, PositionPnL, PriceConfidence
 from src.lib.mc_calculator import MarketCapCalculator, MarketCapResult, calculate_market_cap
 from src.lib.mc_calculator import CONFIDENCE_HIGH, CONFIDENCE_EST, CONFIDENCE_UNAVAILABLE
-from src.config.feature_flags import should_calculate_unrealized_pnl, should_use_sol_spot_pricing
+from src.config.feature_flags import should_calculate_unrealized_pnl, should_use_sol_spot_pricing, should_use_token_pricing
 from src.lib.helius_price_extractor import get_helius_price_extractor
 from src.lib.sol_price_fetcher import get_sol_price_usd
+from src.lib.token_price_service import TokenPriceService
 
 logger = logging.getLogger(__name__)
 
@@ -279,6 +280,75 @@ class UnrealizedPnLCalculator:
                         price_source=None,
                         last_price_update=datetime.now(timezone.utc),
                         error="SOL price unavailable"
+                    ))
+            
+            return results
+        
+        # Check if we should use CoinGecko token pricing (PRC-002)
+        if should_calculate_unrealized_pnl() and should_use_token_pricing():
+            logger.info(f"[PRC-002] Using CoinGecko token pricing for {len(positions)} positions")
+            
+            # Create price service
+            price_service = TokenPriceService()
+            
+            # Collect unique tokens and their symbols
+            token_mints = []
+            token_symbols = {}
+            for position in positions:
+                if position.token_mint not in token_mints:
+                    token_mints.append(position.token_mint)
+                    token_symbols[position.token_mint] = position.token_symbol
+            
+            # Batch fetch prices
+            start_time = asyncio.get_event_loop().time()
+            async with price_service:
+                prices = await price_service.get_batch_prices(token_mints, token_symbols)
+            elapsed = asyncio.get_event_loop().time() - start_time
+            
+            logger.info(
+                f"[PRC-002] Fetched prices for {len(token_mints)} unique tokens in {elapsed:.3f}s. "
+                f"Success rate: {sum(1 for p in prices.values() if p is not None)}/{len(prices)}"
+            )
+            
+            # Apply prices to positions
+            for position in positions:
+                price = prices.get(position.token_mint)
+                
+                if price and position.balance and position.balance > ZERO:
+                    # Calculate with proper decimals
+                    human_balance = position.balance / Decimal(10 ** position.decimals)
+                    current_value_usd = human_balance * price
+                    unrealized_pnl_usd = current_value_usd - position.cost_basis_usd
+                    
+                    if position.cost_basis_usd > 0:
+                        unrealized_pnl_pct = (unrealized_pnl_usd / position.cost_basis_usd) * Decimal("100")
+                    else:
+                        unrealized_pnl_pct = Decimal("100") if unrealized_pnl_usd > 0 else ZERO
+                    
+                    results.append(UnrealizedPnLResult(
+                        position=position,
+                        current_price_usd=price,
+                        current_value_usd=current_value_usd,
+                        unrealized_pnl_usd=unrealized_pnl_usd,
+                        unrealized_pnl_pct=unrealized_pnl_pct,
+                        price_confidence=PriceConfidence.HIGH,
+                        price_source="coingecko_cached",
+                        last_price_update=datetime.now(timezone.utc),
+                        error=None
+                    ))
+                else:
+                    # No price available or no balance
+                    error_msg = "No price available" if price is None else "No token balance"
+                    results.append(UnrealizedPnLResult(
+                        position=position,
+                        current_price_usd=None,
+                        current_value_usd=None,
+                        unrealized_pnl_usd=None,
+                        unrealized_pnl_pct=None,
+                        price_confidence=PriceConfidence.UNAVAILABLE,
+                        price_source=None,
+                        last_price_update=datetime.now(timezone.utc),
+                        error=error_msg
                     ))
             
             return results
