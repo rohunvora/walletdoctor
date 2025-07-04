@@ -15,8 +15,8 @@
     "/v4/positions/export-gpt/{wallet}": {
       "get": {
         "operationId": "getWalletPortfolio",
-        "summary": "Get wallet portfolio with positions and P&L",
-        "description": "Returns complete portfolio data including all open positions with SOL spot pricing, current values, and unrealized P&L calculations. All monetary values are returned as strings to preserve precision.",
+        "summary": "[BETA] Get wallet portfolio with positions and P&L",
+        "description": "⚠️ BETA ENDPOINT - Known accuracy issues. Returns portfolio data but may miss positions or show incorrect cost basis. Use /v4/trades/export-gpt for reliable trade data instead. This endpoint is temporarily disabled while accuracy issues are resolved.",
         "parameters": [
           {
             "name": "wallet",
