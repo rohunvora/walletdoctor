@@ -29,30 +29,42 @@ def analyze_trades(trades: List[Dict]) -> Dict[str, Any]:
     
     # Basic stats
     total_trades = len(trades)
-    winning_trades = [t for t in trades if t.get("pnl_usd", 0) > 0]
-    losing_trades = [t for t in trades if t.get("pnl_usd", 0) < 0]
+    buys = [t for t in trades if t.get("action") == "buy"]
+    sells = [t for t in trades if t.get("action") == "sell"]
     
-    # Win rate
-    win_rate = len(winning_trades) / total_trades * 100 if total_trades > 0 else 0
+    # Since pnl_usd is always 0, we'll calculate volume instead
+    # Calculate SOL volume from token_in/token_out
+    sol_volume = 0
+    for trade in trades:
+        if trade.get("token_in", {}).get("symbol") == "So111111":
+            # Buying with SOL
+            sol_volume += trade["token_in"].get("amount", 0)
+        elif trade.get("token_out", {}).get("symbol") == "So111111":
+            # Selling for SOL
+            sol_volume += trade["token_out"].get("amount", 0)
     
-    # Average P&L
-    total_pnl = sum(t.get("pnl_usd", 0) for t in trades)
-    avg_win = sum(t["pnl_usd"] for t in winning_trades) / len(winning_trades) if winning_trades else 0
-    avg_loss = sum(t["pnl_usd"] for t in losing_trades) / len(losing_trades) if losing_trades else 0
-    
-    # Token breakdown
-    token_stats = defaultdict(lambda: {"trades": 0, "pnl": 0, "wins": 0})
+    # Token activity breakdown
+    token_stats = defaultdict(lambda: {"buys": 0, "sells": 0, "volume": 0})
     for trade in trades:
         token = trade.get("token", "UNKNOWN")
-        token_stats[token]["trades"] += 1
-        token_stats[token]["pnl"] += trade.get("pnl_usd", 0)
-        if trade.get("pnl_usd", 0) > 0:
-            token_stats[token]["wins"] += 1
+        action = trade.get("action", "unknown")
+        
+        if action == "buy":
+            token_stats[token]["buys"] += 1
+            # Volume is SOL spent
+            if trade.get("token_in", {}).get("symbol") == "So111111":
+                token_stats[token]["volume"] += trade["token_in"].get("amount", 0)
+        elif action == "sell":
+            token_stats[token]["sells"] += 1
+            # Volume is SOL received
+            if trade.get("token_out", {}).get("symbol") == "So111111":
+                token_stats[token]["volume"] += trade["token_out"].get("amount", 0)
     
-    # Best and worst trades
-    trades_with_pnl = [t for t in trades if t.get("pnl_usd") is not None]
-    best_trade = max(trades_with_pnl, key=lambda t: t["pnl_usd"]) if trades_with_pnl else None
-    worst_trade = min(trades_with_pnl, key=lambda t: t["pnl_usd"]) if trades_with_pnl else None
+    # DEX breakdown
+    dex_stats = defaultdict(int)
+    for trade in trades:
+        dex = trade.get("dex", "UNKNOWN")
+        dex_stats[dex] += 1
     
     # Trading frequency
     if trades:
@@ -60,27 +72,40 @@ def analyze_trades(trades: List[Dict]) -> Dict[str, Any]:
         if len(timestamps) >= 2:
             time_span = (max(timestamps) - min(timestamps)).days or 1
             trades_per_day = total_trades / time_span
+            
+            # Hour of day analysis
+            hour_stats = defaultdict(int)
+            for ts in timestamps:
+                hour_stats[ts.hour] += 1
+            
+            # Find most active hours
+            sorted_hours = sorted(hour_stats.items(), key=lambda x: x[1], reverse=True)
+            top_hours = sorted_hours[:3]
         else:
             trades_per_day = 0
+            top_hours = []
     else:
         trades_per_day = 0
+        top_hours = []
     
     return {
         "total_trades": total_trades,
-        "win_rate": round(win_rate, 1),
-        "total_pnl": round(total_pnl, 2),
-        "winning_trades": len(winning_trades),
-        "losing_trades": len(losing_trades),
-        "avg_win": round(avg_win, 2),
-        "avg_loss": round(avg_loss, 2),
-        "best_trade": best_trade,
-        "worst_trade": worst_trade,
+        "buys": len(buys),
+        "sells": len(sells),
+        "buy_sell_ratio": len(buys) / len(sells) if len(sells) > 0 else 0,
+        "sol_volume": round(sol_volume, 2),
         "trades_per_day": round(trades_per_day, 1),
         "top_tokens": sorted(
             [(k, v) for k, v in token_stats.items()],
-            key=lambda x: x[1]["trades"],
+            key=lambda x: x[1]["buys"] + x[1]["sells"],
             reverse=True
-        )[:5]
+        )[:5],
+        "top_dexes": sorted(
+            [(k, v) for k, v in dex_stats.items()],
+            key=lambda x: x[1],
+            reverse=True
+        )[:3],
+        "top_hours": top_hours
     }
 
 
@@ -89,43 +114,36 @@ def generate_insight_markdown(stats: Dict[str, Any]) -> str:
     if "error" in stats:
         return f"❌ {stats['error']}"
     
-    # Performance summary
-    profit_emoji = "🟩" if stats["total_pnl"] > 0 else "🟥"
-    
-    # Calculate profit factor
-    profit_factor = stats['avg_win'] / abs(stats['avg_loss']) if stats['avg_loss'] != 0 else 0
-    profit_factor_str = f"{profit_factor:.2f}" if profit_factor > 0 else "N/A"
-    
-    markdown = f"""## 📊 Trading Performance Analysis
+    markdown = f"""## 📊 Trading Activity Analysis
 
 ### Overview
-- **Total Trades**: {stats['total_trades']:,}
-- **Win Rate**: {stats['win_rate']}% ({stats['winning_trades']} wins / {stats['losing_trades']} losses)
-- **Total P&L**: {profit_emoji} ${stats['total_pnl']:,.2f}
+- **Total Trades**: {stats['total_trades']:,} ({stats['buys']} buys, {stats['sells']} sells)
+- **Buy/Sell Ratio**: {stats['buy_sell_ratio']:.2f}
+- **Total SOL Volume**: {stats['sol_volume']:,.2f} SOL
 - **Trading Frequency**: {stats['trades_per_day']} trades/day
 
-### Average Performance
-- **Average Win**: +${stats['avg_win']:,.2f}
-- **Average Loss**: -${abs(stats['avg_loss']):,.2f}
-- **Profit Factor**: {profit_factor_str}
-
-### Best & Worst Trades
+### Trading Patterns
 """
     
-    if stats['best_trade']:
-        bt = stats['best_trade']
-        markdown += f"- **Best**: {bt['token']} +${bt['pnl_usd']:,.2f} on {bt['timestamp'][:10]}\n"
+    # Most active hours
+    if stats['top_hours']:
+        markdown += "- **Most Active Hours (UTC)**: "
+        hour_list = [f"{hour}:00 ({count} trades)" for hour, count in stats['top_hours']]
+        markdown += ", ".join(hour_list) + "\n"
     
-    if stats['worst_trade']:
-        wt = stats['worst_trade']
-        markdown += f"- **Worst**: {wt['token']} -${abs(wt['pnl_usd']):,.2f} on {wt['timestamp'][:10]}\n"
+    # Top DEXes
+    if stats['top_dexes']:
+        markdown += "\n### DEX Preference\n"
+        for dex, count in stats['top_dexes']:
+            pct = count / stats['total_trades'] * 100
+            markdown += f"- **{dex}**: {count} trades ({pct:.1f}%)\n"
     
     # Top tokens
     markdown += "\n### Top Tokens by Activity\n"
     for token, data in stats['top_tokens']:
-        win_rate = data['wins'] / data['trades'] * 100 if data['trades'] > 0 else 0
-        pnl_emoji = "🟩" if data['pnl'] > 0 else "🟥"
-        markdown += f"- **{token}**: {data['trades']} trades, {win_rate:.0f}% win rate, {pnl_emoji} ${data['pnl']:,.2f}\n"
+        total_trades = data['buys'] + data['sells']
+        sol_vol = data['volume']
+        markdown += f"- **{token}**: {total_trades} trades ({data['buys']} buys, {data['sells']} sells), {sol_vol:.2f} SOL volume\n"
     
     return markdown
 
@@ -162,13 +180,15 @@ async def main():
     print(f"""
 Based on your trading history, here's what I found:
 
-You have a {stats['win_rate']}% win rate across {stats['total_trades']} trades, which is {'above average' if stats['win_rate'] > 50 else 'below average but not uncommon'} for active traders. 
+You've executed {stats['total_trades']:,} trades with a buy/sell ratio of {stats['buy_sell_ratio']:.2f}, showing {'a balanced approach' if 0.8 < stats['buy_sell_ratio'] < 1.2 else 'a bias toward ' + ('buying' if stats['buy_sell_ratio'] > 1 else 'selling')}.
 
-Your average winning trade (+${stats['avg_win']}) is {'significantly larger than' if stats['avg_win'] > abs(stats['avg_loss']) * 1.5 else 'comparable to'} your average loss (-${abs(stats['avg_loss'])}), suggesting {'good risk management' if stats['avg_win'] > abs(stats['avg_loss']) else 'room for improvement in position sizing'}.
+Your total volume of {stats['sol_volume']:,.2f} SOL across {stats['trades_per_day']:.1f} trades per day indicates {'very high' if stats['trades_per_day'] > 50 else 'high' if stats['trades_per_day'] > 20 else 'moderate'} trading activity.
 
-You're quite active with {stats['trades_per_day']} trades per day on average. This high frequency approach {'is working well for you' if stats['total_pnl'] > 0 else 'might benefit from more selective entry points'}.
+{f"You're most active during {stats['top_hours'][0][0]}:00 UTC with {stats['top_hours'][0][1]} trades in that hour." if stats['top_hours'] else ""}
 
-Would you like me to dive deeper into any specific aspect of your trading?
+Your preferred DEX is {stats['top_dexes'][0][0] if stats['top_dexes'] else 'various exchanges'}, accounting for {stats['top_dexes'][0][1] / stats['total_trades'] * 100:.1f}% of your trades.
+
+Would you like me to analyze specific tokens or time periods in more detail?
 """)
 
 
