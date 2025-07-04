@@ -205,6 +205,32 @@ class UnrealizedPnLCalculator:
                 
                 # Apply SOL price to all positions
                 for position in positions:
+                    # GUARD: Prevent applying SOL spot price to non-SOL tokens
+                    if position.decimals != 9:
+                        logger.error(
+                            f"[GUARD] Invalid SOL-spot pricing attempt for token {position.token_symbol} "
+                            f"with decimals={position.decimals}. Skipping pricing."
+                        )
+                        results.append(UnrealizedPnLResult(
+                            position=position,
+                            current_price_usd=None,
+                            current_value_usd=None,
+                            unrealized_pnl_usd=None,
+                            unrealized_pnl_pct=None,
+                            price_confidence=PriceConfidence.UNAVAILABLE,
+                            price_source=None,
+                            last_price_update=datetime.now(timezone.utc),
+                            error="SOL spot pricing not applicable"
+                        ))
+                        continue
+                    
+                    # Additional guard: Check if this is actually SOL
+                    if position.token_mint != SOL_MINT and not position.token_symbol.upper().startswith("SOL"):
+                        logger.warning(
+                            f"[GUARD] SOL spot pricing applied to non-SOL token: {position.token_symbol} "
+                            f"({position.token_mint[:8]}...)"
+                        )
+                    
                     # Calculate current value using token balance as SOL-denominated value
                     if position.balance and position.balance > ZERO:
                         current_value_usd = position.balance * sol_price_usd

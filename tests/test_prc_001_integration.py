@@ -225,3 +225,81 @@ class TestPRC001SolSpotPricing:
             assert result.current_price_usd is None
             assert result.current_value_usd is None
             assert result.price_confidence == PriceConfidence.UNAVAILABLE 
+    
+    @pytest.mark.asyncio
+    @patch('src.lib.unrealized_pnl_calculator.should_calculate_unrealized_pnl')
+    @patch('src.config.feature_flags.should_use_sol_spot_pricing')
+    @patch('src.lib.sol_price_fetcher.get_sol_price_usd')
+    async def test_sol_spot_pricing_guard_non_sol_decimals(self, mock_sol_price, mock_feature_flag, mock_pnl_enabled):
+        """Test that guard prevents SOL spot pricing for non-9 decimal tokens"""
+        # Enable P&L calculation and SOL spot pricing
+        mock_pnl_enabled.return_value = True
+        mock_feature_flag.return_value = True
+        mock_sol_price.return_value = Decimal("180.0")
+        
+        # Create positions with different decimal places
+        test_positions = [
+            Position(
+                position_id="test_6_decimals",
+                wallet="test_wallet",
+                token_mint="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",  # BONK has 5 decimals
+                token_symbol="BONK",
+                balance=Decimal("1000000.0"),
+                decimals=5,  # Non-9 decimals should trigger guard
+                cost_basis=Decimal("0.00001"),
+                cost_basis_usd=Decimal("10.0"),
+                cost_basis_method=CostBasisMethod.WEIGHTED_AVG
+            ),
+            Position(
+                position_id="test_9_decimals",
+                wallet="test_wallet",
+                token_mint="So11111111111111111111111111111111111111112",
+                token_symbol="SOL",
+                balance=Decimal("10.0"),
+                decimals=9,  # 9 decimals should pass
+                cost_basis=Decimal("100.0"),
+                cost_basis_usd=Decimal("1000.0"),
+                cost_basis_method=CostBasisMethod.WEIGHTED_AVG
+            ),
+            Position(
+                position_id="test_18_decimals",
+                wallet="test_wallet",
+                token_mint="TokenWith18Decimals",
+                token_symbol="ETHER",
+                balance=Decimal("5.0"),
+                decimals=18,  # Non-9 decimals should trigger guard
+                cost_basis=Decimal("2000.0"),
+                cost_basis_usd=Decimal("10000.0"),
+                cost_basis_method=CostBasisMethod.WEIGHTED_AVG
+            )
+        ]
+        
+        # Calculate P&L
+        results = await self.calculator.calculate_batch_unrealized_pnl(test_positions)
+        
+        # Should have 3 results
+        assert len(results) == 3
+        
+        # First position (BONK with 5 decimals) - should be blocked by guard
+        bonk_result = results[0]
+        assert bonk_result.position.token_symbol == "BONK"
+        assert bonk_result.current_price_usd is None
+        assert bonk_result.current_value_usd is None
+        assert bonk_result.price_confidence == PriceConfidence.UNAVAILABLE
+        assert bonk_result.error == "SOL spot pricing not applicable"
+        
+        # Second position (SOL with 9 decimals) - should work normally
+        sol_result = results[1]
+        assert sol_result.position.token_symbol == "SOL"
+        assert sol_result.current_price_usd == Decimal("180.0")
+        assert sol_result.current_value_usd == Decimal("1800.0")  # 10 * 180
+        assert sol_result.price_confidence == PriceConfidence.ESTIMATED
+        assert sol_result.error is None
+        
+        # Third position (ETHER with 18 decimals) - should be blocked by guard
+        ether_result = results[2]
+        assert ether_result.position.token_symbol == "ETHER"
+        assert ether_result.current_price_usd is None
+        assert ether_result.current_value_usd is None
+        assert ether_result.price_confidence == PriceConfidence.UNAVAILABLE
+        assert ether_result.error == "SOL spot pricing not applicable" 
