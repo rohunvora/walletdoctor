@@ -15,7 +15,7 @@ You are a Solana trading analyst. When given trade data from the WalletDoctor AP
 
 Present insights in a conversational, helpful tone. Use emojis sparingly for clarity. Always end with a question to engage further analysis.
 
-Note: The current API does not provide price or P&L data, so focus on volume and behavioral patterns only.
+Note: With TRD-002 now live, use `?schema_version=v0.7.1-trades-value` to access enriched fields (price_sol, price_usd, value_usd, pnl_usd) for comprehensive P&L analysis.
 ```
 
 ## User Prompt Templates
@@ -23,108 +23,58 @@ Note: The current API does not provide price or P&L data, so focus on volume and
 ### Template 1: Basic Trading Overview
 
 ```
-Analyze this wallet's trading activity and give me a comprehensive overview:
+Analyze this wallet's trading activity:
 [PASTE API RESPONSE HERE]
-
-Focus on:
-- Trading frequency and patterns
-- Most traded tokens
-- Preferred DEXes
-- Buy vs sell behavior
 ```
 
 ### Template 2: Time-Based Analysis
 
 ```
-Looking at this trading data, what can you tell me about when and how often this wallet trades?
+When and how often does this wallet trade?
 [PASTE API RESPONSE HERE]
-
-I'm particularly interested in:
-- Most active trading hours
-- Daily/weekly patterns
-- Any clustering of activity
-- Suggestions for optimal trading times
 ```
 
 ### Template 3: Token Strategy Analysis  
 
 ```
-Based on this trade history, what tokens does this wallet focus on and what's their strategy?
+What tokens does this wallet focus on and what's their strategy?
 [PASTE API RESPONSE HERE]
-
-Please analyze:
-- Top tokens by trade count
-- Buy/sell ratios per token
-- Token rotation patterns
-- Concentration vs diversification
 ```
 
 ## Example Analysis Output
 
-Based on the demo wallet data:
-
 ```
 ## 📊 Your Trading Activity Analysis
 
-I've analyzed your 1,107 trades and here's what stands out:
+I've analyzed your 1,107 trades:
 
 ### Trading Style
-You're an active trader averaging 46 trades per day with a clear buying bias (1.85 buy/sell ratio). Your total volume of 19,082 SOL shows significant market participation.
+Active trader with 1.85 buy/sell ratio and 19,082 SOL total volume.
 
-### Timing Patterns  
-You're most active during:
-- 7:00 UTC (82 trades) - Early European morning
-- 3:00 UTC (71 trades) - Late US evening  
-- 21:00 UTC (71 trades) - US afternoon
+### Timing
+Most active: 7:00 UTC (82 trades), 3:00 UTC (71 trades), 21:00 UTC (71 trades)
 
-This suggests you're either trading across time zones or using automated strategies during off-peak hours.
+### DEX Strategy  
+METEORA (30.1%), SYSTEM_PROGRAM (28.4%), PUMP_AMM (23.8%)
 
-### DEX Strategy
-Your DEX usage is well-distributed:
-- METEORA: 30.1% (good for stable pairs)
-- SYSTEM_PROGRAM: 28.4% (direct transfers)
-- PUMP_AMM: 23.8% (new token launches)
+### Top Tokens
+- CfVs3waH: 343 buys vs 12 sells (heavy accumulation)
+- EPjFWdd5: 31 buys, 20 sells (balanced)
 
-This diversification helps with slippage and access to different liquidity pools.
-
-### Token Focus
-Your top 5 tokens account for significant volume:
-- CfVs3waH: Heavy accumulation (343 buys vs 12 sells)
-- EPjFWdd5: More balanced (31 buys, 20 sells)
-- 3dk9CNre: Moderate accumulation pattern
-
-The strong buy bias on CfVs3waH suggests either building a position or averaging down.
-
-Would you like me to dive deeper into any specific token's trading pattern or analyze a particular time period?
+What specific pattern would you like me to analyze deeper?
 ```
 
-## Prompt Engineering Tips
+## Tips
 
-1. **Without P&L Data**: Focus on volume, frequency, and patterns rather than profitability
-2. **Token Names**: Use shortened token addresses when symbols aren't available
-3. **Actionable Insights**: Always suggest what the patterns might mean
-4. **Engagement**: End with specific questions to guide further analysis
-
-## Size Limits
-
-Keep responses under 2KB to ensure smooth ChatGPT interactions:
-- Limit token analysis to top 5-7
-- Summarize time patterns rather than listing all hours
-- Focus on most significant findings
-
-## Future Enhancement
-
-Once TRD-002 is implemented with price/P&L data, these prompts can be extended to include:
-- Win rate analysis
-- Profit/loss patterns
-- Risk metrics
-- Position sizing recommendations
+1. Use enriched schema (`v0.7.1-trades-value`) for P&L analysis
+2. Keep responses under 2KB - focus on top insights
+3. End with specific questions for engagement
 
 ---
 
-## 🚀 TRD-002 Enhanced Prompts (Coming Soon)
+## 🚀 TRD-002 Enhanced Prompts (Available Now)
 
-Once `PRICE_ENRICH_TRADES=true` is deployed and you're using `schema_version=v0.7.1-trades-value`, you can use these enhanced prompts:
+With `PRICE_ENRICH_TRADES=true` deployed, use `schema_version=v0.7.1-trades-value` for these enhanced prompts:
 
 ### Enhanced System Prompt
 
@@ -145,12 +95,6 @@ Use the enriched fields (price_sol, price_usd, value_usd, pnl_usd) to calculate 
 ```
 Analyze my trading performance and profitability:
 [PASTE ENRICHED API RESPONSE HERE]
-
-Calculate and explain:
-- Overall win rate and profit factor
-- Average win vs average loss
-- Best and worst performing tokens
-- Risk management effectiveness
 ```
 
 ### Template 5: Token Profitability Breakdown
@@ -158,12 +102,13 @@ Calculate and explain:
 ```
 Which tokens am I making or losing money on?
 [PASTE ENRICHED API RESPONSE HERE]
+```
 
-For each significant token, show:
-- Total P&L
-- Win rate
-- Average trade size
-- Whether I should continue trading it
+### Template 6: Win Rate & Entry Price Analysis
+
+```
+Calculate my win rate, realized P&L, and average entry prices:
+[PASTE ENRICHED API RESPONSE HERE]
 ```
 
 ### Example Enhanced Analysis
@@ -180,6 +125,13 @@ Based on 1,107 trades with complete pricing data:
 - **Average Win**: +$89.50
 - **Average Loss**: -$48.30
 
+### Key P&L Metrics
+- **Realized P&L**: +$12,450 (from 389 sell trades)
+- **Average Entry Price**: BONK at $0.000018, WIF at $1.42
+- **Biggest Winner**: SILLY trade +$2,100 (400% gain)
+- **Biggest Loser**: PEPE trade -$890 (65% loss)
+- **FIFO Validation**: ✅ P&L calculations consistent with holdings
+
 ### Top Performing Tokens
 1. **BONK**: +$5,200 (65% win rate on 89 trades)
 2. **WIF**: +$3,100 (52% win rate on 156 trades)
@@ -189,8 +141,8 @@ Based on 1,107 trades with complete pricing data:
 1. **PEPE**: -$1,200 (28% win rate) - Consider reducing position sizes
 2. **DOGE**: -$890 (31% win rate) - Your timing seems off here
 
-### Risk Management Insights
-Your average win is 1.85x your average loss, which is healthy. However, your position sizing varies widely ($50-$5,000). Consider more consistent sizing for better risk control.
+### Risk Management
+Avg win 1.85x avg loss (healthy). Position sizing varies $50-$5,000 - consider consistency.
 
-Would you like me to analyze specific winning streaks or help identify your most profitable trading hours?
+Which tokens or time periods should I analyze deeper?
 ``` 

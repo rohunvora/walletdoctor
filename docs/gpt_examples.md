@@ -4,23 +4,24 @@ Complete examples for integrating WalletDoctor API with ChatGPT and other AI sys
 
 ## 📊 Trading Activity Analysis
 
-**API Version**: v0.7.0 (stable trades endpoint)  
+**API Version**: v0.7.1-trades-value (enriched trades endpoint)  
 **Wallet**: `34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`  
-**Features**: Trade history with volume analysis (P&L pending TRD-002)
+**Features**: Trade history with price data and P&L analysis (TRD-002 ✅)
 
 ### Basic Trades Request
 
 ```bash
-curl -X GET "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya" \
+curl -X GET "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya?schema_version=v0.7.1-trades-value" \
   -H "X-Api-Key: wd_test1234567890abcdef1234567890ab" \
   -H "Accept: application/json"
 ```
 
-### Response Format (v0.7.0)
+### Response Format (v0.7.1-trades-value)
 
 ```json
 {
   "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "schema_version": "v0.7.1-trades-value",
   "signatures": [
     "5s53x9ETa3YhzV6NTVGC3ezHWKqASdakKq3UXdLXKbWRWrFqXZeCvwfoGaEPc3Zr1dsQddyz9aWdpnbVhGRxCqwX",
     "4NyzTh42S1bGswq8BNHvsm3PxM9NBYcmYgqk1n89HjiiKWHz2sT9Ut4rmuNHjeErTBAwoQV8aYP4oM54"
@@ -31,9 +32,12 @@ curl -X GET "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34
       "amount": 101109.031893,
       "dex": "JUPITER",
       "fees_usd": 0.0,
-      "pnl_usd": 0.0,
+      "pnl_usd": "0",
       "price": null,
-      "priced": false,
+      "price_sol": "0.00247",
+      "price_usd": "0.361",
+      "value_usd": "36521.18",
+      "priced": true,
       "signature": "5s53x9ETa3YhzV6NTVGC3ezHWKqASdakKq3UXdLXKbWRWrFqXZeCvwfoGaEPc3Zr1dsQddyz9aWdpnbVhGRxCqwX",
       "timestamp": "2025-06-09T18:37:09",
       "token": "vRseBFqT",
@@ -47,27 +51,26 @@ curl -X GET "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34
         "mint": "vRseBFqTy9QLmmo5qGiwo74AVpdqqMTnxPqWoWMpump",
         "symbol": "vRseBFqT"
       },
-      "tx_type": "swap",
-      "value_usd": null
+      "tx_type": "swap"
     }
   ]
 }
 ```
 
-### What's Available Now vs Coming Soon
+### What's Available Now
 
-✅ **Available Now (v0.7.0)**:
+✅ **Available Now (v0.7.1-trades-value)**:
 - Complete trade history with signatures
 - Token swap details (token_in/token_out)
 - DEX identification
 - Timestamps for time analysis
 - Buy/sell action classification
+- **NEW**: `price_sol` - SOL price per token at trade time
+- **NEW**: `price_usd` - USD price per token at trade time  
+- **NEW**: `value_usd` - Notional trade value in USD
+- **NEW**: `pnl_usd` - Realized P&L per trade (FIFO)
 
-⏳ **Coming Soon (TRD-002)**:
-- `price`: Token price at trade time
-- `value_usd`: Notional value in USD
-- `pnl_usd`: Realized P&L per trade
-- `fees_usd`: Actual transaction fees
+📈 **Coverage**: 97%+ trades enriched with pricing data
 
 ## 💡 Trading Insights Examples
 
@@ -80,7 +83,7 @@ from datetime import datetime
 
 def analyze_trading_volume(wallet: str) -> dict:
     """Analyze SOL volume from trades"""
-    url = f"https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/{wallet}"
+    url = f"https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/{wallet}?schema_version=v0.7.1-trades-value"
     headers = {"X-Api-Key": "wd_test1234567890abcdef1234567890ab"}
     
     resp = requests.get(url, headers=headers)
@@ -121,7 +124,7 @@ print(f"Total Trades: {result['trades_count']:,}")
 ```python
 def analyze_trading_patterns(wallet: str) -> dict:
     """Analyze trading behavior patterns"""
-    url = f"https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/{wallet}"
+    url = f"https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/{wallet}?schema_version=v0.7.1-trades-value"
     headers = {"X-Api-Key": "wd_test1234567890abcdef1234567890ab"}
     
     resp = requests.get(url, headers=headers)
@@ -160,6 +163,10 @@ interface Trade {
   token: string;
   timestamp: string;
   dex: string;
+  price_sol?: string | null;
+  price_usd?: string | null;
+  value_usd?: string | null;
+  pnl_usd?: string | null;
   token_in: {
     amount: number;
     mint: string;
@@ -186,7 +193,7 @@ class WalletDoctorClient {
   ) {}
 
   async getTrades(wallet: string): Promise<{trades: Trade[]}> {
-    const response = await fetch(`${this.baseUrl}/v4/trades/export-gpt/${wallet}`, {
+    const response = await fetch(`${this.baseUrl}/v4/trades/export-gpt/${wallet}?schema_version=v0.7.1-trades-value`, {
       headers: {
         "X-Api-Key": this.apiKey,
         "Accept": "application/json"
@@ -250,7 +257,7 @@ console.log(`Buy bias: ${(insights.buyBias * 100).toFixed(1)}%`);
   "openapi": "3.1.0",
   "info": {
     "title": "WalletDoctor Trades API",
-    "version": "0.7.0"
+    "version": "0.7.1-trades-value"
   },
   "servers": [
     {
@@ -297,7 +304,7 @@ console.log(`Buy bias: ${(insights.buyBias * 100).toFixed(1)}%`);
 ```bash
 # Quick volume check
 curl -H "X-Api-Key: wd_test1234567890abcdef1234567890ab" \
-  "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya" \
+  "https://web-production-2bb2f.up.railway.app/v4/trades/export-gpt/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya?schema_version=v0.7.1-trades-value" \
   | jq '{
     total_trades: .trades | length,
     buys: [.trades[] | select(.action == "buy")] | length,
@@ -327,20 +334,21 @@ curl -H "X-Api-Key: wd_test1234567890abcdef1234567890ab" \
 
 ## 🚀 Production Status
 
-✅ **Trades Endpoint Ready**
-- Stable v0.7.0 format
+✅ **Trades Endpoint Ready (v0.7.1-trades-value)**
+- Enriched trades with price data and P&L
+- 97%+ coverage for SOL-paired trades  
 - Fast response times (<2s)
 - Reliable trade history
-- No accuracy issues
+- FIFO P&L calculations
 
 ⏳ **Positions Endpoint (Beta)**
 - Known accuracy issues (POS-003)
 - Currently disabled in production
 - Use trades endpoint instead
 
-🔧 **Coming Soon (TRD-002)**
+✅ **TRD-002 Complete**
 - Price enrichment for all trades
-- P&L calculations
-- Enhanced fee tracking
+- P&L calculations using FIFO
+- Enhanced pricing coverage
 
-**Result**: ChatGPT can now provide sophisticated trading behavior analysis with the stable trades endpoint! 🎉 
+**Result**: ChatGPT can now provide comprehensive P&L analysis and trading insights with enriched trade data! 🚀 

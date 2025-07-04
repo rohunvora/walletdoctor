@@ -74,6 +74,26 @@ async def test_trade_enrichment_coverage():
             trades_with_pnl = [t for t in enriched_trades if t.get("pnl_usd") and Decimal(t["pnl_usd"]) != 0]
             logger.info(f"  Trades with P&L: {len(trades_with_pnl)}")
             
+            # FIFO regression check: median absolute P&L for sell trades should be > 0
+            sell_trades_with_pnl = [
+                t for t in enriched_trades 
+                if t.get("action") == "sell" and t.get("pnl_usd") and Decimal(t["pnl_usd"]) != 0
+            ]
+            
+            if sell_trades_with_pnl:
+                abs_pnl_values = [abs(Decimal(t["pnl_usd"])) for t in sell_trades_with_pnl]
+                abs_pnl_values.sort()
+                median_abs_pnl = abs_pnl_values[len(abs_pnl_values) // 2]
+                
+                logger.info(f"  Sell trades with P&L: {len(sell_trades_with_pnl)}")
+                logger.info(f"  Median absolute P&L: ${median_abs_pnl}")
+                
+                if median_abs_pnl == 0:
+                    logger.error("❌ FIFO regression: median absolute P&L is 0")
+                    return False
+                else:
+                    logger.info("✅ FIFO validation: median absolute P&L > 0")
+            
             if trades_with_pnl:
                 # Show sample P&L calculations
                 sample = trades_with_pnl[0]

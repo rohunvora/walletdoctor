@@ -61,4 +61,11 @@ If tests fail:
 
 ## 🎯 Integration Ready
 
-Once `run_eval.sh` passes, the API is ready for ChatGPT integration with meaningful dollar value discussions! 
+Once `run_eval.sh` passes, the API is ready for ChatGPT integration with meaningful dollar value discussions!
+
+### 📈 TRD-002 Update (v0.7.1-trades-value)
+
+The trades endpoint now includes enriched price and P&L fields:
+- `price_sol`, `price_usd`, `value_usd`, `pnl_usd` are now populated for 97%+ trades
+- Use `?schema_version=v0.7.1-trades-value` for enriched trade data
+- Enables comprehensive P&L analysis and trading insights 
