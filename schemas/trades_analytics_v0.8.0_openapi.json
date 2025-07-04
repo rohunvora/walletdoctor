@@ -1,0 +1,264 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "WalletDoctor Analytics Summary API",
+    "version": "0.8.0-summary",
+    "description": "Pre-computed analytics summaries for wallet trading activity"
+  },
+  "paths": {
+    "/v4/analytics/summary/{wallet}": {
+      "get": {
+        "summary": "Get analytics summary for a wallet",
+        "operationId": "getAnalyticsSummary",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "description": "Solana wallet address"
+          },
+          {
+            "name": "force_refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Skip cache and regenerate summary"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsSummaryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalyticsSummaryResponse": {
+        "type": "object",
+        "required": [
+          "wallet", "schema_version", "generated_at", "time_window",
+          "pnl", "volume", "top_tokens", "recent_windows"
+        ],
+        "properties": {
+          "wallet": {
+            "type": "string",
+            "description": "Wallet address"
+          },
+          "schema_version": {
+            "type": "string",
+            "description": "Schema version",
+            "example": "v0.8.0-summary"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO timestamp of when summary was generated"
+          },
+          "time_window": {
+            "$ref": "#/components/schemas/TimeWindow"
+          },
+          "pnl": {
+            "$ref": "#/components/schemas/PnLMetrics"
+          },
+          "volume": {
+            "$ref": "#/components/schemas/VolumeMetrics"
+          },
+          "top_tokens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenMetrics"
+            },
+            "description": "Top 10 traded tokens"
+          },
+          "recent_windows": {
+            "$ref": "#/components/schemas/RecentWindows"
+          }
+        }
+      },
+      "TimeWindow": {
+        "type": "object",
+        "required": ["start", "end", "days"],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "First trade timestamp",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last trade timestamp",
+            "nullable": true
+          },
+          "days": {
+            "type": "integer",
+            "description": "Total days of trading history"
+          }
+        }
+      },
+      "PnLMetrics": {
+        "type": "object",
+        "required": [
+          "realized_usd", "realized_pct", "wins", "losses",
+          "win_rate", "max_single_win_usd", "max_single_loss_usd"
+        ],
+        "properties": {
+          "realized_usd": {
+            "type": "string",
+            "description": "Total realized P&L in USD",
+            "example": "18669.73"
+          },
+          "realized_pct": {
+            "type": "string",
+            "description": "Realized P&L as percentage",
+            "example": "12.5"
+          },
+          "wins": {
+            "type": "integer",
+            "description": "Number of winning trades"
+          },
+          "losses": {
+            "type": "integer",
+            "description": "Number of losing trades"
+          },
+          "win_rate": {
+            "type": "number",
+            "description": "Win rate (0-1)",
+            "example": 0.423
+          },
+          "max_single_win_usd": {
+            "type": "string",
+            "description": "Largest single winning trade",
+            "example": "512.77"
+          },
+          "max_single_loss_usd": {
+            "type": "string",
+            "description": "Largest single losing trade",
+            "example": "-241.10"
+          }
+        }
+      },
+      "VolumeMetrics": {
+        "type": "object",
+        "required": [
+          "total_trades", "total_sol_volume",
+          "avg_trade_value_usd", "trades_per_day"
+        ],
+        "properties": {
+          "total_trades": {
+            "type": "integer",
+            "description": "Total number of trades"
+          },
+          "total_sol_volume": {
+            "type": "string",
+            "description": "Total SOL volume traded",
+            "example": "19082.24"
+          },
+          "avg_trade_value_usd": {
+            "type": "string",
+            "description": "Average trade value in USD",
+            "example": "86.71"
+          },
+          "trades_per_day": {
+            "type": "number",
+            "description": "Average trades per day",
+            "example": 1.83
+          }
+        }
+      },
+      "TokenMetrics": {
+        "type": "object",
+        "required": ["symbol", "trades", "realized_pnl_usd"],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Token symbol",
+            "example": "BONK"
+          },
+          "trades": {
+            "type": "integer",
+            "description": "Number of trades for this token"
+          },
+          "realized_pnl_usd": {
+            "type": "string",
+            "description": "Realized P&L for this token",
+            "example": "5200.00"
+          }
+        }
+      },
+      "RecentWindows": {
+        "type": "object",
+        "required": ["last_30d", "last_7d"],
+        "properties": {
+          "last_30d": {
+            "$ref": "#/components/schemas/WindowMetrics"
+          },
+          "last_7d": {
+            "$ref": "#/components/schemas/WindowMetrics"
+          }
+        }
+      },
+      "WindowMetrics": {
+        "type": "object",
+        "required": ["pnl_usd", "trades", "win_rate"],
+        "properties": {
+          "pnl_usd": {
+            "type": "string",
+            "description": "P&L for this time window",
+            "example": "2450.00"
+          },
+          "trades": {
+            "type": "integer",
+            "description": "Number of trades in window"
+          },
+          "win_rate": {
+            "type": "number",
+            "description": "Win rate for this window",
+            "example": 0.46
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "message"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error type"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error details"
+          }
+        }
+      }
+    }
+  }
+} 

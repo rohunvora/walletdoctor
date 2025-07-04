@@ -32,7 +32,8 @@ class FeatureFlags:
             "token_price_enabled": False,        # Use CoinGecko for per-token pricing (PRC-002)
             "price_helius_only": False,          # WAL-512: Feature flag for Helius-only pricing (no Birdeye)
             "price_enrich_trades": False,        # TRD-002: Feature flag for enriching trade data with prices and P&L
-            "trades_compact": False              # v0.7.2: Compress trade responses for ChatGPT connector limits
+            "trades_compact": False,             # v0.7.2: Compress trade responses for ChatGPT connector limits
+            "analytics_summary": False           # v0.8.0: Enable analytics summary endpoint
         }
         
         # Override with environment variables if present
@@ -50,7 +51,8 @@ class FeatureFlags:
             "token_price_enabled",
             "price_helius_only",
             "price_enrich_trades",
-            "trades_compact"
+            "trades_compact",
+            "analytics_summary"
         ]
         
         for flag in bool_flags:
@@ -114,6 +116,11 @@ class FeatureFlags:
         """v0.7.2: Feature flag for compressing trade responses"""
         return self._flags["trades_compact"]
     
+    @property
+    def analytics_summary(self) -> bool:
+        """v0.8.0: Feature flag for analytics summary endpoint"""
+        return self._flags["analytics_summary"]
+    
     def get_all(self) -> Dict[str, Any]:
         """Get all feature flag values"""
         return {
@@ -126,7 +133,8 @@ class FeatureFlags:
             "token_price_enabled": self.token_price_enabled,
             "price_helius_only": self.price_helius_only,
             "price_enrich_trades": self.price_enrich_trades,
-            "trades_compact": self.trades_compact
+            "trades_compact": self.trades_compact,
+            "analytics_summary": self.analytics_summary
         }
     
     def is_enabled(self, feature: str) -> bool:
@@ -191,4 +199,9 @@ def price_enrich_trades() -> bool:
 
 def trades_compact() -> bool:
     """v0.7.2: Feature flag for compressing trade responses"""
-    return FEATURE_FLAGS.trades_compact 
+    return FEATURE_FLAGS.trades_compact
+
+
+def analytics_summary() -> bool:
+    """v0.8.0: Feature flag for analytics summary endpoint"""
+    return FEATURE_FLAGS.analytics_summary 

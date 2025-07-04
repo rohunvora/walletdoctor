@@ -758,6 +758,7 @@ def home():
         "endpoints": {
             "/v4/positions/export-gpt/{wallet}": "GET - Export positions in GPT schema v1.1",
             "/v4/trades/export-gpt/{wallet}": "GET - Export signatures and trades for GPT integration",
+            "/v4/analytics/summary/{wallet}": "GET - Pre-computed analytics summary (v0.8.0)",
             "/health": "GET - Health check",
             "/": "GET - This info"
         },
@@ -989,6 +990,129 @@ def export_trades(wallet_address: str):
         
     except Exception as e:
         logger.error(f"Error exporting trades for {wallet_address}: {e}")
+        return jsonify({
+            "error": "Internal server error",
+            "message": str(e)
+        }), 500
+
+
+@app.route("/v4/analytics/summary/<wallet_address>", methods=["GET"])
+@simple_auth_required
+def get_analytics_summary(wallet_address: str):
+    """
+    Get analytics summary for a wallet
+    
+    GET /v4/analytics/summary/{wallet}
+    
+    Returns pre-computed analytics with P&L, volume, and token metrics.
+    Response is designed to be <50KB for ChatGPT compatibility.
+    
+    Query Parameters:
+    - force_refresh: Skip cache and regenerate (default: false)
+    
+    Response:
+    {
+        "wallet": "wallet_address",
+        "schema_version": "v0.8.0-summary",
+        "generated_at": "2025-01-15T12:00:00Z",
+        "time_window": {...},
+        "pnl": {...},
+        "volume": {...},
+        "top_tokens": [...],
+        "recent_windows": {...}
+    }
+    """
+    from src.config.feature_flags import analytics_summary
+    
+    # Check feature flag
+    if not analytics_summary():
+        return jsonify({
+            "error": "Analytics summary endpoint is disabled",
+            "message": "Set ANALYTICS_SUMMARY=true to enable"
+        }), 404
+    
+    try:
+        # Validate wallet address
+        if not wallet_address or len(wallet_address) < 32:
+            return jsonify({
+                "error": "Invalid wallet address",
+                "message": "Wallet address must be at least 32 characters"
+            }), 400
+        
+        # Check if we should force refresh
+        force_refresh = request.args.get("force_refresh", "false").lower() == "true"
+        
+        logger.info(f"Analytics summary request for wallet: {wallet_address}, force_refresh: {force_refresh}")
+        
+        # Check Redis cache first
+        import redis
+        import json
+        
+        cache_key = f"summary:{wallet_address}"
+        cached_summary = None
+        
+        if not force_refresh:
+            try:
+                redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+                r = redis.from_url(redis_url, decode_responses=True)
+                
+                cached_data = r.get(cache_key)
+                if cached_data:
+                    cached_summary = json.loads(cached_data)
+                    logger.info(f"Cache hit for analytics summary: {wallet_address}")
+                    return jsonify(cached_summary)
+            except Exception as e:
+                logger.warning(f"Redis cache error (will compute fresh): {e}")
+        
+        # No cache or force refresh - compute fresh
+        start_time = time.time()
+        
+        # Fetch trades
+        async def fetch_and_aggregate():
+            # Fetch trades with enrichment
+            async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+                result = await fetcher.fetch_wallet_trades(wallet_address)
+            
+            trades = result.get("trades", [])
+            
+            # Apply enrichment if enabled
+            from src.config.feature_flags import price_enrich_trades
+            if price_enrich_trades():
+                from src.lib.trade_enricher import TradeEnricher
+                enricher = TradeEnricher()
+                trades = await enricher.enrich_trades(trades)
+                logger.info(f"Enriched {enricher.enrichment_stats['trades_priced']} trades for analytics")
+            
+            # Aggregate analytics
+            from src.lib.trade_analytics_aggregator import TradeAnalyticsAggregator
+            aggregator = TradeAnalyticsAggregator()
+            summary = await aggregator.aggregate_analytics(trades, wallet_address)
+            
+            return summary
+        
+        # Run aggregation
+        summary = run_async(fetch_and_aggregate())
+        
+        # Cache the result
+        try:
+            redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            r = redis.from_url(redis_url, decode_responses=True)
+            
+            # Cache for 15 minutes (900 seconds)
+            cache_ttl = 900
+            r.setex(cache_key, cache_ttl, json.dumps(summary))
+            logger.info(f"Cached analytics summary for {wallet_address} (TTL: {cache_ttl}s)")
+        except Exception as e:
+            logger.warning(f"Failed to cache analytics summary: {e}")
+        
+        # Log performance
+        duration = time.time() - start_time
+        logger.info(f"Analytics summary generated in {duration:.2f}s for {wallet_address}")
+        
+        return jsonify(summary)
+        
+    except Exception as e:
+        logger.error(f"Error generating analytics summary for {wallet_address}: {e}")
         return jsonify({
             "error": "Internal server error",
             "message": str(e)

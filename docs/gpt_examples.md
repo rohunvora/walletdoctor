@@ -4,13 +4,50 @@ Complete examples for integrating WalletDoctor API with ChatGPT and other AI sys
 
 ## 📊 Trading Activity Analysis
 
-**API Versions**: 
-- **v0.7.2-compact** (NEW): Compressed format for large wallets (<200KB)
-- **v0.7.1-trades-value**: Full enriched trades with price/P&L
-- **v0.7.0**: Legacy format without enrichment
+**API Endpoints**: 
+1. **Analytics Summary** (v0.8.0-summary) - Pre-computed metrics <50KB 🆕
+2. **Trade Export** - Detailed trade history
+   - **v0.7.2-compact**: Compressed format for large wallets (<200KB)
+   - **v0.7.1-trades-value**: Full enriched trades with price/P&L
+   - **v0.7.0**: Legacy format without enrichment
 
 **Wallet**: `34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya`  
-**Features**: Trade history with price data and P&L analysis (TRD-002 ✅)
+**Features**: Instant analytics + detailed trade history with P&L (TRD-002 ✅)
+
+### Analytics Summary Request (NEW - Start Here!)
+
+#### Get instant insights with pre-computed analytics
+```bash
+curl -X GET "https://web-production-2bb2f.up.railway.app/v4/analytics/summary/34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya" \
+  -H "X-Api-Key: wd_test1234567890abcdef1234567890ab" \
+  -H "Accept: application/json"
+```
+
+**Response (v0.8.0-summary)**: Complete analytics in <50KB
+```json
+{
+  "wallet": "34zYDgjy8oinZ5y8gyrcQktzUmSfFLJztTSq5xLUVCya",
+  "schema_version": "v0.8.0-summary",
+  "generated_at": "2025-01-15T12:00:00Z",
+  "pnl": {
+    "realized_usd": "18669.73",
+    "win_rate": 0.423,
+    "wins": 468,
+    "losses": 639
+  },
+  "volume": {
+    "total_trades": 1107,
+    "total_sol_volume": "19082.24",
+    "trades_per_day": 1.83
+  },
+  "top_tokens": [
+    {"symbol": "BONK", "trades": 89, "realized_pnl_usd": "5200.00"}
+  ],
+  "recent_windows": {
+    "last_30d": {"pnl_usd": "2450.00", "trades": 234, "win_rate": 0.46}
+  }
+}
+```
 
 ### Basic Trades Request
 
