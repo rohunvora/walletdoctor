@@ -29,7 +29,9 @@ class FeatureFlags:
             "balance_verification": False,       # On-chain balance verification
             "cost_basis_method": "weighted_avg", # "weighted_avg" or "fifo"
             "price_sol_spot_only": False,        # Use SOL spot price for all current_price_usd values
-            "token_price_enabled": False         # Use CoinGecko for per-token pricing (PRC-002)
+            "token_price_enabled": False,        # Use CoinGecko for per-token pricing (PRC-002)
+            "price_helius_only": False,          # WAL-512: Feature flag for Helius-only pricing (no Birdeye)
+            "price_enrich_trades": False         # TRD-002: Feature flag for enriching trade data with prices and P&L
         }
         
         # Override with environment variables if present
@@ -44,7 +46,9 @@ class FeatureFlags:
             "streaming_positions",
             "balance_verification",
             "price_sol_spot_only",
-            "token_price_enabled"
+            "token_price_enabled",
+            "price_helius_only",
+            "price_enrich_trades"
         ]
         
         for flag in bool_flags:
@@ -93,6 +97,16 @@ class FeatureFlags:
         """Use CoinGecko for per-token pricing (PRC-002)"""
         return self._flags["token_price_enabled"]
     
+    @property
+    def price_helius_only(self) -> bool:
+        """WAL-512: Feature flag for Helius-only pricing (no Birdeye)"""
+        return self._flags["price_helius_only"]
+    
+    @property
+    def price_enrich_trades(self) -> bool:
+        """TRD-002: Feature flag for enriching trade data with prices and P&L"""
+        return self._flags["price_enrich_trades"]
+    
     def get_all(self) -> Dict[str, Any]:
         """Get all feature flag values"""
         return {
@@ -102,7 +116,9 @@ class FeatureFlags:
             "balance_verification": self.balance_verification,
             "cost_basis_method": self.cost_basis_method,
             "price_sol_spot_only": self.price_sol_spot_only,
-            "token_price_enabled": self.token_price_enabled
+            "token_price_enabled": self.token_price_enabled,
+            "price_helius_only": self.price_helius_only,
+            "price_enrich_trades": self.price_enrich_trades
         }
     
     def is_enabled(self, feature: str) -> bool:
@@ -152,4 +168,14 @@ def should_use_sol_spot_pricing() -> bool:
 
 def should_use_token_pricing() -> bool:
     """Check if CoinGecko token pricing should be used (PRC-002)"""
-    return FEATURE_FLAGS.token_price_enabled 
+    return FEATURE_FLAGS.token_price_enabled
+
+
+def price_helius_only() -> bool:
+    """WAL-512: Feature flag for Helius-only pricing (no Birdeye)"""
+    return FEATURE_FLAGS.price_helius_only
+
+
+def price_enrich_trades() -> bool:
+    """TRD-002: Feature flag for enriching trade data with prices and P&L"""
+    return FEATURE_FLAGS.price_enrich_trades 

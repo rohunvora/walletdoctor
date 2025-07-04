@@ -898,13 +898,19 @@ def export_trades(wallet_address: str):
     
     GET /v4/trades/export-gpt/{wallet}
     
+    Query Parameters:
+    - schema_version: Response format version (default: v0.7.0)
+      - v0.7.0: Original format (price/value_usd always null)
+      - v0.7.1-trades-value: Enriched with price_sol, price_usd, value_usd, pnl_usd
+    
     Returns just signatures and trades without positions or pricing complexity.
     
     Response:
     {
         "wallet": "wallet_address",
         "signatures": ["sig1", "sig2", ...],
-        "trades": [{"trade": "data"}, ...]
+        "trades": [{"trade": "data"}, ...],
+        "schema_version": "v0.7.0"
     }
     """
     try:
@@ -915,7 +921,10 @@ def export_trades(wallet_address: str):
                 "message": "Wallet address must be at least 32 characters"
             }), 400
         
-        logger.info(f"Exporting trades for wallet: {wallet_address}")
+        # Get schema version from query param
+        schema_version = request.args.get("schema_version", "v0.7.0")
+        
+        logger.info(f"Exporting trades for wallet: {wallet_address}, schema: {schema_version}")
         
         # Fetch trades without position calculation
         async def fetch_trades_only():
@@ -929,11 +938,23 @@ def export_trades(wallet_address: str):
         signatures = result.get("signatures", [])
         trades = result.get("trades", [])
         
-        # Create simple response
+        # Apply enrichment if feature flag is enabled and schema supports it
+        from src.config.feature_flags import price_enrich_trades
+        if price_enrich_trades() and schema_version == "v0.7.1-trades-value":
+            logger.info(f"Applying trade enrichment for {len(trades)} trades")
+            from src.lib.trade_enricher import TradeEnricher
+            
+            # Run enrichment
+            enricher = TradeEnricher()
+            enriched_trades = run_async(enricher.enrich_trades(trades))
+            trades = enriched_trades
+        
+        # Create response
         response = {
             "wallet": wallet_address,
             "signatures": signatures,
-            "trades": trades
+            "trades": trades,
+            "schema_version": schema_version
         }
         
         return jsonify(response)

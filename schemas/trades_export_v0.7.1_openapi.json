@@ -1,0 +1,159 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "WalletDoctor Trades Export API",
+    "version": "0.7.1-trades-value",
+    "description": "Enriched trades export with price and P&L data (TRD-002)"
+  },
+  "paths": {
+    "/v4/trades/export-gpt/{wallet}": {
+      "get": {
+        "summary": "Export wallet trades with pricing",
+        "operationId": "getWalletTradesEnriched",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "description": "Solana wallet address"
+          },
+          {
+            "name": "schema_version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["v0.7.0", "v0.7.1-trades-value"],
+              "default": "v0.7.0"
+            },
+            "description": "Response format version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradesExportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TradesExportResponse": {
+        "type": "object",
+        "required": ["wallet", "signatures", "trades", "schema_version"],
+        "properties": {
+          "wallet": {
+            "type": "string",
+            "description": "Wallet address"
+          },
+          "signatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Transaction signatures"
+          },
+          "trades": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnrichedTrade"
+            }
+          },
+          "schema_version": {
+            "type": "string",
+            "description": "Schema version of response"
+          }
+        }
+      },
+      "EnrichedTrade": {
+        "type": "object",
+        "required": ["timestamp", "signature", "action", "token", "amount"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["buy", "sell"]
+          },
+          "token": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "token_in": {
+            "$ref": "#/components/schemas/TokenAmount"
+          },
+          "token_out": {
+            "$ref": "#/components/schemas/TokenAmount"
+          },
+          "price": {
+            "type": ["number", "null"],
+            "description": "Deprecated - use price_usd"
+          },
+          "price_sol": {
+            "type": ["string", "null"],
+            "description": "Price in SOL per token (v0.7.1+)"
+          },
+          "price_usd": {
+            "type": ["string", "null"],
+            "description": "Price in USD per token (v0.7.1+)"
+          },
+          "value_usd": {
+            "type": ["string", "null"],
+            "description": "Total value in USD (v0.7.1+)"
+          },
+          "pnl_usd": {
+            "type": ["string", "null"],
+            "description": "Realized P&L in USD (v0.7.1+)"
+          },
+          "fees_usd": {
+            "type": "number",
+            "description": "Transaction fees in USD"
+          },
+          "priced": {
+            "type": "boolean"
+          },
+          "dex": {
+            "type": "string"
+          },
+          "tx_type": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenAmount": {
+        "type": "object",
+        "required": ["mint", "symbol", "amount"],
+        "properties": {
+          "mint": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+} 
