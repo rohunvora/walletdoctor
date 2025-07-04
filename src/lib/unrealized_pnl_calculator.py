@@ -17,8 +17,9 @@ from dataclasses import dataclass
 from src.lib.position_models import Position, PositionPnL, PriceConfidence
 from src.lib.mc_calculator import MarketCapCalculator, MarketCapResult, calculate_market_cap
 from src.lib.mc_calculator import CONFIDENCE_HIGH, CONFIDENCE_EST, CONFIDENCE_UNAVAILABLE
-from src.config.feature_flags import should_calculate_unrealized_pnl
+from src.config.feature_flags import should_calculate_unrealized_pnl, should_use_sol_spot_pricing
 from src.lib.helius_price_extractor import get_helius_price_extractor
+from src.lib.sol_price_fetcher import get_sol_price_usd
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +189,72 @@ class UnrealizedPnLCalculator:
                     last_price_update=datetime.now(timezone.utc),
                     error=None
                 ))
+            return results
+        
+        # Check if we should use SOL spot pricing (PRC-001)
+        if should_calculate_unrealized_pnl() and should_use_sol_spot_pricing():
+            logger.info(f"[PRC-001] Using SOL spot pricing for {len(positions)} positions")
+            
+            # Fetch single SOL/USD price
+            start_time = asyncio.get_event_loop().time()
+            sol_price_usd = get_sol_price_usd()
+            elapsed = asyncio.get_event_loop().time() - start_time
+            
+            if sol_price_usd:
+                logger.info(f"[PRC-001] SOL price fetched: ${sol_price_usd} in {elapsed:.3f}s")
+                
+                # Apply SOL price to all positions
+                for position in positions:
+                    # Calculate current value using token balance as SOL-denominated value
+                    if position.balance and position.balance > ZERO:
+                        current_value_usd = position.balance * sol_price_usd
+                        unrealized_pnl_usd = current_value_usd - position.cost_basis_usd
+                        
+                        if position.cost_basis_usd > 0:
+                            unrealized_pnl_pct = (unrealized_pnl_usd / position.cost_basis_usd) * Decimal("100")
+                        else:
+                            unrealized_pnl_pct = Decimal("100") if unrealized_pnl_usd > 0 else ZERO
+                        
+                        results.append(UnrealizedPnLResult(
+                            position=position,
+                            current_price_usd=sol_price_usd,
+                            current_value_usd=current_value_usd,
+                            unrealized_pnl_usd=unrealized_pnl_usd,
+                            unrealized_pnl_pct=unrealized_pnl_pct,
+                            price_confidence=PriceConfidence.ESTIMATED,
+                            price_source="sol_spot_price",
+                            last_price_update=datetime.now(timezone.utc),
+                            error=None
+                        ))
+                    else:
+                        # Position has no balance
+                        results.append(UnrealizedPnLResult(
+                            position=position,
+                            current_price_usd=None,
+                            current_value_usd=None,
+                            unrealized_pnl_usd=None,
+                            unrealized_pnl_pct=None,
+                            price_confidence=PriceConfidence.UNAVAILABLE,
+                            price_source=None,
+                            last_price_update=datetime.now(timezone.utc),
+                            error="No token balance"
+                        ))
+            else:
+                logger.warning("[PRC-001] SOL price fetch failed, falling back to no pricing")
+                # Fall back to no pricing
+                for position in positions:
+                    results.append(UnrealizedPnLResult(
+                        position=position,
+                        current_price_usd=None,
+                        current_value_usd=None,
+                        unrealized_pnl_usd=None,
+                        unrealized_pnl_pct=None,
+                        price_confidence=PriceConfidence.UNAVAILABLE,
+                        price_source=None,
+                        last_price_update=datetime.now(timezone.utc),
+                        error="SOL price unavailable"
+                    ))
+            
             return results
         
         # Check if we should use Helius-only pricing
@@ -533,6 +600,7 @@ class UnrealizedPnLCalculator:
                     unrealized_pnl_usd=result.unrealized_pnl_usd or ZERO,
                     unrealized_pnl_pct=result.unrealized_pnl_pct or ZERO,
                     price_confidence=result.price_confidence,
+                    price_source=result.price_source or "unknown",  # Preserve price_source from result
                     last_price_update=result.last_price_update
                 )
                 position_pnls.append(position_pnl)

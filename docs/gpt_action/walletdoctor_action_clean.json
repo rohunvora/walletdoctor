@@ -2,13 +2,13 @@
   "openapi": "3.1.0",
   "info": {
     "title": "WalletDoctor Portfolio API",
-    "description": "Real-time Solana wallet portfolio and P&L data for GPT integration",
-    "version": "0.7.0"
+    "description": "Real-time Solana wallet portfolio and P&L data with SOL spot pricing for GPT integration",
+    "version": "0.8.0-prices"
   },
   "servers": [
     {
       "url": "https://web-production-2bb2f.up.railway.app",
-      "description": "Railway deployment (public beta)"
+      "description": "Railway deployment (production)"
     }
   ],
   "paths": {
@@ -16,7 +16,7 @@
       "get": {
         "operationId": "getWalletPortfolio",
         "summary": "Get wallet portfolio with positions and P&L",
-        "description": "Returns complete portfolio data including all open positions, current values, and unrealized P&L calculations. All monetary values are returned as strings to preserve precision.",
+        "description": "Returns complete portfolio data including all open positions with SOL spot pricing, current values, and unrealized P&L calculations. All monetary values are returned as strings to preserve precision.",
         "parameters": [
           {
             "name": "wallet",
@@ -34,12 +34,12 @@
             "name": "schema_version",
             "in": "query",
             "required": false,
-            "description": "Schema version (currently only 1.1 supported)",
+            "description": "Schema version (v0.8.0-prices supports SOL spot pricing)",
             "schema": {
               "type": "string",
-              "default": "1.1",
+              "default": "v0.8.0-prices",
               "enum": [
-                "1.1"
+                "v0.8.0-prices"
               ]
             }
           }
@@ -51,11 +51,48 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response with portfolio data",
+            "description": "Successful response with portfolio data and SOL spot pricing",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PortfolioResponse"
+                },
+                "example": {
+                  "schema_version": "v0.8.0-prices",
+                  "wallet": "3JoVBiQEA2QKsq7TzW5ez5jVRtbbYgTNijoZzp5qgkr2",
+                  "timestamp": "2025-01-15T18:30:45Z",
+                  "positions": [
+                    {
+                      "position_id": "3JoVBi:DezXAZ:1706438400",
+                      "token_symbol": "BONK",
+                      "token_mint": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+                      "balance": "1000000.123456",
+                      "decimals": 5,
+                      "cost_basis_usd": "100.00",
+                      "current_price_usd": "152.64",
+                      "current_value_usd": "152640.00",
+                      "unrealized_pnl_usd": "152540.00",
+                      "unrealized_pnl_pct": "152540.00",
+                      "price_confidence": "est",
+                      "price_source": "sol_spot_price",
+                      "price_age_seconds": 15,
+                      "opened_at": "2024-01-27T15:30:00Z",
+                      "last_trade_at": "2024-01-28T09:15:00Z"
+                    }
+                  ],
+                  "summary": {
+                    "total_positions": 1,
+                    "total_value_usd": "152640.00",
+                    "total_unrealized_pnl_usd": "152540.00",
+                    "total_unrealized_pnl_pct": "152540.00",
+                    "stale_price_count": 0
+                  },
+                  "price_sources": {
+                    "primary": "https://web-production-2bb2f.up.railway.app/v4/prices",
+                    "primary_hint": "POST {mints: [string], timestamps: [number]} returns {mint: price_usd} in JSON",
+                    "fallback": "https://api.coingecko.com/api/v3/simple/price",
+                    "fallback_hint": "GET ?ids=solana&vs_currencies=usd returns {solana: {usd: price}} for SOL spot pricing"
+                  }
                 }
               }
             }
@@ -213,7 +250,8 @@
         "properties": {
           "schema_version": {
             "type": "string",
-            "example": "1.1"
+            "example": "v0.8.0-prices",
+            "description": "API response schema version with SOL spot pricing support"
           },
           "wallet": {
             "type": "string",
@@ -222,7 +260,7 @@
           "timestamp": {
             "type": "string",
             "format": "date-time",
-            "example": "2024-01-28T10:30:00Z"
+            "example": "2025-01-15T18:30:45Z"
           },
           "stale": {
             "type": "boolean",
@@ -262,6 +300,7 @@
           "unrealized_pnl_usd",
           "unrealized_pnl_pct",
           "price_confidence",
+          "price_source",
           "price_age_seconds",
           "opened_at",
           "last_trade_at"
@@ -291,41 +330,48 @@
           "cost_basis_usd": {
             "type": "string",
             "description": "Total USD invested as string",
-            "example": "25.50"
+            "example": "100.00"
           },
           "current_price_usd": {
-            "type": "string",
-            "description": "Current token price in USD",
-            "example": "0.0000315"
+            "type": ["string", "null"],
+            "description": "Current SOL spot price applied to position, null if unavailable",
+            "example": "152.64"
           },
           "current_value_usd": {
-            "type": "string",
-            "description": "Current position value in USD",
-            "example": "31.50"
+            "type": ["string", "null"],
+            "description": "Current position value using SOL spot pricing (balance × SOL price)",
+            "example": "152640000.00"
           },
           "unrealized_pnl_usd": {
-            "type": "string",
-            "description": "Unrealized profit/loss in USD",
-            "example": "6.00"
+            "type": ["string", "null"],
+            "description": "Unrealized profit/loss in USD using SOL pricing",
+            "example": "152639900.00"
           },
           "unrealized_pnl_pct": {
-            "type": "string",
-            "description": "Unrealized P&L percentage",
-            "example": "23.53"
+            "type": ["string", "null"],
+            "description": "Unrealized P&L percentage using SOL pricing",
+            "example": "152639900.00"
           },
           "price_confidence": {
             "type": "string",
             "enum": [
               "high",
               "est",
-              "stale"
+              "stale",
+              "unavailable"
             ],
-            "description": "Price data confidence level"
+            "description": "Price data confidence level (est for SOL spot pricing)",
+            "example": "est"
+          },
+          "price_source": {
+            "type": ["string", "null"],
+            "description": "Source of pricing data - 'sol_spot_price' for PRC-001 SOL pricing",
+            "example": "sol_spot_price"
           },
           "price_age_seconds": {
             "type": "integer",
-            "description": "Age of price data in seconds",
-            "example": 45
+            "description": "Age of SOL price data in seconds",
+            "example": 15
           },
           "opened_at": {
             "type": "string",
@@ -351,23 +397,27 @@
         "properties": {
           "total_positions": {
             "type": "integer",
-            "example": 5
+            "example": 18,
+            "description": "Total number of positions in portfolio"
           },
           "total_value_usd": {
             "type": "string",
-            "example": "1250.75"
+            "example": "2750425.00",
+            "description": "Total portfolio value using SOL spot pricing"
           },
           "total_unrealized_pnl_usd": {
             "type": "string",
-            "example": "325.40"
+            "example": "2650425.00",
+            "description": "Total unrealized P&L using SOL spot pricing"
           },
           "total_unrealized_pnl_pct": {
             "type": "string",
-            "example": "35.15"
+            "example": "2650.43",
+            "description": "Total unrealized P&L percentage"
           },
           "stale_price_count": {
             "type": "integer",
-            "description": "Number of positions with stale price data",
+            "description": "Number of positions with stale price data (should be 0 with SOL pricing)",
             "example": 0
           }
         }
@@ -385,11 +435,12 @@
           },
           "fallback": {
             "type": "string",
-            "example": "https://api.coingecko.com/api/v3/simple/price"
+            "example": "https://api.coingecko.com/api/v3/simple/price",
+            "description": "CoinGecko API used for SOL spot pricing"
           },
           "fallback_hint": {
             "type": "string",
-            "example": "GET ?ids={coingecko_id}&vs_currencies=usd returns {id: {usd: price}} in JSON"
+            "example": "GET ?ids=solana&vs_currencies=usd returns {solana: {usd: price}} for SOL spot pricing"
           }
         }
       },
@@ -498,13 +549,13 @@
             "type": "string",
             "description": "Price per token in USD (if available)",
             "nullable": true,
-            "example": "100.50"
+            "example": "152.64"
           },
           "value_usd": {
             "type": "string",
-            "description": "Total trade value in USD (if available)",
+            "description": "Total trade value in USD (if price available)",
             "nullable": true,
-            "example": "150.75"
+            "example": "228.96"
           }
         }
       }

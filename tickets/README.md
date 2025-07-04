@@ -6,14 +6,19 @@ This directory contains all active development tickets. Each ticket is a standal
 
 ## Ticket Board
 
-### Backend Infrastructure
+### Active Tickets
 | ID | Title | Scope / Done-When | Priority | Owner |
 |---|---|---|---|---|
-| [POS-001](./POS-001.md) | Fix position-builder filter bug | Returns ≥1 open positions for test wallet in smoke test | P1 | |
-| [PRC-001](./PRC-001.md) | Re-enable Helius-only pricing | `/trades` + `/positions` include `current_price_usd`; <8s cold | P2 | |
+| [PRC-001](./PRC-001.md) | Helius-only pricing for positions | `/positions` include `current_price_usd` using SOL spot price; <5s total | P1 | Active |
 | [CCH-001](./CCH-001.md) | Add Redis warm-cache | Warm <0.5s, cache hit ratio metric in `/diagnostics` | P3 | |
 | [PAG-001](./PAG-001.md) | Large-wallet pagination | 250k+ sig wallets succeed ≤30s | P3 | |
 | [OPS-001](./OPS-001.md) | Hard branch-freeze rule | GH protection + `BRANCH_FREEZE.md` merged | P2 | DevOps |
+
+### Completed
+| ID | Title | Completed | Notes |
+|---|---|---|---|
+| [POS-001](./POS-001.md) | Fix position-builder filter bug | 2024-01-15 | Demo wallet returns ≥1 position ✅ |
+| [POS-002](./POS-002.md) | Production endpoint investigation | 2024-01-15 | 18 positions in production ✅ |
 
 ### GPT Integration ([Epic: GPT-000](./GPT-000-INTEGRATION-EPIC.md))
 | ID | Title | Scope / Done-When | Priority | Owner |

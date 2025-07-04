@@ -17,6 +17,7 @@ class FeatureFlags:
     - STREAMING_POSITIONS=true
     - BALANCE_VERIFICATION=true
     - COST_BASIS_METHOD=fifo
+    - PRICE_SOL_SPOT_ONLY=true
     """
     
     def __init__(self):
@@ -26,7 +27,8 @@ class FeatureFlags:
             "unrealized_pnl_enabled": False,     # Enable unrealized P&L calculation
             "streaming_positions": False,        # SSE position updates
             "balance_verification": False,       # On-chain balance verification
-            "cost_basis_method": "weighted_avg"  # "weighted_avg" or "fifo"
+            "cost_basis_method": "weighted_avg", # "weighted_avg" or "fifo"
+            "price_sol_spot_only": False         # Use SOL spot price for all current_price_usd values
         }
         
         # Override with environment variables if present
@@ -39,7 +41,8 @@ class FeatureFlags:
             "positions_enabled",
             "unrealized_pnl_enabled", 
             "streaming_positions",
-            "balance_verification"
+            "balance_verification",
+            "price_sol_spot_only"
         ]
         
         for flag in bool_flags:
@@ -78,6 +81,11 @@ class FeatureFlags:
         """Cost basis calculation method: 'weighted_avg' or 'fifo'"""
         return self._flags["cost_basis_method"]
     
+    @property
+    def price_sol_spot_only(self) -> bool:
+        """Use SOL spot price for all current_price_usd values (PRC-001)"""
+        return self._flags["price_sol_spot_only"]
+    
     def get_all(self) -> Dict[str, Any]:
         """Get all feature flag values"""
         return {
@@ -85,7 +93,8 @@ class FeatureFlags:
             "unrealized_pnl_enabled": self.unrealized_pnl_enabled,
             "streaming_positions": self.streaming_positions,
             "balance_verification": self.balance_verification,
-            "cost_basis_method": self.cost_basis_method
+            "cost_basis_method": self.cost_basis_method,
+            "price_sol_spot_only": self.price_sol_spot_only
         }
     
     def is_enabled(self, feature: str) -> bool:
@@ -125,4 +134,9 @@ def should_verify_balances() -> bool:
 
 def get_cost_basis_method() -> str:
     """Get the configured cost basis calculation method"""
-    return FEATURE_FLAGS.cost_basis_method 
+    return FEATURE_FLAGS.cost_basis_method
+
+
+def should_use_sol_spot_pricing() -> bool:
+    """Check if SOL spot pricing should be used for current_price_usd (PRC-001)"""
+    return FEATURE_FLAGS.price_sol_spot_only 

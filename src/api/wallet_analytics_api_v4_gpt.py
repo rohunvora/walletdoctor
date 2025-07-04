@@ -212,6 +212,7 @@ def format_gpt_schema_v1_1(snapshot: PositionSnapshot, base_url: Optional[str] =
             "unrealized_pnl_usd": str(position_pnl.unrealized_pnl_usd) if position_pnl.unrealized_pnl_usd is not None else None,
             "unrealized_pnl_pct": f"{position_pnl.unrealized_pnl_pct:.2f}" if position_pnl.unrealized_pnl_pct is not None else None,
             "price_confidence": price_confidence,
+            "price_source": position_pnl.price_source if hasattr(position_pnl, 'price_source') else None,
             "price_age_seconds": position_pnl.price_age_seconds if position_pnl.current_price_usd is not None else None,
             "opened_at": position.opened_at.isoformat() + "Z",
             "last_trade_at": position.last_trade_at.isoformat() + "Z"
@@ -232,8 +233,15 @@ def format_gpt_schema_v1_1(snapshot: PositionSnapshot, base_url: Optional[str] =
         except RuntimeError:
             base_url = "https://walletdoctor.app"
     
+    # Check if SOL pricing is being used
+    from src.config.feature_flags import should_use_sol_spot_pricing
+    sol_pricing_active = should_use_sol_spot_pricing()
+    
+    # Determine schema version based on pricing method
+    schema_version = "v0.8.0-prices" if sol_pricing_active else "1.1.1"
+    
     return {
-        "schema_version": "1.1",
+        "schema_version": schema_version,
         "wallet": snapshot.wallet,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "positions": positions_data,

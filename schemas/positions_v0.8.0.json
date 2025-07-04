@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WalletDoctor Positions Response v0.8.0-prices",
+  "description": "Schema for positions endpoint with SOL spot pricing (PRC-001)",
+  "type": "object",
+  "properties": {
+    "wallet": {
+      "type": "string",
+      "description": "Solana wallet address"
+    },
+    "positions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Position"
+      }
+    },
+    "summary": {
+      "$ref": "#/definitions/PositionSummary"
+    },
+    "metadata": {
+      "$ref": "#/definitions/ResponseMetadata"
+    }
+  },
+  "required": ["wallet", "positions", "summary", "metadata"],
+  "definitions": {
+    "Position": {
+      "type": "object",
+      "properties": {
+        "position_id": {
+          "type": "string",
+          "description": "Unique position identifier"
+        },
+        "token_symbol": {
+          "type": "string",
+          "description": "Token symbol (e.g., BONK, SOL)"
+        },
+        "token_mint": {
+          "type": "string",
+          "description": "Solana token mint address"
+        },
+        "balance": {
+          "type": "string",
+          "description": "Token balance as decimal string"
+        },
+        "decimals": {
+          "type": "integer",
+          "description": "Token decimal places"
+        },
+        "cost_basis": {
+          "type": "string",
+          "description": "Average cost per token"
+        },
+        "cost_basis_usd": {
+          "type": "string",
+          "description": "Total USD invested"
+        },
+        "current_price_usd": {
+          "type": ["string", "null"],
+          "description": "Current SOL spot price when PRICE_SOL_SPOT_ONLY=true, null if unavailable"
+        },
+        "current_value_usd": {
+          "type": ["string", "null"],
+          "description": "balance * current_price_usd, null if price unavailable"
+        },
+        "unrealized_pnl_usd": {
+          "type": ["string", "null"],
+          "description": "Unrealized P&L in USD, null if price unavailable"
+        },
+        "unrealized_pnl_pct": {
+          "type": ["string", "null"],
+          "description": "Unrealized P&L percentage, null if price unavailable"
+        },
+        "price_confidence": {
+          "type": "string",
+          "enum": ["high", "est", "stale", "unavailable"],
+          "description": "Price confidence level"
+        },
+        "price_source": {
+          "type": ["string", "null"],
+          "description": "Price source, 'sol_spot_price' for PRC-001, null if unavailable"
+        },
+        "last_price_update": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of last price update"
+        },
+        "opened_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp when position was opened"
+        },
+        "last_trade_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of last trade"
+        },
+        "trade_count": {
+          "type": "integer",
+          "description": "Number of trades in this position"
+        }
+      },
+      "required": [
+        "position_id",
+        "token_symbol", 
+        "token_mint",
+        "balance",
+        "decimals",
+        "cost_basis",
+        "cost_basis_usd",
+        "current_price_usd",
+        "current_value_usd", 
+        "unrealized_pnl_usd",
+        "unrealized_pnl_pct",
+        "price_confidence",
+        "price_source",
+        "last_price_update",
+        "opened_at",
+        "last_trade_at",
+        "trade_count"
+      ]
+    },
+    "PositionSummary": {
+      "type": "object",
+      "properties": {
+        "total_positions": {
+          "type": "integer",
+          "description": "Total number of positions"
+        },
+        "total_cost_basis_usd": {
+          "type": "string",
+          "description": "Total USD invested across all positions"
+        },
+        "total_current_value_usd": {
+          "type": ["string", "null"],
+          "description": "Total current value in USD, null if pricing unavailable"
+        },
+        "total_unrealized_pnl_usd": {
+          "type": ["string", "null"],
+          "description": "Total unrealized P&L in USD, null if pricing unavailable"
+        },
+        "total_unrealized_pnl_pct": {
+          "type": ["string", "null"],
+          "description": "Total unrealized P&L percentage, null if pricing unavailable"
+        },
+        "positions_with_prices": {
+          "type": "integer",
+          "description": "Number of positions with pricing data"
+        },
+        "positions_without_prices": {
+          "type": "integer", 
+          "description": "Number of positions without pricing data"
+        }
+      },
+      "required": [
+        "total_positions",
+        "total_cost_basis_usd",
+        "total_current_value_usd",
+        "total_unrealized_pnl_usd",
+        "total_unrealized_pnl_pct",
+        "positions_with_prices",
+        "positions_without_prices"
+      ]
+    },
+    "ResponseMetadata": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "v0.8.0-prices",
+          "description": "API response schema version"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Response generation timestamp"
+        },
+        "features": {
+          "type": "object",
+          "properties": {
+            "sol_spot_pricing": {
+              "type": "boolean",
+              "description": "Whether SOL spot pricing is enabled"
+            }
+          }
+        }
+      },
+      "required": ["version", "timestamp"]
+    }
+  }
+} 

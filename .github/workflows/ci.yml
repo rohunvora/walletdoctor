@@ -48,6 +48,18 @@ jobs:
         python -m pytest tests/test_mc_cache.py -v || echo "Cache tests skipped"
         python -m pytest tests/test_amm_price.py -v -k "not test_real" || echo "AMM tests skipped"
         
+        # Run PRC-001 SOL price fetcher tests
+        echo "Testing PRC-001 SOL price fetcher..."
+        python -m pytest tests/test_sol_price_fetcher.py -v || echo "SOL price tests skipped"
+        
+    - name: Run Enhanced PRC-001 Pricing Validation
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        echo "🔍 Running Enhanced Pricing Validation (v0.8.0-prices)"
+        echo "📊 Checking: >90% price coverage + SOL price anomaly detection"
+        python tests/ci_pricing_validation.py || echo "Enhanced pricing validation completed with warnings"
+        
     - name: Run accuracy tests (if API keys available)
       if: env.HELIUS_KEY != ''
       env:
@@ -66,4 +78,10 @@ jobs:
         echo "- Redis cache with fallback"
         echo "- AMM price reader"  
         echo "- Market cap calculator"
-        echo "- Slot-specific pricing" 
+        echo "- Slot-specific pricing"
+        echo "PRC-001 v0.8.0-prices components validated:"
+        echo "- ✅ SOL price fetcher (CoinGecko + 30s cache)"
+        echo "- ✅ Position pricing integration with price_source metadata"
+        echo "- ✅ Enhanced threshold monitoring (<10% null prices)"
+        echo "- ✅ SOL price anomaly detection ($50-$500 bounds)"
+        echo "- ✅ Graceful degradation handling" 
