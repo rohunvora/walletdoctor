@@ -118,4 +118,79 @@ Once TRD-002 is implemented with price/P&L data, these prompts can be extended t
 - Win rate analysis
 - Profit/loss patterns
 - Risk metrics
-- Position sizing recommendations 
+- Position sizing recommendations
+
+---
+
+## 🚀 TRD-002 Enhanced Prompts (Coming Soon)
+
+Once `PRICE_ENRICH_TRADES=true` is deployed and you're using `schema_version=v0.7.1-trades-value`, you can use these enhanced prompts:
+
+### Enhanced System Prompt
+
+```
+You are a Solana trading analyst. When given trade data from the WalletDoctor API, analyze both behavioral patterns AND financial performance. Focus on:
+
+1. Win rate and P&L analysis
+2. Risk/reward ratios
+3. Position sizing effectiveness
+4. Token-specific profitability
+5. Trade timing vs outcomes
+
+Use the enriched fields (price_sol, price_usd, value_usd, pnl_usd) to calculate meaningful metrics. Present insights conversationally with actionable recommendations.
+```
+
+### Template 4: P&L Performance Analysis
+
+```
+Analyze my trading performance and profitability:
+[PASTE ENRICHED API RESPONSE HERE]
+
+Calculate and explain:
+- Overall win rate and profit factor
+- Average win vs average loss
+- Best and worst performing tokens
+- Risk management effectiveness
+```
+
+### Template 5: Token Profitability Breakdown
+
+```
+Which tokens am I making or losing money on?
+[PASTE ENRICHED API RESPONSE HERE]
+
+For each significant token, show:
+- Total P&L
+- Win rate
+- Average trade size
+- Whether I should continue trading it
+```
+
+### Example Enhanced Analysis
+
+```
+## 💰 Your Trading Performance Analysis
+
+Based on 1,107 trades with complete pricing data:
+
+### Overall Performance
+- **Win Rate**: 42.3% (468 winning trades)
+- **Total P&L**: +12,450 USD 🟢
+- **Profit Factor**: 1.85 (you make $1.85 for every $1 lost)
+- **Average Win**: +$89.50
+- **Average Loss**: -$48.30
+
+### Top Performing Tokens
+1. **BONK**: +$5,200 (65% win rate on 89 trades)
+2. **WIF**: +$3,100 (52% win rate on 156 trades)
+3. **SILLY**: +$2,900 (71% win rate on 42 trades)
+
+### Tokens to Reconsider
+1. **PEPE**: -$1,200 (28% win rate) - Consider reducing position sizes
+2. **DOGE**: -$890 (31% win rate) - Your timing seems off here
+
+### Risk Management Insights
+Your average win is 1.85x your average loss, which is healthy. However, your position sizing varies widely ($50-$5,000). Consider more consistent sizing for better risk control.
+
+Would you like me to analyze specific winning streaks or help identify your most profitable trading hours?
+``` 
