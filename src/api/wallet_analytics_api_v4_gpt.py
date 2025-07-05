@@ -30,6 +30,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 # Core imports
 from src.lib.blockchain_fetcher_v3_fast import BlockchainFetcherV3Fast
 from src.lib.progress_tracker import get_progress_tracker
+from src.lib.wallet_summary_aggregator import WalletSummaryAggregator
 
 # P6 imports
 from src.lib.position_builder import PositionBuilder
@@ -1008,35 +1009,36 @@ def export_trades(wallet_address: str):
 @simple_auth_required
 def get_analytics_summary(wallet_address: str):
     """
-    Get analytics summary for a wallet
+    Get aggregated analytics summary for a wallet
     
     GET /v4/analytics/summary/{wallet}
     
-    Returns pre-computed analytics with P&L, volume, and token metrics.
-    Response is designed to be <50KB for ChatGPT compatibility.
+    Returns aggregated statistics from ALL trades without size limits.
+    Response is designed to be <25KB for ChatGPT compatibility.
     
     Query Parameters:
+    - window: Include 7d/30d windows (default: true)
     - force_refresh: Skip cache and regenerate (default: false)
     
     Response:
     {
-        "wallet": "wallet_address",
-        "schema_version": "v0.8.0-summary",
-        "generated_at": "2025-01-15T12:00:00Z",
-        "time_window": {...},
-        "pnl": {...},
-        "volume": {...},
-        "top_tokens": [...],
-        "recent_windows": {...}
+        "wallet_summary": {...},
+        "pnl_analysis": {...},
+        "win_rate": {...},
+        "trade_volume": {...},
+        "token_breakdown": [...],
+        "recent_windows": {...},
+        "trading_patterns": {...},
+        "meta": {...}
     }
     """
-    from src.config.feature_flags import analytics_summary
+    # Check feature flag using AGG_SUMMARY
+    agg_summary_enabled = os.getenv('AGG_SUMMARY', 'false').lower() == 'true'
     
-    # Check feature flag
-    if not analytics_summary():
+    if not agg_summary_enabled:
         return jsonify({
             "error": "Analytics summary endpoint is disabled",
-            "message": "Set ANALYTICS_SUMMARY=true to enable"
+            "message": "Set AGG_SUMMARY=true to enable"
         }), 404
     
     try:
@@ -1047,16 +1049,18 @@ def get_analytics_summary(wallet_address: str):
                 "message": "Wallet address must be at least 32 characters"
             }), 400
         
-        # Check if we should force refresh
+        # Get query parameters
+        include_windows = request.args.get("window", "true").lower() != "false"
         force_refresh = request.args.get("force_refresh", "false").lower() == "true"
         
-        logger.info(f"Analytics summary request for wallet: {wallet_address}, force_refresh: {force_refresh}")
+        logger.info(f"Analytics summary request for wallet: {wallet_address}, window: {include_windows}, force_refresh: {force_refresh}")
         
         # Check Redis cache first
         import redis
         import json
         
-        cache_key = f"summary:{wallet_address}"
+        # Build cache key with parameters
+        cache_key = f"summary:{wallet_address}:w={include_windows}"
         cached_summary = None
         
         if not force_refresh:
@@ -1075,26 +1079,39 @@ def get_analytics_summary(wallet_address: str):
         # No cache or force refresh - compute fresh
         start_time = time.time()
         
-        # Fetch trades
+        # Fetch trades with timing
+        fetch_start = time.time()
         async def fetch_and_aggregate():
             # Fetch trades with enrichment
-            async with BlockchainFetcherV3Fast(skip_pricing=False) as fetcher:
+            async with BlockchainFetcherV3Fast(skip_pricing=True) as fetcher:
                 result = await fetcher.fetch_wallet_trades(wallet_address)
             
             trades = result.get("trades", [])
+            logger.info(f"Fetched {len(trades)} trades in {time.time() - fetch_start:.2f}s")
             
-            # Apply enrichment if enabled
+            # Apply enrichment if enabled (reuse existing enriched data)
+            enrich_start = time.time()
             from src.config.feature_flags import price_enrich_trades
             if price_enrich_trades():
                 from src.lib.trade_enricher import TradeEnricher
                 enricher = TradeEnricher()
                 trades = await enricher.enrich_trades(trades)
-                logger.info(f"Enriched {enricher.enrichment_stats['trades_priced']} trades for analytics")
+                logger.info(f"Enriched {len(trades)} trades in {time.time() - enrich_start:.2f}s")
             
-            # Aggregate analytics
-            from src.lib.trade_analytics_aggregator import TradeAnalyticsAggregator
-            aggregator = TradeAnalyticsAggregator()
-            summary = await aggregator.aggregate_analytics(trades, wallet_address)
+            # Aggregate using our new aggregator
+            aggregate_start = time.time()
+            aggregator = WalletSummaryAggregator()
+            summary = aggregator.aggregate_wallet_summary(
+                trades, 
+                include_windows=include_windows,
+                max_tokens=10
+            )
+            logger.info(f"Aggregated summary in {time.time() - aggregate_start:.2f}s")
+            
+            # Add metadata
+            summary['wallet'] = wallet_address
+            summary['schema_version'] = 'v0.8.0-aggregated'
+            summary['generated_at'] = datetime.now(timezone.utc).isoformat()
             
             return summary
         
@@ -1115,12 +1132,19 @@ def get_analytics_summary(wallet_address: str):
         
         # Log performance
         duration = time.time() - start_time
-        logger.info(f"Analytics summary generated in {duration:.2f}s for {wallet_address}")
+        payload_size = len(json.dumps(summary))
+        logger.info(f"Analytics summary generated in {duration:.2f}s for {wallet_address}, size: {payload_size} bytes")
         
-        return jsonify(summary)
+        # Add performance headers
+        response = make_response(jsonify(summary))
+        response.headers['X-Response-Time-Ms'] = f"{duration * 1000:.0f}"
+        response.headers['X-Payload-Size-Bytes'] = str(payload_size)
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error generating analytics summary for {wallet_address}: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({
             "error": "Internal server error",
             "message": str(e)

@@ -113,6 +113,24 @@ Calculate my win rate, realized P&L, and average entry prices:
 [PASTE ENRICHED API RESPONSE HERE]
 ```
 
+### Template 7: Quick Summary Analysis (NEW - v0.8.0)
+
+```
+First, get a complete wallet summary using the aggregated endpoint:
+GET /v4/analytics/summary/{wallet}
+
+Then analyze: What are my key trading metrics and biggest wins/losses?
+[PASTE SUMMARY API RESPONSE HERE]
+```
+
+### Template 8: Token Deep Dive
+
+```
+Based on the summary data, which tokens should I focus on or avoid?
+Look at win rates, P&L, and trading patterns.
+[PASTE SUMMARY API RESPONSE HERE]
+```
+
 ### Example Enhanced Analysis
 
 ```
