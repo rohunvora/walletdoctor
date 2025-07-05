@@ -951,6 +951,14 @@ def export_trades(wallet_address: str):
         if not isinstance(trades, list):
             trades = []
         
+        # Apply limit parameter BEFORE enrichment for performance optimization
+        if limit and len(trades) > limit:
+            logger.info(f"Applying limit: {len(trades)} trades -> {limit} trades")
+            trades = trades[:limit]
+            # Update signatures to match limited trades  
+            if signatures and len(signatures) > limit:
+                signatures = signatures[:limit]
+        
         # Apply enrichment if feature flag is enabled and schema supports it
         from src.config.feature_flags import price_enrich_trades, trades_compact
         if price_enrich_trades() and (schema_version == "v0.7.1-trades-value" or schema_version == "v0.7.2-compact"):
